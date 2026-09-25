@@ -1,0 +1,13 @@
+{
+  "name": "agency-funnel",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "generate:keywords": "node scripts/generate-keywords.mjs",
+    "generate:all": "node scripts/generate-keywords.mjs && node scripts/generate-pet-products.mjs",
+    "dev": "npm run dev --prefix product-hunter",
+    "dev:hunter": "npm run dev --prefix product-hunter",
+    "install:hunter": "npm install --prefix product-hunter"
+  }
+}

@@ -1,22 +1,30 @@
-# Agency Funnel (Separate Project)
+# Agency Funnel
 
-Turnkey agency system: **pSEO traffic → lead automation → Shopify turnkey stores**.
+**Separate from** Shopfront Italia / city-biz-directory.
 
-This repo is **not** related to Shopfront Italia / city-biz-directory.
+## Signal Desk (main app)
 
-## Models
+Password-protected research workspace: market scout → marketing/AOV ranking → product hunt → Shopify CSV.
 
-| Model | Role | Stack |
-|-------|------|--------|
-| 3 | Traffic (pSEO) | WordPress + WP All Import + page templates |
-| 2 | Lead nurture | Fluent Forms + Make.com + WhatsApp |
-| 1 | High-ticket offer | Shopify + AutoDS/Zendrop + Matrixify |
+```bash
+cd product-hunter
+cp .env.example .env   # set APP_PASSWORD
+npm install
+npm run dev
+```
 
-## Folders
+- Local UI: http://localhost:5177  
+- Deploy: [product-hunter/README.md](product-hunter/README.md) + [`render.yaml`](render.yaml)
 
-- `model-1-shopify/` — niches + store setup
-- `model-2-automation/` — Make.com + form + WhatsApp blueprint
-- `model-3-pseo/` — keyword formula, CSV template, page structure
-- `action-plan/` — what to do this week
+## Toolkit folders
 
-Start with Model 3 (traffic), build Model 2 in parallel, sell Model 1.
+| Folder | Role |
+|--------|------|
+| `model-1-shopify/` | Niches + Pet store checklist |
+| `model-2-automation/` | Make.com / WhatsApp blueprint |
+| `model-3-pseo/` | pSEO keywords + page template |
+| `action-plan/WEEK-1.md` | Week-1 plan |
+
+```bash
+npm run generate:all
+```

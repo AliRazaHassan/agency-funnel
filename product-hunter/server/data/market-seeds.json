@@ -1,0 +1,267 @@
+[
+  {
+    "id": "pet-us",
+    "niche": "Pet Supplies",
+    "audience": "US dog and cat owners who buy online for convenience",
+    "demandDrivers": ["repeat consumables", "gift + problem-solve accessories", "evergreen pet spend"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States", "Canada"],
+      "secondaryChannels": ["Amazon (selective SKUs)", "TikTok Shop"]
+    },
+    "whyNow": "High willingness to pay for comfort/safety gear; strong bundle AOV with leash+harness+bags.",
+    "regionTags": ["US", "Global"],
+    "scores": { "demand": 82, "competition": 55, "gap": 70 },
+    "estAovUsd": 58,
+    "estContributionUsd": 24,
+    "projectedMonthlyOrders": { "conservative": 40, "base": 90, "aggressive": 180 },
+    "marketing": {
+      "persona": "Busy pet parent 25–45 who wants fewer returns and happier walks",
+      "hook": "Build a calmer walk and cleaner home — without a DIY product scramble",
+      "adAngles": [
+        "Before/after: tangled leash chaos vs curated walk kit",
+        "Problem: shedding + stains — solution: mat + enzyme + fountain bundle",
+        "Gift angle: new puppy starter kit under $80"
+      ],
+      "offer": "Walk Kit: leash + harness + waste bags — free shipping over $49",
+      "landingPromise": "Automated pet store staples, curated for higher AOV carts",
+      "objections": [
+        { "q": "Is quality random dropship junk?", "a": "We shortlist light, high-margin evergreen SKUs and verify supplier cost before ads." },
+        { "q": "Won't Amazon crush me?", "a": "Lead with branded bundles and Shopify DTC creative Amazon can't match 1:1." }
+      ]
+    },
+    "riskFlags": ["Verify supplier landed cost before scaling ads"]
+  },
+  {
+    "id": "fitness-us",
+    "niche": "Home Fitness Gear",
+    "audience": "Home gym beginners and apartment trainees",
+    "demandDrivers": ["home workout habit", "compact gear", "recovery accessories"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States", "United Kingdom"],
+      "secondaryChannels": ["Instagram/Meta ads", "YouTube reviews"]
+    },
+    "whyNow": "Compact bands/mats/recovery tools keep shipping light and AOV stackable.",
+    "regionTags": ["US", "UK", "Global"],
+    "scores": { "demand": 78, "competition": 60, "gap": 65 },
+    "estAovUsd": 64,
+    "estContributionUsd": 26,
+    "projectedMonthlyOrders": { "conservative": 35, "base": 80, "aggressive": 160 },
+    "marketing": {
+      "persona": "Apartment dweller starting a consistent home routine",
+      "hook": "A full home session in a drawer — no gym membership required",
+      "adAngles": [
+        "Space-saving setup under 10 minutes",
+        "Recovery stack after desk work",
+        "New year / reset challenge kit"
+      ],
+      "offer": "Starter trio: mat + bands + roller — save 15% as bundle",
+      "landingPromise": "Turnkey fitness catalog engineered for light shipping and bundles",
+      "objections": [
+        { "q": "Crowded niche?", "a": "Win on bundles + education content, not single commodity SKUs." },
+        { "q": "Heavy equipment?", "a": "We avoid racks/plates — only shippable accessories." }
+      ]
+    },
+    "riskFlags": ["Avoid heavy steel equipment"]
+  },
+  {
+    "id": "eco-kitchen-uk",
+    "niche": "Eco Kitchen Gadgets",
+    "audience": "UK/EU shoppers who want reusable kitchen upgrades",
+    "demandDrivers": ["giftability", "eco values", "small appliance upgrades"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United Kingdom", "EU"],
+      "secondaryChannels": ["Etsy (selective)", "Pinterest"]
+    },
+    "whyNow": "Gift + reusable angle lifts AOV; many SKUs are light and photogenic.",
+    "regionTags": ["UK", "Global"],
+    "scores": { "demand": 74, "competition": 50, "gap": 72 },
+    "estAovUsd": 52,
+    "estContributionUsd": 22,
+    "projectedMonthlyOrders": { "conservative": 30, "base": 70, "aggressive": 140 },
+    "marketing": {
+      "persona": "Conscious home cook who gifts practical eco upgrades",
+      "hook": "Replace single-use kitchen waste with gadgets that look good on camera",
+      "adAngles": [
+        "Plastic-free swap challenge",
+        "Hostess gift under £40",
+        "Meal-prep efficiency + less waste"
+      ],
+      "offer": "Eco starter set: wrap + scrubbers + bottle brush — free gift wrap insert",
+      "landingPromise": "Photogenic eco kitchen store ready for gift seasons",
+      "objections": [
+        { "q": "Seasonal only?", "a": "Evergreen daily-use SKUs carry the year; gifts amplify Q4." },
+        { "q": "Low ticket?", "a": "Bundles and free-shipping thresholds push AOV up." }
+      ]
+    },
+    "riskFlags": ["Check UK/EU shipping times on supplier"]
+  },
+  {
+    "id": "beauty-gulf",
+    "niche": "Beauty Tools & Accessories",
+    "audience": "Gulf shoppers buying premium-feel beauty tools online",
+    "demandDrivers": ["self-care", "gift culture", "visual social proof"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["UAE", "Saudi Arabia", "Qatar"],
+      "secondaryChannels": ["Instagram Shop", "WhatsApp commerce"]
+    },
+    "whyNow": "High gift AOV and strong creative hooks; prefer tools over regulated cosmetics.",
+    "regionTags": ["Gulf", "Global"],
+    "scores": { "demand": 76, "competition": 58, "gap": 68 },
+    "estAovUsd": 72,
+    "estContributionUsd": 28,
+    "projectedMonthlyOrders": { "conservative": 25, "base": 60, "aggressive": 130 },
+    "marketing": {
+      "persona": "Style-conscious buyer 20–40 who trusts Instagram demos",
+      "hook": "Salon-feel tools at home — gift-ready in one cart",
+      "adAngles": [
+        "UGC before/after tool demo",
+        "Eid / gift bundle",
+        "Travel beauty pouch kit"
+      ],
+      "offer": "Glow kit: facial roller + headband + pouch — free shipping over $69",
+      "landingPromise": "Beauty tools catalog optimized for Gulf gift AOV",
+      "objections": [
+        { "q": "Cosmetics regulations?", "a": "We prioritize tools/accessories, not leave-on cosmetics." },
+        { "q": "Trust?", "a": "Strong PDP demos + WhatsApp nurture after click." }
+      ]
+    },
+    "riskFlags": ["Prefer tools over leave-on cosmetics for compliance simplicity"]
+  },
+  {
+    "id": "baby-us",
+    "niche": "Baby Travel & Nursery Accessories",
+    "audience": "New parents needing portable nursery/travel helpers",
+    "demandDrivers": ["new parent urgency", "gifting", "repeat accessories"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States", "Canada", "UK"],
+      "secondaryChannels": ["Facebook parent groups ads", "Amazon selective"]
+    },
+    "whyNow": "Parents pay for convenience; bundles (pad+organizer+clip) raise AOV.",
+    "regionTags": ["US", "UK", "Global"],
+    "scores": { "demand": 80, "competition": 62, "gap": 64 },
+    "estAovUsd": 61,
+    "estContributionUsd": 23,
+    "projectedMonthlyOrders": { "conservative": 32, "base": 75, "aggressive": 150 },
+    "marketing": {
+      "persona": "First-time parent overwhelmed by gear choices",
+      "hook": "Fewer meltdowns on the go — curated baby travel essentials",
+      "adAngles": [
+        "Diaper bag reset in 60 seconds",
+        "Baby shower gift bundle",
+        "Night-feed convenience kit"
+      ],
+      "offer": "Travel trio with free shipping threshold at $55",
+      "landingPromise": "Turnkey baby accessories store focused on light, giftable SKUs",
+      "objections": [
+        { "q": "Safety concerns?", "a": "Stick to accessories (organizers, pads, clips) not regulated medical devices." },
+        { "q": "Crowded?", "a": "Win with curated kits and clear problem-led creative." }
+      ]
+    },
+    "riskFlags": ["Avoid regulated medical/feeding claims"]
+  },
+  {
+    "id": "wp-leads-local",
+    "niche": "Local Service Lead Automation (sell system, not physical SKUs)",
+    "audience": "Realtors, clinics, salons needing WhatsApp lead speed",
+    "demandDrivers": ["speed to lead", "missed call pain", "automation curiosity"],
+    "sellWhere": {
+      "primary": "Done-for-you WordPress + Make.com package",
+      "geos": ["US mid-size cities", "UK", "Gulf"],
+      "secondaryChannels": ["LinkedIn outreach", "pSEO landing pages"]
+    },
+    "whyNow": "High ticket ($1k+) and pairs with your Model 2 automation offer.",
+    "regionTags": ["US", "UK", "Gulf", "Global"],
+    "scores": { "demand": 77, "competition": 45, "gap": 78 },
+    "estAovUsd": 1200,
+    "estContributionUsd": 900,
+    "projectedMonthlyOrders": { "conservative": 2, "base": 5, "aggressive": 12 },
+    "marketing": {
+      "persona": "Local business owner losing leads after hours",
+      "hook": "Reply to every lead in 60 seconds — without hiring a VA",
+      "adAngles": [
+        "Missed WhatsApp = missed revenue",
+        "AI proposal mockup demo",
+        "Competitor still replies tomorrow — you reply now"
+      ],
+      "offer": "Setup + first month monitoring — fixed package pricing",
+      "landingPromise": "Automated lead capture and WhatsApp nurture for local services",
+      "objections": [
+        { "q": "Will clients hate bots?", "a": "Human-sounding first reply + handoff rules; not spam blasts." },
+        { "q": "Tech heavy?", "a": "Done-for-you install; they get a working form + WhatsApp flow." }
+      ]
+    },
+    "riskFlags": ["Service offer — not a Shopify product import"],
+    "isServiceOffer": true
+  },
+  {
+    "id": "desk-uk",
+    "niche": "Desk & WFH Comfort Accessories",
+    "audience": "Remote workers upgrading comfort without buying new furniture",
+    "demandDrivers": ["WFH permanence", "wrist/neck pain", "aesthetic desk setups"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United Kingdom", "United States"],
+      "secondaryChannels": ["TikTok desk setup", "Amazon selective"]
+    },
+    "whyNow": "Light accessories (stands, pads, lights) ship well and bundle into $60–90 carts.",
+    "regionTags": ["UK", "US", "Global"],
+    "scores": { "demand": 73, "competition": 57, "gap": 66 },
+    "estAovUsd": 67,
+    "estContributionUsd": 25,
+    "projectedMonthlyOrders": { "conservative": 28, "base": 65, "aggressive": 130 },
+    "marketing": {
+      "persona": "Remote professional with neck/wrist fatigue",
+      "hook": "Upgrade your desk comfort in one cart — no furniture delivery drama",
+      "adAngles": [
+        "Pain-point: afternoon neck ache",
+        "Aesthetic setup transformation",
+        "Gift for remote teammate"
+      ],
+      "offer": "Comfort stack: laptop stand + wrist pad + light — bundle save 12%",
+      "landingPromise": "WFH accessories store built for bundle AOV",
+      "objections": [
+        { "q": "Commoditized?", "a": "Sell the stack and story, not a single generic stand." },
+        { "q": "Returns?", "a": "Clear sizing/fit content on PDP reduces return risk." }
+      ]
+    },
+    "riskFlags": ["Avoid heavy furniture"]
+  },
+  {
+    "id": "outdoor-us",
+    "niche": "Outdoor Micro-Adventure Gear",
+    "audience": "Casual hikers and car campers needing compact gear",
+    "demandDrivers": ["weekend trips", "giftability", "lightweight gear"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States"],
+      "secondaryChannels": ["YouTube outdoors", "Amazon selective"]
+    },
+    "whyNow": "Compact gadgets beat tents/heavy packs for margin and shipping.",
+    "regionTags": ["US", "Global"],
+    "scores": { "demand": 71, "competition": 63, "gap": 60 },
+    "estAovUsd": 55,
+    "estContributionUsd": 21,
+    "projectedMonthlyOrders": { "conservative": 30, "base": 70, "aggressive": 140 },
+    "marketing": {
+      "persona": "Weekend adventurer who wants compact upgrades",
+      "hook": "Pack lighter. Stay longer. Micro-gear that earns its weight",
+      "adAngles": [
+        "Car-camp night kit",
+        "Trail day essentials under $60",
+        "Gift for outdoorsy partner"
+      ],
+      "offer": "Trail day kit with free shipping over $59",
+      "landingPromise": "Lightweight outdoor accessories optimized for DTC ads",
+      "objections": [
+        { "q": "Seasonal?", "a": "Core accessories sell year-round; push kits in peak seasons." },
+        { "q": "Big brand competition?", "a": "Compete on kits and creative, not brand replicas." }
+      ]
+    },
+    "riskFlags": ["No trademarked brand replicas"]
+  }
+]

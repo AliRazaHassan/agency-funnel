@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Map in WP: {meta_title} {meta_description} -->
+  <title>{meta_title}</title>
+  <meta name="description" content="{meta_description}" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e8eef4;
+      --muted: #9aabbc;
+      --accent: #2dd4a8;
+      --accent-2: #3b82f6;
+      --line: #2a3542;
+      --font-display: "Fraunces", Georgia, serif;
+      --font-body: "Source Sans 3", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1c3a4a 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1a2f55 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.55;
+    }
+    a { color: var(--accent); }
+    .wrap { width: min(920px, 92vw); margin: 0 auto; padding: 2.5rem 0 4rem; }
+    .brand {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.15;
+      margin: 0 0 1rem;
+    }
+    .intro { color: var(--muted); font-size: 1.1rem; max-width: 62ch; }
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+      margin: 2rem 0;
+    }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: 1.2fr 0.8fr; align-items: start; }
+    }
+    .panel {
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.25rem 1.35rem;
+    }
+    .panel h2 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      margin: 0 0 0.75rem;
+    }
+    ul.check { padding-left: 1.1rem; margin: 0; color: var(--muted); }
+    ul.check li { margin: 0.4rem 0; }
+    .cta-box {
+      background: linear-gradient(160deg, #163528, #132238);
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+      position: sticky;
+      top: 1rem;
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin: 0.65rem 0 0.25rem; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0d1218;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+      font: inherit;
+    }
+    button {
+      margin-top: 1rem;
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #06281f;
+      background: linear-gradient(90deg, var(--accent), #5eead4);
+    }
+    .faq details {
+      border-top: 1px solid var(--line);
+      padding: 0.85rem 0;
+    }
+    .faq summary { cursor: pointer; font-weight: 600; }
+    .faq p { color: var(--muted); margin: 0.5rem 0 0; }
+    footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.9rem; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">Agency Funnel</div>
+    <h1>{h1}</h1>
+    <p class="intro">{intro}</p>
+
+    <div class="grid">
+      <div>
+        <section class="panel">
+          <h2>What you get</h2>
+          <ul class="check">
+            <!-- Split outline_bullets by | in WP / CodeWP -->
+            <li>{outline_item_1}</li>
+            <li>{outline_item_2}</li>
+            <li>{outline_item_3}</li>
+            <li>{outline_item_4}</li>
+            <li>{outline_item_5}</li>
+          </ul>
+        </section>
+
+        <section class="panel" style="margin-top:1.25rem">
+          <h2>Process</h2>
+          <ul class="check">
+            <li>Tell us your niche and WhatsApp number</li>
+            <li>Get an AI mockup / proposal within 60 seconds</li>
+            <li>Choose turnkey Shopify store or WordPress automation</li>
+            <li>Ownership / go-live handoff the same day or within 72h</li>
+          </ul>
+        </section>
+
+        <section class="panel faq" style="margin-top:1.25rem">
+          <h2>FAQ</h2>
+          <details open>
+            <summary>{faq_1_q}</summary>
+            <p>{faq_1_a}</p>
+          </details>
+          <details>
+            <summary>{faq_2_q}</summary>
+            <p>{faq_2_a}</p>
+          </details>
+          <details>
+            <summary>{faq_3_q}</summary>
+            <p>{faq_3_a}</p>
+          </details>
+        </section>
+      </div>
+
+      <aside class="panel cta-box">
+        <h2>Get your free mockup</h2>
+        <p style="color:var(--muted);margin:0 0 0.5rem;font-size:0.95rem">
+          Niche: <strong style="color:var(--text)">{primary_niche}</strong>
+          <!-- Optional city: {city_or_null} -->
+        </p>
+        <!-- Replace with Fluent Forms shortcode in WordPress -->
+        <form id="lead-form" action="#" method="post">
+          <label for="name">Name</label>
+          <input id="name" name="name" required autocomplete="name" />
+
+          <label for="whatsapp">WhatsApp number</label>
+          <input id="whatsapp" name="whatsapp" required placeholder="+1..." />
+
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required />
+
+          <label for="business">Business / niche</label>
+          <input id="business" name="business" value="{primary_niche}" />
+
+          <label for="interest">I want</label>
+          <select id="interest" name="interest">
+            <option value="shopify_store">Ready Shopify store</option>
+            <option value="wp_automation">WordPress + WhatsApp automation</option>
+            <option value="both">Both</option>
+          </select>
+
+          <input type="hidden" name="cta_variant" value="{cta_variant}" />
+          <input type="hidden" name="source_keyword" value="{keyword}" />
+          <input type="hidden" name="page_slug" value="{slug}" />
+
+          <button type="submit">Send my free mockup</button>
+        </form>
+      </aside>
+    </div>
+
+    <footer>
+      Intent: {intent} · Template for WP All Import / Elementor · Not affiliated with Shopify Inc.
+    </footer>
+  </div>
+</body>
+</html>

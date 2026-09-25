@@ -1,5 +1,6 @@
 import { clamp, round1 } from "./rankingAI.js";
-import { buildSupplierOptions, defaultSoldOn, defaultSourceFrom } from "./sourcing.js";
+import { buildProductLinks, buildSupplierOptions, defaultSoldOn, defaultSourceFrom } from "./sourcing.js";
+import { buildWinningScorecard } from "./winningScorecard.js";
 
 const SHIPPING_BUFFER = 3; // USD assumed per order buffer
 
@@ -94,8 +95,12 @@ export function scoreProduct(raw, opportunity = {}) {
     estCostUsd: cost,
     estWeightKg: weight,
   });
+  const productLinks = buildProductLinks({
+    title: raw.title,
+    searchQuery: sourceFrom.searchQuery,
+  });
 
-  return {
+  const base = {
     id: raw.id || slugify(raw.title),
     title: raw.title,
     category: raw.category || opportunity.niche || "General",
@@ -114,10 +119,12 @@ export function scoreProduct(raw, opportunity = {}) {
     sourceFrom,
     soldOn,
     supplierOptions,
+    productLinks,
     /** Short UI lines */
     buyFromLabel: `${sourceFrom.primary} · search “${sourceFrom.searchQuery}”`,
     sellOnLabel: `${soldOn.yourChannel} (${(soldOn.geos || []).slice(0, 2).join(", ") || "target geos"})`,
     competitorsLabel: (soldOn.whereCompetitorsSell || []).slice(0, 3).join(" · "),
+    productUrl: productLinks.primary?.url || null,
     estAovUsd,
     estContributionUsd,
     bundleOffer,
@@ -141,6 +148,9 @@ export function scoreProduct(raw, opportunity = {}) {
     rejected,
     researchLabel: "Research score (model + rules) — not live marketplace proof",
   };
+
+  const winning = buildWinningScorecard(base, opportunity);
+  return { ...base, winning };
 }
 
 function slugify(s) {

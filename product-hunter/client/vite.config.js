@@ -9,9 +9,15 @@ export default defineConfig({
   root: __dirname,
   plugins: [react()],
   server: {
+    // Bind IPv4 so Windows browsers + tools hit the same stack as the API proxy target
+    host: "127.0.0.1",
     port: 5177,
+    strictPort: true,
     proxy: {
-      "/api": "http://localhost:8787",
+      "/api": {
+        target: "http://127.0.0.1:8787",
+        changeOrigin: true,
+      },
     },
   },
   build: {

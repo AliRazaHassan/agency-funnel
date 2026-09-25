@@ -97,20 +97,23 @@ async function fetchWikipediaInterest(niche) {
   const startS = ymd(start);
   const endS = ymd(end);
 
-  const results = [];
-  for (const title of titles.slice(0, 3)) {
-    try {
-      const views = await wikiDailyViews(title, startS, endS);
-      const scored = scoreFromViewSeries(views);
-      if (scored) results.push({ title: title.replace(/_/g, " "), ...scored });
-    } catch {
-      /* soft-fail per article */
-    }
-  }
-  if (!results.length) return null;
+  const results = await Promise.all(
+    titles.slice(0, 3).map(async (title) => {
+      try {
+        const views = await wikiDailyViews(title, startS, endS);
+        const scored = scoreFromViewSeries(views);
+        if (scored) return { title: title.replace(/_/g, " "), ...scored };
+      } catch {
+        /* soft-fail per article */
+      }
+      return null;
+    })
+  );
+  const ok = results.filter(Boolean);
+  if (!ok.length) return null;
 
   const interestScore = Math.round(
-    results.reduce((s, r) => s + r.interestScore, 0) / results.length
+    ok.reduce((s, r) => s + r.interestScore, 0) / ok.length
   );
   return {
     provider: "Wikimedia Pageviews",
@@ -118,7 +121,7 @@ async function fetchWikipediaInterest(niche) {
     trusted: true,
     cost: "$0 — public REST API, no key",
     interestScore: clamp(interestScore),
-    articles: results,
+    articles: ok,
     note: "Relative public interest proxy (Wikipedia reads), not Amazon sales units.",
     url: "https://wikimedia.org/api/rest_v1/",
   };
@@ -205,7 +208,11 @@ export async function fetchFreeDemandSignal(niche) {
   if (cached) return { ...cached, cached: true };
 
   const wiki = await fetchWikipediaInterest(niche);
-  const trends = await fetchGoogleTrendsSoft(String(niche || "").split("&")[0].trim());
+  // Google Trends often hangs / 429 on cloud + Windows — opt-in only
+  const trends =
+    process.env.ENABLE_GOOGLE_TRENDS === "1"
+      ? await fetchGoogleTrendsSoft(String(niche || "").split("&")[0].trim())
+      : null;
 
   const parts = [wiki, trends].filter(Boolean);
   if (!parts.length) {

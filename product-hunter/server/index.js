@@ -34,6 +34,12 @@ app.use(
   })
 );
 app.use(express.json({ limit: "2mb" }));
+app.use((err, _req, res, next) => {
+  if (err instanceof SyntaxError && "body" in err) {
+    return res.status(400).json({ error: "Invalid JSON body" });
+  }
+  return next(err);
+});
 app.use(auth.middleware);
 
 let lastScout = { opportunities: [] };
@@ -130,8 +136,8 @@ if (existsSync(clientDist)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`Signal Desk http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Signal Desk http://127.0.0.1:${PORT}`);
   console.log(`Auth: ${auth.enabled ? "password required" : "open (set APP_PASSWORD)"}`);
   console.log(`OpenAI: ${process.env.OPENAI_API_KEY ? "on" : "seed fallback"}`);
 });

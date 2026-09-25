@@ -422,6 +422,13 @@ tr.rejected { opacity: 0.45; }
 .prod-title { font-weight: 600; }
 .prod-cat { color: var(--muted); font-size: 0.8rem; }
 
+.prod-problem {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
 .gate {
   display: inline-block;
   margin-top: 0.25rem;
@@ -486,6 +493,106 @@ tr.rejected { opacity: 0.45; }
   display: block;
   font-size: 0.86rem;
   color: var(--ink);
+}
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+a.ext-link {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.ext-link:hover {
+  border-color: var(--copper, #b86b3c);
+  color: var(--ink);
+}
+
+.win-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.win-badge.pass {
+  background: #e8f6ee;
+  color: #1a6b3c;
+  border-color: #b7e0c5;
+}
+
+.win-badge.watch {
+  background: #fff6e5;
+  color: #8a5a10;
+  border-color: #f0d9a8;
+}
+
+.win-badge.fail {
+  background: #fff1f0;
+  color: #a33;
+  border-color: #f0c2bd;
+}
+
+.win-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.win-chip {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.win-chip.on {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.win-chip.pass.on { background: #e8f6ee; border-color: #1a6b3c; color: #1a6b3c; }
+.win-chip.watch.on { background: #fff6e5; border-color: #8a5a10; color: #8a5a10; }
+.win-chip.fail.on { background: #fff1f0; border-color: #a33; color: #a33; }
+
+.win-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  font-size: 0.82rem;
+}
+
+.win-meta ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+
+.win-meta .fail-li {
+  color: var(--bad, #a33);
+}
+
+@media (max-width: 800px) {
+  .win-meta { grid-template-columns: 1fr; }
 }
 
 .error {
@@ -594,6 +701,7 @@ tr.rejected { opacity: 0.45; }
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  white-space: normal;
 }
 
 .platform-row .vol-label em {

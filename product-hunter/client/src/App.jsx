@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { MarketVizBoard, ProductDetailPanel, FreeSignalChip } from "./Visuals.jsx";
+import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge } from "./Visuals.jsx";
 
 async function api(url, { method = "GET", body } = {}) {
-  const res = await fetch(url, {
-    method,
-    credentials: "include",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      credentials: "include",
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    const err = new Error(
+      "Cannot reach API (is Signal Desk server running on port 8787?)."
+    );
+    err.network = true;
+    throw err;
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error || res.statusText);
@@ -86,6 +95,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
+  const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
 
   const step = hunt ? 3 : scout ? 2 : 1;
 
@@ -94,9 +104,20 @@ export default function App() {
     return hunt.products.filter((p) => selectedIds.has(p.id));
   }, [hunt, selectedIds]);
 
+  const filteredHuntProducts = useMemo(() => {
+    const list = hunt?.products || [];
+    if (winFilter === "ALL") return list;
+    return list.filter((p) => p.winning?.verdict === winFilter);
+  }, [hunt, winFilter]);
+
   async function refreshAuth() {
     try {
-      const status = await api("/api/auth/status");
+      const status = await Promise.race([
+        api("/api/auth/status"),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Auth check timed out")), 8000)
+        ),
+      ]);
       setAuth({ loading: false, ...status });
     } catch {
       setAuth({ loading: false, required: true, authenticated: false });
@@ -138,17 +159,17 @@ export default function App() {
     setSelectedOpp(opp);
     setSelectedIds(new Set());
     setSelectedProduct(null);
+    setWinFilter("ALL");
     try {
       const data = await api("/api/products/hunt", {
         method: "POST",
         body: { opportunity: opp, limit: 50 },
       });
       setHunt(data);
-      setSelectedIds(
-        new Set((data.products || []).filter((p) => !p.rejected).slice(0, 20).map((p) => p.id))
-      );
-      const first = (data.products || []).find((p) => !p.rejected);
-      setSelectedProduct(first || null);
+      const winners = (data.products || []).filter((p) => p.winning?.verdict === "PASS");
+      const pickPool = winners.length ? winners : (data.products || []).filter((p) => !p.rejected);
+      setSelectedIds(new Set(pickPool.slice(0, 20).map((p) => p.id)));
+      setSelectedProduct(pickPool[0] || data.products?.[0] || null);
     } catch (e) {
       if (e.needLogin) refreshAuth();
       setError(e.message);
@@ -445,9 +466,41 @@ export default function App() {
                     Products · {hunt.niche || selectedOpp?.niche} · {hunt.count || hunt.products?.length || 0} SKUs
                   </h2>
                   <p className="muted" style={{ margin: "0.2rem 0 0" }}>
-                    Click a product for cost, shipping days, and funnel.{" "}
+                    Winning scorecard: PASS / WATCH / FAIL (rules — Keepa optional later).{" "}
                     {hunt.note || `${hunt.source} catalog`}
                   </p>
+                  {hunt.winningSummary ? (
+                    <div className="win-summary">
+                      <button
+                        type="button"
+                        className={`win-chip ${winFilter === "ALL" ? "on" : ""}`}
+                        onClick={() => setWinFilter("ALL")}
+                      >
+                        All {hunt.winningSummary.total}
+                      </button>
+                      <button
+                        type="button"
+                        className={`win-chip pass ${winFilter === "PASS" ? "on" : ""}`}
+                        onClick={() => setWinFilter("PASS")}
+                      >
+                        PASS {hunt.winningSummary.pass}
+                      </button>
+                      <button
+                        type="button"
+                        className={`win-chip watch ${winFilter === "WATCH" ? "on" : ""}`}
+                        onClick={() => setWinFilter("WATCH")}
+                      >
+                        WATCH {hunt.winningSummary.watch}
+                      </button>
+                      <button
+                        type="button"
+                        className={`win-chip fail ${winFilter === "FAIL" ? "on" : ""}`}
+                        onClick={() => setWinFilter("FAIL")}
+                      >
+                        FAIL {hunt.winningSummary.fail}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="btn-row">
                   <button
@@ -481,26 +534,28 @@ export default function App() {
                 onClose={() => setSelectedProduct(null)}
               />
 
-              {hunt.products?.length ? (
+              {filteredHuntProducts.length ? (
                 <div className="table-wrap" style={{ marginTop: selectedProduct ? "1rem" : 0 }}>
                   <table>
                     <thead>
                       <tr>
                         <th></th>
                         <th>#</th>
+                        <th>Win</th>
                         <th>Product</th>
                         <th>Buy cost</th>
                         <th>Sell</th>
                         <th>Margin</th>
                         <th>Source</th>
+                        <th>Links</th>
                         <th>Sell on</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {hunt.products.map((p) => (
+                      {filteredHuntProducts.map((p) => (
                         <tr
                           key={p.id}
-                          className={`${p.rejected ? "rejected" : ""} ${selectedProduct?.id === p.id ? "row-active" : ""}`}
+                          className={`${p.rejected ? "rejected" : ""} ${selectedProduct?.id === p.id ? "row-active" : ""} win-row-${(p.winning?.verdict || "none").toLowerCase()}`}
                           onClick={() => setSelectedProduct(p)}
                           style={{ cursor: "pointer" }}
                         >
@@ -515,8 +570,14 @@ export default function App() {
                           </td>
                           <td>{p.rank}</td>
                           <td>
+                            <WinningBadge winning={p.winning} />
+                          </td>
+                          <td>
                             <div className="prod-title">{p.title}</div>
                             <div className="prod-cat">{p.category}</div>
+                            {p.problemSolved ? (
+                              <div className="prod-problem">Solves: {p.problemSolved}</div>
+                            ) : null}
                             {p.rejected ? <span className="gate">Gate fail</span> : null}
                           </td>
                           <td>
@@ -534,6 +595,23 @@ export default function App() {
                               <div className="prod-cat">{p.sourceFrom?.searchQuery}</div>
                             </div>
                           </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <div className="link-row">
+                              {(p.productLinks?.links || [])
+                                .filter((l) => ["aliexpress", "amazon", "cj"].includes(l.id))
+                                .map((l) => (
+                                  <a
+                                    key={l.id}
+                                    className="ext-link"
+                                    href={l.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    {l.label}
+                                  </a>
+                                ))}
+                            </div>
+                          </td>
                           <td>
                             <div className="loc-block">
                               <strong>{p.soldOn?.yourChannel || "Shopify"}</strong>
@@ -547,6 +625,10 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+              ) : hunt.products?.length ? (
+                <p className="muted" style={{ marginTop: "1rem" }}>
+                  No products in this filter. Switch to All / PASS / WATCH / FAIL.
+                </p>
               ) : null}
             </div>
           ) : null}

@@ -66,6 +66,79 @@ export function FreeSignalChip({ freeSignal }) {
   );
 }
 
+export function WinningBadge({ winning, compact = false }) {
+  if (!winning?.verdict) return null;
+  const v = winning.verdict;
+  const cls =
+    v === "PASS" ? "win-badge pass" : v === "WATCH" ? "win-badge watch" : "win-badge fail";
+  return (
+    <span className={cls} title={winning.summary}>
+      {v}
+      {!compact ? ` · ${winning.total}` : ""}
+    </span>
+  );
+}
+
+export function WinningScorecardPanel({ product }) {
+  const w = product?.winning;
+  if (!w) return null;
+  return (
+    <div className="viz-card winning-card">
+      <div className="viz-head">
+        <h3>
+          Winning scorecard <WinningBadge winning={w} />
+        </h3>
+        <p className="muted">{w.summary}</p>
+      </div>
+      <div className="vol-chart">
+        {(w.pillars || []).map((p) => (
+          <div key={p.id} className="vol-row platform-row">
+            <div className="vol-label" title={p.note}>
+              {p.label}
+              <em>weight {Math.round((p.weight || 0) * 100)}%</em>
+            </div>
+            <div className="vol-track">
+              <div className="vol-fill" style={{ width: `${p.score}%` }} />
+            </div>
+            <div className="vol-val">{p.score}</div>
+          </div>
+        ))}
+      </div>
+      <div className="win-meta">
+        <div>
+          <strong>Why it can win</strong>
+          <ul>
+            {(w.passReasons || []).length
+              ? w.passReasons.map((r) => <li key={r}>{r}</li>)
+              : <li className="muted">No strong pass reasons yet</li>}
+          </ul>
+        </div>
+        <div>
+          <strong>Hard fails</strong>
+          <ul>
+            {(w.hardFails || []).length
+              ? w.hardFails.map((r) => (
+                  <li key={r} className="fail-li">
+                    {r}
+                  </li>
+                ))
+              : <li className="muted">None</li>}
+          </ul>
+        </div>
+        <div>
+          <strong>Warnings</strong>
+          <ul>
+            {(w.softWarnings || []).length
+              ? w.softWarnings.map((r) => <li key={r}>{r}</li>)
+              : <li className="muted">None</li>}
+          </ul>
+        </div>
+      </div>
+      <p className="viz-disclaimer">{w.keepaGap?.note}</p>
+    </div>
+  );
+}
+
 export function buildSalesFunnel(item) {
   const { aov, sell, cost, hasRealProductCost } = resolveUnitEconomics(item);
   const orders = item?.projectedMonthlyOrders || {};
@@ -304,6 +377,37 @@ export function ProductDetailPanel({ product, onClose }) {
           <p className="muted">
             #{product.rank} · {product.category} · score {product.rankScore}
           </p>
+          {product.problemSolved || product.hook ? (
+            <div className="hook-box" style={{ marginTop: "0.55rem" }}>
+              <strong>Problem → pitch</strong>
+              <p>
+                {product.problemSolved ? (
+                  <>
+                    <em>Solves:</em> {product.problemSolved}
+                    <br />
+                  </>
+                ) : null}
+                {product.hook ? (
+                  <>
+                    <em>Hook:</em> {product.hook}
+                  </>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
+          {product.productLinks?.links?.length ? (
+            <div className="link-row" style={{ marginTop: "0.5rem" }}>
+              {product.productLinks.links.map((l) => (
+                <a key={l.id} className="ext-link" href={l.url} target="_blank" rel="noreferrer">
+                  {l.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
+          <p className="muted" style={{ marginTop: "0.35rem", fontSize: "0.8rem" }}>
+            {product.productLinks?.note ||
+              "Links open marketplace search for this title (no locked ASIN without Keepa/supplier API)."}
+          </p>
         </div>
         <button type="button" className="ghost" onClick={onClose}>
           Close
@@ -373,6 +477,10 @@ export function ProductDetailPanel({ product, onClose }) {
           ) : null}
         </div>
         <FunnelViz item={funnelProduct} title={`Funnel · ${product.title}`} />
+      </div>
+
+      <div style={{ marginTop: "0.75rem" }}>
+        <WinningScorecardPanel product={product} />
       </div>
 
       <div style={{ marginTop: "0.75rem" }}>

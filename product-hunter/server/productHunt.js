@@ -2,6 +2,7 @@ import { chatJson } from "./openai.js";
 import { scoreProduct } from "./scorer.js";
 import { rankProducts } from "./rankingAI.js";
 import { buildProductMarketplaceSales } from "./marketSales.js";
+import { summarizeWinningDeck } from "./winningScorecard.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -163,6 +164,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     opportunityId: opportunity.id,
     niche: opportunity.niche,
     count: ranked.length,
+    winningSummary: summarizeWinningDeck(ranked),
     products: ranked,
   };
 }

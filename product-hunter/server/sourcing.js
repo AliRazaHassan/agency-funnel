@@ -7,6 +7,67 @@ function round2(n) {
   return Math.round(Number(n) * 100) / 100;
 }
 
+function q(s) {
+  return encodeURIComponent(String(s || "").trim().slice(0, 120));
+}
+
+/**
+ * Research / buy links for a product title.
+ * Without Keepa/supplier APIs we cannot deep-link a specific ASIN/SKU —
+ * these open live marketplace SEARCH pages for that title (honest + useful).
+ */
+export function buildProductLinks(product = {}) {
+  const title = String(product.title || product.searchQuery || "product").trim();
+  const enc = q(title);
+  const dash = encodeURIComponent(title).replace(/%20/g, "-");
+
+  return {
+    note: "Search links (not locked ASIN/SKU) — open and pick a real listing to verify price/shipping",
+    primary: {
+      label: "AliExpress",
+      url: `https://www.aliexpress.com/w/wholesale-${dash}.html`,
+    },
+    links: [
+      {
+        id: "aliexpress",
+        label: "AliExpress",
+        kind: "source",
+        url: `https://www.aliexpress.com/w/wholesale-${dash}.html`,
+      },
+      {
+        id: "amazon",
+        label: "Amazon",
+        kind: "compete",
+        url: `https://www.amazon.com/s?k=${enc}`,
+      },
+      {
+        id: "google",
+        label: "Google Shopping",
+        kind: "research",
+        url: `https://www.google.com/search?tbm=shop&q=${enc}`,
+      },
+      {
+        id: "etsy",
+        label: "Etsy",
+        kind: "compete",
+        url: `https://www.etsy.com/search?q=${enc}`,
+      },
+      {
+        id: "ebay",
+        label: "eBay",
+        kind: "compete",
+        url: `https://www.ebay.com/sch/i.html?_nkw=${enc}`,
+      },
+      {
+        id: "cj",
+        label: "CJ search",
+        kind: "source",
+        url: `https://cjdropshipping.com/search.html?keyword=${enc}`,
+      },
+    ],
+  };
+}
+
 /**
  * Per-source buy options: cost + shipping days (catalog estimates until live supplier API).
  */
@@ -19,6 +80,8 @@ export function buildSupplierOptions(product = {}) {
   const weight = Number(product.estWeightKg) || 0.4;
   const heavy = weight > 0.8;
   const query = product.title || product.sourceFrom?.searchQuery || "product";
+  const enc = q(query);
+  const dash = encodeURIComponent(query).replace(/%20/g, "-");
 
   return [
     {
@@ -57,7 +120,7 @@ export function buildSupplierOptions(product = {}) {
       warehouse: "CN + some local warehouses",
       includes: "Product + ship estimate",
       searchHint: query,
-      verifyUrl: "https://cjdropshipping.com/",
+      verifyUrl: `https://cjdropshipping.com/search.html?keyword=${enc}`,
       dataQuality: "estimate",
     },
     {
@@ -70,7 +133,7 @@ export function buildSupplierOptions(product = {}) {
       warehouse: "Mostly CN",
       includes: "Item price; shipping varies by seller",
       searchHint: query,
-      verifyUrl: `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(query).replace(/%20/g, "-")}.html`,
+      verifyUrl: `https://www.aliexpress.com/w/wholesale-${dash}.html`,
       dataQuality: "estimate",
     },
   ];

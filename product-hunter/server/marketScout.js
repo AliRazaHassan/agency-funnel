@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { rankOpportunities } from "./rankingAI.js";
 import { enrichMarketingPack, normalizeMarketingPack } from "./marketingPack.js";
 import { chatJson } from "./openai.js";
+import { opportunityTradeRoutes } from "./sourcing.js";
+import { enrichOpportunityResearch } from "./researchEngine.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const seeds = JSON.parse(readFileSync(join(__dirname, "data", "market-seeds.json"), "utf8"));
@@ -81,22 +83,36 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
 
   list = applyBudgetHint(list, budget);
 
-  // Enrich top seeds with marketing AI when key present (skip if already from openai full pack)
+  // Recompute demand + marketplace from transparent research engine (kills hardcoded 82 / fake ×55 sales)
+  list = list.map((o) =>
+    enrichOpportunityResearch({
+      ...o,
+      marketing: normalizeMarketingPack(o.marketing, o.niche),
+    })
+  );
+
+  // Enrich marketing copy with AI when key present
   if (source === "seed" && process.env.OPENAI_API_KEY) {
     list = await Promise.all(
       list.slice(0, 6).map(async (o) => {
         const marketing = await enrichMarketingPack(o, { regionFocus });
-        return { ...o, marketing };
+        return enrichOpportunityResearch({ ...o, marketing });
       })
     );
   }
 
-  const ranked = rankOpportunities(list);
+  const ranked = rankOpportunities(list).map((o) => ({
+    ...o,
+    tradeRoutes: opportunityTradeRoutes(o),
+  }));
   return {
     source,
-    researchLabel: "Research score (model + rules) — not live marketplace proof",
+    researchLabel:
+      "Transparent research engine v2 — demand computed; $ from industry benchmarks × assumptions. NOT live Amazon/Etsy API.",
     regionFocus,
     count: ranked.length,
     opportunities: ranked,
+    engineNote:
+      "Previous Demand:82 was a hardcoded seed. Sales were storeOrders×55 (invalid). Both replaced.",
   };
 }

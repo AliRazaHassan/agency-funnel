@@ -1,4 +1,5 @@
 import { clamp, round1 } from "./rankingAI.js";
+import { defaultSoldOn, defaultSourceFrom } from "./sourcing.js";
 
 const SHIPPING_BUFFER = 3; // USD assumed per order buffer
 
@@ -80,6 +81,14 @@ export function scoreProduct(raw, opportunity = {}) {
       ? `${raw.title} + ${raw.bundleWith[0]} bundle ≈ $${estAovUsd}`
       : `Solo $${sell} → cart AOV ≈ $${estAovUsd} with 1 upsell`);
 
+  const sourceFrom = {
+    ...defaultSourceFrom(raw, opportunity),
+    unitCostUsd: round1(cost),
+    currency: "USD",
+    priceNote: "Catalog estimate — confirm live landed cost on AutoDS/Zendrop/AliExpress before buying",
+  };
+  const soldOn = defaultSoldOn(raw, opportunity);
+
   return {
     id: raw.id || slugify(raw.title),
     title: raw.title,
@@ -96,6 +105,12 @@ export function scoreProduct(raw, opportunity = {}) {
     hook: raw.hook || "",
     pdpBullets: raw.pdpBullets || [],
     offerLine: raw.offerLine || opportunity.marketing?.offer || "",
+    sourceFrom,
+    soldOn,
+    /** Short UI lines */
+    buyFromLabel: `${sourceFrom.primary} · search “${sourceFrom.searchQuery}”`,
+    sellOnLabel: `${soldOn.yourChannel} (${(soldOn.geos || []).slice(0, 2).join(", ") || "target geos"})`,
+    competitorsLabel: (soldOn.whereCompetitorsSell || []).slice(0, 3).join(" · "),
     estAovUsd,
     estContributionUsd,
     bundleOffer,

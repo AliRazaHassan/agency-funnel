@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { MarketVizBoard, ProductDetailPanel } from "./Visuals.jsx";
 
 async function api(url, { method = "GET", body } = {}) {
   const res = await fetch(url, {
@@ -81,6 +82,7 @@ export default function App() {
   const [scout, setScout] = useState(null);
   const [selectedOpp, setSelectedOpp] = useState(null);
   const [hunt, setHunt] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
@@ -111,6 +113,7 @@ export default function App() {
     setHunt(null);
     setSelectedOpp(null);
     setSelectedIds(new Set());
+    setSelectedProduct(null);
     try {
       const data = await api("/api/market/scout", {
         method: "POST",
@@ -134,6 +137,7 @@ export default function App() {
     setLoading("hunt");
     setSelectedOpp(opp);
     setSelectedIds(new Set());
+    setSelectedProduct(null);
     try {
       const data = await api("/api/products/hunt", {
         method: "POST",
@@ -143,6 +147,8 @@ export default function App() {
       setSelectedIds(
         new Set((data.products || []).filter((p) => !p.rejected).slice(0, 12).map((p) => p.id))
       );
+      const first = (data.products || []).find((p) => !p.rejected);
+      setSelectedProduct(first || null);
     } catch (e) {
       if (e.needLogin) refreshAuth();
       setError(e.message);
@@ -304,6 +310,10 @@ export default function App() {
               </div>
             ) : (
               <>
+                <MarketVizBoard
+                  opportunities={scout.opportunities}
+                  selectedOpp={selectedOpp}
+                />
                 <div className="section-head">
                   <div>
                     <h2>Ranked opportunities</h2>
@@ -318,6 +328,7 @@ export default function App() {
                       key={opp.id}
                       className={`opp-card ${selectedOpp?.id === opp.id ? "active" : ""}`}
                       style={{ animationDelay: `${i * 40}ms` }}
+                      onClick={() => setSelectedOpp(opp)}
                     >
                       <div className="opp-top">
                         <div>
@@ -337,12 +348,12 @@ export default function App() {
                           <span>Rank score</span>
                         </div>
                         <div className="metric">
-                          <b>${opp.estAovUsd}</b>
-                          <span>Est. AOV</span>
+                          <b>{opp.projectedMonthlyOrders?.base ?? "—"}</b>
+                          <span>Orders / mo</span>
                         </div>
                         <div className="metric">
-                          <b>${opp.estContributionUsd}</b>
-                          <span>Contribution</span>
+                          <b>${opp.estAovUsd}</b>
+                          <span>Est. AOV</span>
                         </div>
                         <div className="metric">
                           <b>${Math.round(opp.projectedMonthlyRevenue?.base || 0).toLocaleString()}</b>
@@ -363,6 +374,31 @@ export default function App() {
                       <p className="muted">
                         <strong style={{ color: "var(--ink-soft)" }}>Offer:</strong> {opp.marketing?.offer}
                       </p>
+                      <div className="route-grid">
+                        <div className="route-box buy">
+                          <strong>Where to source</strong>
+                          <p>{opp.tradeRoutes?.buyInventoryFrom?.primary}</p>
+                          <div className="loc-tags">
+                            {(opp.tradeRoutes?.buyInventoryFrom?.platforms || []).map((p) => (
+                              <span key={p}>{p}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="route-box sell">
+                          <strong>Where to sell</strong>
+                          <p>
+                            {opp.tradeRoutes?.sellOfferOn?.primary}
+                            {(opp.tradeRoutes?.sellOfferOn?.geos || []).length
+                              ? ` · ${(opp.tradeRoutes.sellOfferOn.geos || []).join(", ")}`
+                              : ""}
+                          </p>
+                          <div className="loc-tags">
+                            {(opp.tradeRoutes?.sellOfferOn?.secondaryChannels || []).map((p) => (
+                              <span key={p}>{p}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                       <ul className="angles">
                         {(opp.marketing?.adAngles || []).map((a) => (
                           <li key={a}>{a}</li>
@@ -406,7 +442,8 @@ export default function App() {
                     Products · {hunt.niche || selectedOpp?.niche}
                   </h2>
                   <p className="muted" style={{ margin: "0.2rem 0 0" }}>
-                    {hunt.note || `${hunt.source} research · select winners for Matrixify`}
+                    Click a product to open its buy-cost details and funnel.{" "}
+                    {hunt.note || `${hunt.source} catalog`}
                   </p>
                 </div>
                 <button
@@ -422,24 +459,37 @@ export default function App() {
                 </button>
               </div>
 
+              <ProductDetailPanel
+                product={selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+              />
+
               {hunt.products?.length ? (
-                <div className="table-wrap">
+                <div className="table-wrap" style={{ marginTop: selectedProduct ? "1rem" : 0 }}>
                   <table>
                     <thead>
                       <tr>
                         <th></th>
                         <th>#</th>
                         <th>Product</th>
-                        <th>Score</th>
-                        <th>AOV</th>
+                        <th>Buy cost</th>
+                        <th>Sell</th>
                         <th>Margin</th>
-                        <th>Why</th>
+                        <th>Source</th>
+                        <th>Sell on</th>
                       </tr>
                     </thead>
                     <tbody>
                       {hunt.products.map((p) => (
-                        <tr key={p.id} className={p.rejected ? "rejected" : ""}>
-                          <td>
+                        <tr
+                          key={p.id}
+                          className={`${p.rejected ? "rejected" : ""} ${selectedProduct?.id === p.id ? "row-active" : ""}`}
+                          onClick={() => setSelectedProduct(p)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <td
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <input
                               type="checkbox"
                               checked={selectedIds.has(p.id)}
@@ -452,19 +502,28 @@ export default function App() {
                             <div className="prod-cat">{p.category}</div>
                             {p.rejected ? <span className="gate">Gate fail</span> : null}
                           </td>
-                          <td>{p.rankScore}</td>
                           <td>
-                            ${p.estAovUsd}
-                            <div className="prod-cat">+${p.estContributionUsd}</div>
+                            <strong>${Number(p.estCostUsd).toFixed(2)}</strong>
+                            <div className="prod-cat">est. supplier</div>
+                          </td>
+                          <td>
+                            <strong>${Number(p.estSellPriceUsd).toFixed(2)}</strong>
+                            <div className="prod-cat">AOV ~${p.estAovUsd}</div>
                           </td>
                           <td>{p.marginPct}%</td>
                           <td>
-                            <div>{p.hook}</div>
-                            <ul className="angles">
-                              {(p.reasons || []).slice(0, 2).map((r) => (
-                                <li key={r}>{r}</li>
-                              ))}
-                            </ul>
+                            <div className="loc-block">
+                              <strong>{(p.sourceFrom?.platforms || []).slice(0, 2).join(" / ") || "AutoDS"}</strong>
+                              <div className="prod-cat">{p.sourceFrom?.searchQuery}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="loc-block">
+                              <strong>{p.soldOn?.yourChannel || "Shopify"}</strong>
+                              <div className="prod-cat">
+                                {(p.soldOn?.whereCompetitorsSell || []).slice(0, 2).join(" · ")}
+                              </div>
+                            </div>
                           </td>
                         </tr>
                       ))}

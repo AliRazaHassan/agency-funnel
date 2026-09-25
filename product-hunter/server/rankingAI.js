@@ -1,5 +1,7 @@
 /** Shared ranking weights — opportunities + products */
 
+import { buildMarketplaceSales } from "./marketSales.js";
+
 export const RANK_WEIGHTS = {
   demand: 0.3,
   marketing: 0.25,
@@ -104,18 +106,27 @@ export function rankOpportunities(list) {
   const ranked = list.map((opp) => {
     const scores = rankOpportunity(opp);
     const base = opp.projectedMonthlyOrders?.base ?? 50;
-    const projectedMonthlyRevenue = {
+    const projectedMonthlyRevenue = opp.projectedMonthlyRevenue || {
       conservative: round1((opp.projectedMonthlyOrders?.conservative ?? base * 0.45) * (opp.estAovUsd || 0)),
       base: round1(base * (opp.estAovUsd || 0)),
       aggressive: round1((opp.projectedMonthlyOrders?.aggressive ?? base * 2) * (opp.estAovUsd || 0)),
     };
+    // Keep research-engine marketplaceSales if present; do not rebuild with old scaler
+    const marketplaceSales = opp.marketplaceSales || buildMarketplaceSales({
+      ...opp,
+      projectedMonthlyRevenue,
+    });
     return {
       ...opp,
       scores: { ...opp.scores, ...scores },
       rankScore: scores.rankScore,
       revenuePotentialScore: scores.revenuePotentialScore,
+      projectedMonthlyOrders: opp.projectedMonthlyOrders,
       projectedMonthlyRevenue,
+      marketplaceSales,
       marketingStrength: scores.marketing,
+      demandResearch: opp.demandResearch,
+      researchMeta: opp.researchMeta,
     };
   });
 

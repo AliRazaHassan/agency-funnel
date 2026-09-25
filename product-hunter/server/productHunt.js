@@ -1,6 +1,7 @@
 import { chatJson } from "./openai.js";
 import { scoreProduct } from "./scorer.js";
 import { rankProducts } from "./rankingAI.js";
+import { buildProductMarketplaceSales } from "./marketSales.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -58,11 +59,16 @@ Each product: title, category, problemSolved, estCostUsd, estSellPriceUsd, estWe
 shippingDifficulty (low|med|high), demandType (evergreen|seasonal|fad),
 bundleWith (string[]), supplierNotes, evidence, hook, pdpBullets (3 strings),
 offerLine, competitionEase (0-100), supplierEase (0-100),
-projectedMonthlyOrders {conservative,base,aggressive}.
-No fad unless necessary. No trademarked brands. Prefer light shipping. Aim margin >55%.`,
+projectedMonthlyOrders {conservative,base,aggressive},
+sourceFrom { primary, platforms (string[]), searchQuery, howToFind (string[]), originHint, notes },
+soldOn { yourChannel, geos (string[]), whereCompetitorsSell (string[]), demandSignals (string[]), sellStrategy }.
+sourceFrom = where YOU buy/source the product (AutoDS, Zendrop, CJ, AliExpress, etc).
+soldOn = where this type of product is already selling + where YOU should sell.
+No fad unless necessary. No trademarked brands. Prefer light shipping. Aim margin >50%.`,
     `Opportunity niche: ${opportunity.niche}
 Audience: ${opportunity.audience}
 Geo: ${(opportunity.sellWhere?.geos || []).join(", ")}
+Your sell channel: ${opportunity.sellWhere?.primary || "Shopify"}
 Target AOV context: $${opportunity.estAovUsd}
 Return ${limit} product candidates.`
   );
@@ -90,7 +96,10 @@ export async function huntProducts(opportunity, { limit = 24 } = {}) {
   }
 
   const scored = raw.map((p) => scoreProduct(p, opportunity));
-  const ranked = rankProducts(scored);
+  const ranked = rankProducts(scored).map((p) => ({
+    ...p,
+    marketplaceSales: buildProductMarketplaceSales(p, opportunity),
+  }));
 
   return {
     source,

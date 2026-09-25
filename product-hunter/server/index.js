@@ -92,7 +92,7 @@ app.post("/api/products/hunt", async (req, res) => {
         error: "Provide opportunity object or opportunityId from a prior scout",
       });
     }
-    const result = await huntProducts(opp, { limit: limit || 24 });
+    const result = await huntProducts(opp, { limit: limit || 50 });
     res.json(result);
   } catch (err) {
     console.error(err);

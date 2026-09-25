@@ -52,6 +52,45 @@ function seedForNiche(niche) {
   return SEED_PRODUCTS.default;
 }
 
+const VARIANTS = [
+  { suffix: "Pro", costMul: 1.12, sellMul: 1.15 },
+  { suffix: "Compact", costMul: 0.88, sellMul: 0.9 },
+  { suffix: "Premium", costMul: 1.25, sellMul: 1.28 },
+  { suffix: "Value Pack", costMul: 1.35, sellMul: 1.4 },
+  { suffix: "Travel Size", costMul: 0.75, sellMul: 0.82 },
+];
+
+/** Expand thin seed catalogs to at least `limit` unique SKUs */
+function expandSeedsToLimit(baseList, limit = 50) {
+  const out = [];
+  const seen = new Set();
+  const push = (p) => {
+    const key = p.title.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(p);
+  };
+
+  for (const p of baseList) push({ ...p });
+
+  let v = 0;
+  while (out.length < limit && baseList.length) {
+    const src = baseList[out.length % baseList.length];
+    const variant = VARIANTS[v % VARIANTS.length];
+    v++;
+    push({
+      ...src,
+      title: `${src.title} ${variant.suffix}`,
+      estCostUsd: Math.round(src.estCostUsd * variant.costMul * 100) / 100,
+      estSellPriceUsd: Math.round(src.estSellPriceUsd * variant.sellMul * 100) / 100,
+      competitionEase: Math.min(100, (src.competitionEase || 55) + (v % 7)),
+      supplierEase: Math.min(100, (src.supplierEase || 70) + (v % 5)),
+      hook: `${src.hook} (${variant.suffix})`,
+    });
+  }
+  return out.slice(0, limit);
+}
+
 async function aiProducts(opportunity, limit) {
   const ai = await chatJson(
     `You are an ecommerce product researcher. Return JSON: { "products": [ ... ] }.
@@ -64,7 +103,8 @@ sourceFrom { primary, platforms (string[]), searchQuery, howToFind (string[]), o
 soldOn { yourChannel, geos (string[]), whereCompetitorsSell (string[]), demandSignals (string[]), sellStrategy }.
 sourceFrom = where YOU buy/source the product (AutoDS, Zendrop, CJ, AliExpress, etc).
 soldOn = where this type of product is already selling + where YOU should sell.
-No fad unless necessary. No trademarked brands. Prefer light shipping. Aim margin >50%.`,
+No fad unless necessary. No trademarked brands. Prefer light shipping. Aim margin >50%.
+Return EXACTLY ${limit} unique products (different titles).`,
     `Opportunity niche: ${opportunity.niche}
 Audience: ${opportunity.audience}
 Geo: ${(opportunity.sellWhere?.geos || []).join(", ")}
@@ -78,7 +118,9 @@ Return ${limit} product candidates.`
 /**
  * Hunt products for an opportunity, score + rank.
  */
-export async function huntProducts(opportunity, { limit = 24 } = {}) {
+export async function huntProducts(opportunity, { limit = 50 } = {}) {
+  const target = Math.max(50, Number(limit) || 50);
+
   if (opportunity.isServiceOffer) {
     return {
       source: "service",
@@ -88,12 +130,26 @@ export async function huntProducts(opportunity, { limit = 24 } = {}) {
     };
   }
 
-  let raw = await aiProducts(opportunity, limit);
+  let raw = await aiProducts(opportunity, target);
   let source = "openai";
   if (!raw?.length) {
     source = "seed";
-    raw = seedForNiche(opportunity.niche).slice(0, limit);
+    raw = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
+  } else if (raw.length < target) {
+    // Pad AI shortfalls with expanded seeds
+    const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
+    const seen = new Set(raw.map((p) => String(p.title || "").toLowerCase()));
+    for (const p of pad) {
+      if (raw.length >= target) break;
+      const t = String(p.title || "").toLowerCase();
+      if (seen.has(t)) continue;
+      seen.add(t);
+      raw.push(p);
+    }
+    source = "openai+seed";
   }
+
+  raw = raw.slice(0, target);
 
   const scored = raw.map((p) => scoreProduct(p, opportunity));
   const ranked = rankProducts(scored).map((p) => ({

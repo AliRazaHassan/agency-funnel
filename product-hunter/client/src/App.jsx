@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MarketVizBoard, ProductDetailPanel } from "./Visuals.jsx";
+import { MarketVizBoard, ProductDetailPanel, FreeSignalChip } from "./Visuals.jsx";
 
 async function api(url, { method = "GET", body } = {}) {
   const res = await fetch(url, {
@@ -141,11 +141,11 @@ export default function App() {
     try {
       const data = await api("/api/products/hunt", {
         method: "POST",
-        body: { opportunity: opp, limit: 24 },
+        body: { opportunity: opp, limit: 50 },
       });
       setHunt(data);
       setSelectedIds(
-        new Set((data.products || []).filter((p) => !p.rejected).slice(0, 12).map((p) => p.id))
+        new Set((data.products || []).filter((p) => !p.rejected).slice(0, 20).map((p) => p.id))
       );
       const first = (data.products || []).find((p) => !p.rejected);
       setSelectedProduct(first || null);
@@ -308,7 +308,7 @@ export default function App() {
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : hunt ? null : (
               <>
                 <MarketVizBoard
                   opportunities={scout.opportunities}
@@ -335,6 +335,9 @@ export default function App() {
                           <div className="rank-pill">#{opp.rank}</div>
                           <h3>{opp.niche}</h3>
                           <p className="muted">{opp.audience}</p>
+                          <div className="flags" style={{ marginTop: "0.35rem" }}>
+                            <FreeSignalChip freeSignal={opp.freeSignal} />
+                          </div>
                         </div>
                         <div className="muted" style={{ textAlign: "right", fontSize: "0.85rem" }}>
                           <div>{opp.sellWhere?.primary}</div>
@@ -439,27 +442,41 @@ export default function App() {
               <div className="toolbar">
                 <div>
                   <h2 style={{ margin: 0, fontFamily: "var(--display)", fontSize: "1.25rem" }}>
-                    Products · {hunt.niche || selectedOpp?.niche}
+                    Products · {hunt.niche || selectedOpp?.niche} · {hunt.count || hunt.products?.length || 0} SKUs
                   </h2>
                   <p className="muted" style={{ margin: "0.2rem 0 0" }}>
-                    Click a product to open its buy-cost details and funnel.{" "}
+                    Click a product for cost, shipping days, and funnel.{" "}
                     {hunt.note || `${hunt.source} catalog`}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ width: "auto" }}
-                  onClick={exportCsv}
-                  disabled={!selectedProducts.length || loading === "export"}
-                >
-                  {loading === "export"
-                    ? "Exporting…"
-                    : `Export ${selectedProducts.length} SKUs`}
-                </button>
+                <div className="btn-row">
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => {
+                      setHunt(null);
+                      setSelectedProduct(null);
+                      setSelectedIds(new Set());
+                    }}
+                  >
+                    Back to categories
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ width: "auto" }}
+                    onClick={exportCsv}
+                    disabled={!selectedProducts.length || loading === "export"}
+                  >
+                    {loading === "export"
+                      ? "Exporting…"
+                      : `Export ${selectedProducts.length} SKUs`}
+                  </button>
+                </div>
               </div>
 
               <ProductDetailPanel
+                key={selectedProduct?.id || "none"}
                 product={selectedProduct}
                 onClose={() => setSelectedProduct(null)}
               />

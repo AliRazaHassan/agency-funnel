@@ -1,27 +1,74 @@
+import { useMemo, useState } from "react";
+
 function money(n) {
   if (n == null || Number.isNaN(Number(n))) return "—";
-  return `$${Math.round(Number(n)).toLocaleString()}`;
+  const v = Number(n);
+  if (v === 0) return "$0";
+  return `$${Math.round(v * 100) / 100}`;
 }
 
-export function DataHonestyBanner() {
+function resolveUnitEconomics(item = {}) {
+  const aov = Number(item.estAovUsd) || Number(item.estSellPriceUsd) || 0;
+  const sell = Number(item.estSellPriceUsd) || aov;
+  let cost = Number(item.estCostUsd);
+  if (!Number.isFinite(cost) || cost <= 0) {
+    const fromSource = Number(item.sourceFrom?.unitCostUsd);
+    const fromOption = Number(item.supplierOptions?.[0]?.unitCostUsd);
+    if (Number.isFinite(fromSource) && fromSource > 0) cost = fromSource;
+    else if (Number.isFinite(fromOption) && fromOption > 0) cost = fromOption;
+    else if (Number.isFinite(Number(item.estContributionUsd)) && aov > 0) {
+      // Niche-level: contribution is profit proxy → implied COGS
+      cost = Math.max(0, aov - Number(item.estContributionUsd));
+    } else {
+      cost = 0;
+    }
+  }
+  return {
+    aov: aov || sell,
+    sell: sell || aov,
+    cost,
+    hasRealProductCost: Number(item.estCostUsd) > 0 || Number(item.supplierOptions?.[0]?.unitCostUsd) > 0,
+  };
+}
+
+export function DataHonestyBanner({ freeSignal }) {
   return (
     <div className="honesty-banner">
-      <strong>About these numbers</strong>
+      <strong>Trusted data · free for users</strong>
       <p>
-        Unit costs and sell prices are <em>catalog estimates</em> for planning — confirm the live supplier
-        price on AutoDS / Zendrop / AliExpress before you buy. Marketplace bars show{" "}
-        <em>relative platform mix (%)</em>, not live scraped Amazon/Etsy/eBay GMV. We do not invent
-        “real-time sales volume” without a connected data API (Keepa, Helium 10, etc.).
+        Live interest comes from <strong>Wikimedia Pageviews</strong> (free, no key)
+        {freeSignal?.providers?.some((p) => p.provider === "Google Trends")
+          ? " + Google Trends when reachable"
+          : ""}
+        . Dollar niche models use cited industry totals.{" "}
+        <strong>Amazon sold units / BSR</strong> still need Keepa API (paid — no free tier). Supplier
+        landed cost = catalog estimate until AutoDS/CJ keys.
       </p>
+      {freeSignal?.ok ? (
+        <p className="muted" style={{ margin: "0.4rem 0 0" }}>
+          Free interest index this niche: {freeSignal.interestScore}/100 ·{" "}
+          {(freeSignal.providers || []).map((p) => p.provider).join(" + ")}
+        </p>
+      ) : null}
     </div>
   );
 }
 
-export function buildSalesFunnel(product) {
-  const cost = Number(product?.estCostUsd) || 0;
-  const sell = Number(product?.estSellPriceUsd) || Number(product?.estAovUsd) || 0;
-  const aov = Number(product?.estAovUsd) || sell;
-  const orders = product?.projectedMonthlyOrders || {};
+export function FreeSignalChip({ freeSignal }) {
+  if (!freeSignal) return null;
+  if (!freeSignal.ok) {
+    return <span className="flag">Free feed offline · benchmarks only</span>;
+  }
+  return (
+    <span className="flag" style={{ borderColor: "var(--ok, #2a7)" }}>
+      Free trusted · interest {freeSignal.interestScore}
+    </span>
+  );
+}
+
+export function buildSalesFunnel(item) {
+  const { aov, sell, cost, hasRealProductCost } = resolveUnitEconomics(item);
+  const orders = item?.projectedMonthlyOrders || {};
   const base = Number(orders.base) || 40;
   const conservative = Number(orders.conservative) || Math.round(base * 0.5);
   const aggressive = Number(orders.aggressive) || Math.round(base * 2);
@@ -31,35 +78,30 @@ export function buildSalesFunnel(product) {
   const carts = Math.round(views * 0.22);
   const checkouts = Math.round(carts * 0.55);
 
-  return {
-    cost,
-    sell,
-    aov,
-    orders: { conservative, base, aggressive },
-    unitEconomics: {
-      cost,
-      sell,
-      marginPct: sell > 0 ? Math.round(((sell - cost) / sell) * 1000) / 10 : 0,
-      profitPerOrder: Math.round((sell - cost) * 100) / 100,
+  const stages = [
+    { id: "visit", label: "Store visitors / mo", value: visitors, note: "Planning assumption (~2.5% close)" },
+    { id: "pdp", label: "Product page views", value: views, note: "~45% of visitors" },
+    { id: "cart", label: "Add to cart", value: carts, note: "~22% of views" },
+    { id: "checkout", label: "Checkouts started", value: checkouts, note: "~55% of carts" },
+    { id: "orders", label: "Paid orders", value: base, note: "Your store planning volume" },
+    {
+      id: "revenue",
+      label: "Gross revenue / mo",
+      value: base * aov,
+      note: `AOV ${money(aov)}`,
+      isMoney: true,
     },
-    stages: [
-      { id: "visit", label: "Store visitors / mo", value: visitors, note: "Planning assumption (~2.5% close)" },
-      { id: "pdp", label: "Product page views", value: views, note: "~45% of visitors" },
-      { id: "cart", label: "Add to cart", value: carts, note: "~22% of views" },
-      { id: "checkout", label: "Checkouts started", value: checkouts, note: "~55% of carts" },
-      { id: "orders", label: "Paid orders", value: base, note: "Your store planning volume" },
-      {
-        id: "revenue",
-        label: "Gross revenue / mo",
-        value: base * aov,
-        note: `AOV ${money(aov)}`,
-        isMoney: true,
-      },
+  ];
+
+  if (cost > 0) {
+    stages.push(
       {
         id: "cogs",
-        label: "Est. COGS / mo",
+        label: hasRealProductCost ? "Est. COGS / mo" : "Implied COGS / mo",
         value: base * cost,
-        note: `Unit cost ${money(cost)} × orders`,
+        note: hasRealProductCost
+          ? `Unit cost ${money(cost)} × orders`
+          : `Implied from AOV − contribution (${money(cost)}/unit) — not a supplier quote`,
         isMoney: true,
       },
       {
@@ -68,8 +110,23 @@ export function buildSalesFunnel(product) {
         value: base * (sell - cost),
         note: "Before ads, apps, returns",
         isMoney: true,
-      },
-    ],
+      }
+    );
+  }
+
+  return {
+    cost,
+    sell,
+    aov,
+    hasRealProductCost,
+    orders: { conservative, base, aggressive },
+    unitEconomics: {
+      cost,
+      sell,
+      marginPct: sell > 0 && cost > 0 ? Math.round(((sell - cost) / sell) * 1000) / 10 : null,
+      profitPerOrder: cost > 0 ? Math.round((sell - cost) * 100) / 100 : null,
+    },
+    stages,
   };
 }
 
@@ -143,28 +200,41 @@ export function FunnelViz({ item, title }) {
       <div className="viz-head">
         <h3>{title || `Funnel · ${item?.title || item?.niche || "Selected"}`}</h3>
         <p className="muted">
-          Unit economics: buy ~{money(ue.cost)} → sell ~{money(ue.sell)} · margin {ue.marginPct}% ·
-          profit/order ~{money(ue.profitPerOrder)}
+          {ue.cost > 0
+            ? `Unit economics: buy ~${money(ue.cost)} → sell ~${money(ue.sell)}${
+                ue.marginPct != null ? ` · margin ${ue.marginPct}%` : ""
+              }${ue.profitPerOrder != null ? ` · profit/order ~${money(ue.profitPerOrder)}` : ""}`
+            : "No unit cost on this view — open a product and select a supplier source"}
         </p>
       </div>
-      <div className="unit-strip">
-        <div>
-          <span>Est. buy cost</span>
-          <b>{money(ue.cost)}</b>
+      {ue.cost > 0 ? (
+        <div className="unit-strip">
+          <div>
+            <span>{funnel.hasRealProductCost ? "Est. buy cost" : "Implied buy cost"}</span>
+            <b>{money(ue.cost)}</b>
+          </div>
+          <div>
+            <span>Est. sell / AOV</span>
+            <b>{money(ue.sell)}</b>
+          </div>
+          <div>
+            <span>Margin</span>
+            <b>{ue.marginPct != null ? `${ue.marginPct}%` : "—"}</b>
+          </div>
+          <div>
+            <span>Profit / order</span>
+            <b>{ue.profitPerOrder != null ? money(ue.profitPerOrder) : "—"}</b>
+          </div>
         </div>
-        <div>
-          <span>Est. sell price</span>
-          <b>{money(ue.sell)}</b>
+      ) : (
+        <div className="honesty-banner" style={{ marginBottom: "0.85rem" }}>
+          <strong>Cost was $0 here before — bug</strong>
+          <p>
+            Niche funnels don’t have a supplier SKU cost. Click a <strong>product</strong>, pick AutoDS /
+            Zendrop / CJ / AliExpress — then cost + shipping days drive this funnel.
+          </p>
         </div>
-        <div>
-          <span>Margin</span>
-          <b>{ue.marginPct}%</b>
-        </div>
-        <div>
-          <span>Profit / order</span>
-          <b>{money(ue.profitPerOrder)}</b>
-        </div>
-      </div>
+      )}
       <div className="funnel">
         {funnel.stages.map((s, i) => (
           <div key={s.id} className="funnel-step" style={{ width: `${94 - i * 7}%` }}>
@@ -180,8 +250,8 @@ export function FunnelViz({ item, title }) {
         ))}
       </div>
       <p className="viz-disclaimer">
-        Order volume is a planning scenario from capture assumptions — confirm with ads tests. Buy cost
-        must be verified on the supplier before purchase.
+        Order volume is planning math until Keepa/supplier APIs are connected. Product costs update when
+        you select a source on the product panel.
       </p>
     </div>
   );
@@ -197,7 +267,7 @@ export function MarketVizBoard({ opportunities, selectedOpp }) {
         <h2>Market view · {focus.niche}</h2>
         <p className="muted">Demand index + platform mix. Click a product later for its own funnel.</p>
       </div>
-      <DataHonestyBanner />
+      <DataHonestyBanner freeSignal={focus.freeSignal} />
       <div className="viz-grid two">
         <DemandBreakdown research={focus.demandResearch} score={focus.scores?.demand} />
         <PlatformMixViz sales={focus.marketplaceSales} title={`Platform mix · ${focus.niche}`} />
@@ -211,9 +281,20 @@ export function MarketVizBoard({ opportunities, selectedOpp }) {
 
 export function ProductDetailPanel({ product, onClose }) {
   if (!product) return null;
+  const options = product.supplierOptions || [];
+  const [sourceId, setSourceId] = useState(options[0]?.id || "autods");
+  const selected = useMemo(
+    () => options.find((o) => o.id === sourceId) || options[0],
+    [options, sourceId]
+  );
   const src = product.sourceFrom || {};
-  const aliQuery = encodeURIComponent(src.searchQuery || product.title || "");
-  const aliUrl = `https://www.aliexpress.com/w/wholesale-${aliQuery.replace(/%20/g, "-")}.html`;
+  const sell = Number(product.estSellPriceUsd) || 0;
+  const buy = Number(selected?.unitCostUsd ?? product.estCostUsd) || 0;
+  const margin = sell > 0 ? Math.round(((sell - buy) / sell) * 1000) / 10 : 0;
+  const funnelProduct = {
+    ...product,
+    estCostUsd: buy,
+  };
 
   return (
     <div className="product-detail">
@@ -232,54 +313,66 @@ export function ProductDetailPanel({ product, onClose }) {
       <div className="viz-grid two">
         <div className="viz-card">
           <div className="viz-head">
-            <h3>Where to buy · estimated cost</h3>
-            <p className="muted">Confirm live price on supplier before ordering</p>
+            <h3>Select source · cost + shipping</h3>
+            <p className="muted">Pick a supplier channel to see estimated unit cost and delivery window</p>
           </div>
-          <div className="unit-strip">
-            <div>
-              <span>Est. unit cost</span>
-              <b>{money(product.estCostUsd)}</b>
-            </div>
-            <div>
-              <span>Est. sell price</span>
-              <b>{money(product.estSellPriceUsd)}</b>
-            </div>
-            <div>
-              <span>Margin</span>
-              <b>{product.marginPct}%</b>
-            </div>
-            <div>
-              <span>Weight</span>
-              <b>{product.estWeightKg} kg</b>
-            </div>
-          </div>
-          <p>
-            <strong>Primary source:</strong> {src.primary}
-          </p>
-          <p className="muted">Search: “{src.searchQuery || product.title}”</p>
-          <div className="loc-tags">
-            {(src.platforms || []).map((p) => (
-              <span key={p}>{p}</span>
+
+          <div className="source-pick">
+            {options.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                className={`source-option ${selected?.id === o.id ? "on" : ""}`}
+                onClick={() => setSourceId(o.id)}
+              >
+                <strong>{o.name}</strong>
+                <span>
+                  {money(o.unitCostUsd)} · {o.shippingDaysMin}–{o.shippingDaysMax} days
+                </span>
+              </button>
             ))}
           </div>
-          <ul className="angles">
-            {(src.howToFind || []).map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ul>
-          <p className="muted">{src.originHint}</p>
-          <p className="muted">{src.notes || product.supplierNotes}</p>
-          <div className="card-actions">
-            <a className="btn" href={aliUrl} target="_blank" rel="noreferrer">
-              Open AliExpress search
-            </a>
-          </div>
-          <p className="viz-disclaimer">
-            Listed costs are catalog estimates used for ranking — not a live quote. AutoDS/Zendrop show
-            the real landed cost.
-          </p>
+
+          {selected ? (
+            <div className="selected-source">
+              <div className="unit-strip">
+                <div>
+                  <span>Est. unit cost</span>
+                  <b>{money(selected.unitCostUsd)}</b>
+                </div>
+                <div>
+                  <span>Shipping days</span>
+                  <b>
+                    {selected.shippingDaysMin}–{selected.shippingDaysMax}
+                  </b>
+                </div>
+                <div>
+                  <span>Your sell price</span>
+                  <b>{money(sell)}</b>
+                </div>
+                <div>
+                  <span>Margin @ this source</span>
+                  <b>{margin}%</b>
+                </div>
+              </div>
+              <p>
+                <strong>Warehouse:</strong> {selected.warehouse}
+              </p>
+              <p className="muted">{selected.includes}</p>
+              <p className="muted">Search: “{selected.searchHint || src.searchQuery}”</p>
+              <div className="card-actions">
+                <a className="btn" href={selected.verifyUrl} target="_blank" rel="noreferrer">
+                  Verify on {selected.name}
+                </a>
+              </div>
+              <p className="viz-disclaimer">
+                Costs and shipping windows are catalog estimates ({selected.dataQuality}). Live quotes
+                appear inside AutoDS / Zendrop / CJ / AliExpress after you search the SKU.
+              </p>
+            </div>
+          ) : null}
         </div>
-        <FunnelViz item={product} title={`Funnel · ${product.title}`} />
+        <FunnelViz item={funnelProduct} title={`Funnel · ${product.title}`} />
       </div>
 
       <div style={{ marginTop: "0.75rem" }}>

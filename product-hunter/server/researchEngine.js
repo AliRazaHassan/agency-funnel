@@ -211,9 +211,31 @@ export function computeDemandResearch(opportunity = {}) {
     id: "dataConfidence",
     label: "Benchmark data confidence",
     score: dataConfidence,
-    weight: 0.1,
+    weight: 0.08,
     evidence: `${bench.source} (${bench.year}) · confidence=${bench.confidence}`,
   });
+
+  // Free live signal (Wikimedia ± Google Trends) when present
+  const free = opportunity.freeSignal;
+  if (free?.ok && Number.isFinite(free.interestScore)) {
+    factors.push({
+      id: "freePublicInterest",
+      label: "Free public interest (Wikimedia/Trends)",
+      score: clamp(free.interestScore),
+      weight: 0.22,
+      evidence:
+        free.providers?.map((p) => `${p.provider}: ${p.interestScore}`).join(" · ") ||
+        free.honesty,
+    });
+    // Rebalance earlier weights slightly so total ≈ 1
+    const locked = new Set(["freePublicInterest"]);
+    const others = factors.filter((f) => !locked.has(f.id));
+    const othersWeight = others.reduce((s, f) => s + f.weight, 0);
+    const targetOthers = 0.78;
+    if (othersWeight > 0) {
+      for (const f of others) f.weight = (f.weight / othersWeight) * targetOthers;
+    }
+  }
 
   const demand = round1(
     factors.reduce((sum, f) => sum + f.score * f.weight, 0)
@@ -222,8 +244,10 @@ export function computeDemandResearch(opportunity = {}) {
   return {
     demandScore: clamp(demand),
     factors,
-    method:
-      "Weighted rubric (evergreen, urgency, online fit, gift/social, competition ease, benchmark confidence). NOT live search volume.",
+    freeSignal: free || null,
+    method: free?.ok
+      ? "Weighted rubric + free public interest (Wikimedia Pageviews ± Google Trends). Not Amazon sold units."
+      : "Weighted rubric (evergreen, urgency, online fit, gift/social, competition ease, benchmarks). Free live feed unavailable this run.",
     replacesHardcoded: true,
   };
 }
@@ -341,29 +365,52 @@ export function computeMarketplaceFromBenchmarks(opportunity = {}) {
 }
 
 /**
- * Enrich opportunity: recompute demand + marketplace; overwrite fake seed scores.
+ * Enrich opportunity: free signals + demand + marketplace; overwrite fake seed scores.
  */
-export function enrichOpportunityResearch(opportunity = {}) {
-  const demandResearch = computeDemandResearch(opportunity);
+export async function enrichOpportunityResearch(opportunity = {}) {
+  let freeSignal = opportunity.freeSignal;
+  if (!freeSignal) {
+    try {
+      const { fetchFreeDemandSignal } = await import("./freeSignals.js");
+      freeSignal = await fetchFreeDemandSignal(opportunity.niche);
+    } catch {
+      freeSignal = { ok: false, free: true, honesty: "Free signal fetch failed" };
+    }
+  }
+
+  const withSignal = { ...opportunity, freeSignal };
+  const demandResearch = computeDemandResearch(withSignal);
   const marketplaceSales = computeMarketplaceFromBenchmarks({
-    ...opportunity,
+    ...withSignal,
     scores: {
       ...opportunity.scores,
       demand: demandResearch.demandScore,
     },
   });
 
+  // Attach free signal provenance onto marketplace sources list
+  if (freeSignal?.ok && Array.isArray(marketplaceSales.sources)) {
+    for (const p of freeSignal.providers || []) {
+      marketplaceSales.sources.push({
+        name: `${p.provider} (free)`,
+        year: "live",
+        note: p.note,
+        interestScore: p.interestScore,
+        url: p.url,
+      });
+    }
+  }
+
   const projectedMonthlyOrders =
     marketplaceSales.yourStoreProjection?.orders || opportunity.projectedMonthlyOrders;
   const projectedMonthlyRevenue =
     marketplaceSales.yourStoreProjection?.revenue || opportunity.projectedMonthlyRevenue;
 
-  // Gap index: demand vs competition
   const competition = Number(opportunity.scores?.competition) || 55;
   const gap = clamp(Math.round(demandResearch.demandScore * 0.6 + (100 - competition) * 0.4));
 
   return {
-    ...opportunity,
+    ...withSignal,
     scores: {
       ...opportunity.scores,
       demand: demandResearch.demandScore,
@@ -372,13 +419,15 @@ export function enrichOpportunityResearch(opportunity = {}) {
     },
     demandResearch,
     marketplaceSales,
+    freeSignal,
     projectedMonthlyOrders,
     projectedMonthlyRevenue,
     researchMeta: {
       verifiedLiveMarketplace: false,
-      engine: "researchEngine/v2-transparent",
+      freePublicInterest: Boolean(freeSignal?.ok),
+      engine: "researchEngine/v3-free-signals",
       warning:
-        "Demand was previously a hardcoded seed (e.g. 82). It is now computed. Sales $ use industry benchmarks × assumptions — not Amazon API.",
+        "Free layer = Wikimedia (± Trends) + cited industry $ models. Amazon sold units still need Keepa (paid).",
     },
   };
 }

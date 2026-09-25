@@ -83,20 +83,21 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
 
   list = applyBudgetHint(list, budget);
 
-  // Recompute demand + marketplace from transparent research engine (kills hardcoded 82 / fake ×55 sales)
-  list = list.map((o) =>
-    enrichOpportunityResearch({
-      ...o,
-      marketing: normalizeMarketingPack(o.marketing, o.niche),
-    })
+  // Free trusted signals (Wikimedia) + cited benchmarks — no Keepa cost for users
+  list = await Promise.all(
+    list.map((o) =>
+      enrichOpportunityResearch({
+        ...o,
+        marketing: normalizeMarketingPack(o.marketing, o.niche),
+      })
+    )
   );
 
-  // Enrich marketing copy with AI when key present
   if (source === "seed" && process.env.OPENAI_API_KEY) {
     list = await Promise.all(
       list.slice(0, 6).map(async (o) => {
         const marketing = await enrichMarketingPack(o, { regionFocus });
-        return enrichOpportunityResearch({ ...o, marketing });
+        return enrichOpportunityResearch({ ...o, marketing, freeSignal: o.freeSignal });
       })
     );
   }
@@ -105,14 +106,16 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
     ...o,
     tradeRoutes: opportunityTradeRoutes(o),
   }));
+  const freeOk = ranked.filter((o) => o.freeSignal?.ok).length;
   return {
     source,
     researchLabel:
-      "Transparent research engine v2 — demand computed; $ from industry benchmarks × assumptions. NOT live Amazon/Etsy API.",
+      "Free trusted layer: Wikimedia Pageviews (± Google Trends) + cited industry benchmarks. Amazon unit sales = Keepa paid only.",
     regionFocus,
     count: ranked.length,
+    freeSignalsAttached: freeOk,
     opportunities: ranked,
     engineNote:
-      "Previous Demand:82 was a hardcoded seed. Sales were storeOrders×55 (invalid). Both replaced.",
+      "Users pay $0 for interest + benchmark models. Keepa optional for real Amazon sold units.",
   };
 }

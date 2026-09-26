@@ -45,3 +45,65 @@ export function buildWinnerDecision(product={}){
 export function summarizeWinnerDecisions(products=[]){
   return {strong:products.filter(p=>p.winnerDecision?.verdict==="STRONG_CANDIDATE").length,validate:products.filter(p=>p.winnerDecision?.verdict==="VALIDATE").length,avoid:products.filter(p=>p.winnerDecision?.verdict==="AVOID").length,total:products.length};
 }
+
+
+export function selectFinalWinners(products=[], limit=2){
+  const max=Math.max(1,Math.min(5,Number(limit)||2));
+  const eligible=products
+    .filter(p=>{
+      const d=p.winnerDecision||{};
+      const margin=Number(p.marginPct)||0;
+      const trend=Number(p.trendScore)||0;
+      return d.verdict!=="AVOID" &&
+        !(d.hardFails||[]).length &&
+        margin>=45 &&
+        trend>=45 &&
+        p.trendStatus!=="DECLINING" &&
+        p.saturation?.risk!=="HIGH";
+    })
+    .sort((a,b)=>{
+      const ad=a.winnerDecision||{}, bd=b.winnerDecision||{};
+      return (Number(bd.score)||0)-(Number(ad.score)||0) ||
+        (Number(b.trendScore)||0)-(Number(a.trendScore)||0) ||
+        (Number(bd.verifiedSources)||0)-(Number(ad.verifiedSources)||0) ||
+        (Number(b.marginPct)||0)-(Number(a.marginPct)||0);
+    });
+
+  const winnerIds=new Set(eligible.slice(0,max).map(p=>p.id));
+  let rank=0;
+
+  return products.map(p=>{
+    const current=p.winnerDecision||{};
+    const isFinalWinner=winnerIds.has(p.id);
+    if(isFinalWinner){
+      rank++;
+      return {
+        ...p,
+        isFinalWinner:true,
+        winnerRank:rank,
+        winnerDecision:{
+          ...current,
+          verdict:"STRONG_CANDIDATE",
+          label:`Final winner #${rank}`,
+          reason:"Selected as one of the top 2 products after comparing all 50 candidates on trend, economics, competition, evidence quality, supplier ease and creative potential."
+        }
+      };
+    }
+
+    if(current.verdict==="STRONG_CANDIDATE"){
+      return {
+        ...p,
+        isFinalWinner:false,
+        winnerRank:null,
+        winnerDecision:{
+          ...current,
+          verdict:"VALIDATE",
+          label:"Shortlisted — not top 2",
+          reason:"This product cleared base winner gates but ranked below the final top-2 selection across the full 50-product hunt."
+        }
+      };
+    }
+
+    return {...p,isFinalWinner:false,winnerRank:null};
+  });
+}

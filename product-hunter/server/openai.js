@@ -7,6 +7,9 @@ export async function chatJson(system, user, { model = "gpt-4o-mini" } = {}) {
     return null;
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 18000);
+
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -14,6 +17,7 @@ export async function chatJson(system, user, { model = "gpt-4o-mini" } = {}) {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
+      signal: controller.signal,
       body: JSON.stringify({
         model,
         temperature: 0.4,
@@ -39,7 +43,9 @@ export async function chatJson(system, user, { model = "gpt-4o-mini" } = {}) {
     if (!content) return null;
     return JSON.parse(content);
   } catch (err) {
-    console.warn("OpenAI failed:", err.message);
+    console.warn("OpenAI failed:", err.name === "AbortError" ? "request timed out after 18s" : err.message);
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }

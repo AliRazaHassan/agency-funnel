@@ -680,20 +680,21 @@ export function ProductDetailPanel({ product, onClose }) {
         <WinningScorecardPanel product={product} />
       </div>
 
-      <div style={{ marginTop: "0.75rem" }}>
-        <KeepaSnapshotCard keepa={product} />
-      </div>
-
-      <div style={{ marginTop: "0.75rem" }}>
-        <ManualAmazonPasteForm product={product} />
-      </div>
-
-      <div style={{ marginTop: "0.75rem" }}>
-        <PlatformMixViz
-          sales={product.marketplaceSales}
-          title="Where similar products sell (platform mix)"
-        />
-      </div>
+      <details className="advanced-evidence">
+        <summary>Advanced evidence & manual validation</summary>
+        <div style={{ marginTop: "0.75rem" }}>
+          <KeepaSnapshotCard keepa={product} />
+        </div>
+        <div style={{ marginTop: "0.75rem" }}>
+          <ManualAmazonPasteForm product={product} />
+        </div>
+        <div style={{ marginTop: "0.75rem" }}>
+          <PlatformMixViz
+            sales={product.marketplaceSales}
+            title="Where similar products sell (platform mix)"
+          />
+        </div>
+      </details>
     </div>
   );
 }

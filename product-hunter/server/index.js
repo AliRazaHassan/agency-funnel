@@ -14,6 +14,7 @@ import { listProjects, getProject, saveProject, deleteProject } from "./projects
 import { buildClientBrief } from "./clientBrief.js";
 import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
 import { answerConcierge } from "./concierge.js";
+import { buildValidationPlan } from "./validation.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -189,6 +190,17 @@ app.post("/api/intelligence/why-trending", (req, res) => {
   res.json(whyTrending(product));
 });
 
+app.post("/api/products/validate", async (req, res) => {
+  try {
+    const product = req.body?.product || req.body || {};
+    if (!product.title) return res.status(400).json({ error: "product required" });
+    const result = await buildValidationPlan(product);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Validation failed" });
+  }
+});
+
 app.post("/api/concierge", async (req, res) => {
   try {
     const result = await answerConcierge(req.body || {});
@@ -295,6 +307,7 @@ app.get("/api/workspace/status", (_req, res) => {
       amazonManualPaste: true,
       keepaSnapshot: k.snapshot?.ok || false,
       aiConcierge: true,
+      productValidation: true,
     },
     openai: hasOpenAIKey,
     keepa: k,

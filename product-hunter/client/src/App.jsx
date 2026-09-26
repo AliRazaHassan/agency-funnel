@@ -72,6 +72,8 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [loading, setLoading] = useState("");
   const [trendFilter, setTrendFilter] = useState("ALL");
+  const [radarQuery, setRadarQuery] = useState("");
+  const [radarMarket, setRadarMarket] = useState("ALL");
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
   const [view, setView] = useState("home"); // home | desk | settings
@@ -86,6 +88,16 @@ export default function App() {
     if (!hunt?.products) return [];
     return hunt.products.filter((p) => selectedIds.has(p.id));
   }, [hunt, selectedIds]);
+
+  const radarProducts = useMemo(() => {
+    const products = hunt?.products || [];
+    const q = radarQuery.trim().toLowerCase();
+    return products.filter((p) => {
+      const marketOk = radarMarket === "ALL" || String(p.market || regionFocus).toUpperCase().includes(radarMarket);
+      const queryOk = !q || [p.title,p.category,p.problemSolved,p.trendStatus,p.whyTrending?.summary].filter(Boolean).join(" ").toLowerCase().includes(q);
+      return marketOk && queryOk;
+    }).sort((a,b) => Number(b.trendScore || 0) - Number(a.trendScore || 0));
+  }, [hunt, radarQuery, radarMarket, regionFocus]);
 
   const filteredHuntProducts = useMemo(() => {
     const list = hunt?.products || [];
@@ -311,8 +323,11 @@ export default function App() {
           <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>
             Home
           </button>
+          <button type="button" className={view === "radar" ? "nav-on" : ""} onClick={() => setView("radar")}>
+            Product Radar
+          </button>
           <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}>
-            Desk
+            Discover
           </button>
           <button
             type="button"
@@ -340,6 +355,46 @@ export default function App() {
           }}
           onOpenProject={openProject}
         />
+      ) : null}
+
+      {view === "radar" ? (
+        <main className="radar-page">
+          <div className="radar-hero">
+            <div><div className="hero-kicker">PRODUCT RADAR</div><h2>See momentum before saturation.</h2><p>Trend, confidence, competition and Shopify readiness in one decision surface.</p></div>
+            <button className="btn" style={{width:"auto"}} onClick={() => setView("desk")}>{hunt?.products?.length ? "Run another discovery" : "Discover products"}</button>
+          </div>
+          <div className="radar-search">
+            <input value={radarQuery} onChange={(e)=>setRadarQuery(e.target.value)} placeholder="Search: under $50, TikTok momentum, pet products…" />
+            <select value={radarMarket} onChange={(e)=>setRadarMarket(e.target.value)}>
+              {["ALL","US","UK","CA","AU","DE","FR"].map(x=><option key={x}>{x}</option>)}
+            </select>
+          </div>
+          {!hunt?.products?.length ? <div className="radar-empty"><h3>Your radar is ready.</h3><p>Run Discover once to populate evidence-based product intelligence.</p><button className="btn" style={{width:"auto"}} onClick={()=>setView("desk")}>Start discovery</button></div> : (
+            <>
+              <div className="radar-kpis">
+                <div><b>{radarProducts.length}</b><span>Products</span></div>
+                <div><b>{radarProducts.filter(p=>p.trendStatus==="ACCELERATING").length}</b><span>Accelerating</span></div>
+                <div><b>{radarProducts.filter(p=>["EMERGING","DISCOVERED"].includes(p.trendStatus)).length}</b><span>Early opportunities</span></div>
+                <div><b>{radarProducts.filter(p=>p.trendStatus==="SATURATING"||p.saturation?.risk==="HIGH").length}</b><span>Saturation risks</span></div>
+              </div>
+              <div className="lifecycle-tabs">
+                {["ALL","ACCELERATING","EMERGING","STABLE","SATURATING","DECLINING"].map(s=><button key={s} className={trendFilter===s?"on":""} onClick={()=>setTrendFilter(s)}>{s}</button>)}
+              </div>
+              <div className="radar-grid">
+                {radarProducts.filter(p=>trendFilter==="ALL"||p.trendStatus===trendFilter).map(p=>(
+                  <article className="radar-card" key={p.id}>
+                    <div className="radar-card-top"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><span className="confidence">{p.dataConfidence||"LOW"} confidence</span></div>
+                    <h3>{p.title}</h3><p className="muted">{p.category}</p>
+                    <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winning?.score??p.profitScore??"—"}</b><span>Profit</span></div><div><b>{p.competitionScore??p.winning?.components?.competition??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
+                    <div className="platform-signals">{Object.entries(p.trendComponents||{}).slice(0,4).map(([k,v])=><span key={k}><em>{k}</em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
+                    <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div>
+                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>View intelligence</button><button className="btn" onClick={()=>{setSelectedIds(new Set([p.id]));setSelectedProduct(p);setView("desk")}}>Shopify actions</button></div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
       ) : null}
 
       {view === "settings" ? <SettingsView /> : null}

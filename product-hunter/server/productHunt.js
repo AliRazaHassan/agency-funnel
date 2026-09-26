@@ -5,6 +5,7 @@ import { buildProductMarketplaceSales } from "./marketSales.js";
 import { summarizeWinningDeck, buildWinningScorecard } from "./winningScorecard.js";
 import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
 import { buildIntelligence } from "./intelligence.js";
+import { buildWinnerDecision, summarizeWinnerDecisions } from "./winnerEngine.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -180,7 +181,8 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       meta: p.socialSignals?.meta ? "RECENT" : "ESTIMATED",
       google: free.googleScore || free.google ? "RECENT" : "ESTIMATED",
     };
-    return buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+    const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+    return { ...intelligence, winnerDecision: buildWinnerDecision(intelligence) };
   });
 
   return {
@@ -191,6 +193,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     niche: opportunity.niche,
     count: ranked.length,
     winningSummary: summarizeWinningDeck(ranked),
+    winnerSummary: summarizeWinnerDecisions(ranked),
     keepa: keepaStatus(),
     products: ranked,
   };

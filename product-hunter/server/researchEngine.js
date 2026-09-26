@@ -372,7 +372,8 @@ export async function enrichOpportunityResearch(opportunity = {}) {
   if (!freeSignal) {
     try {
       const { fetchFreeDemandSignal } = await import("./freeSignals.js");
-      freeSignal = await fetchFreeDemandSignal(opportunity.niche);
+      const geo = opportunity.sellWhere?.geos?.[0] || opportunity.regionTags?.[0] || "US";
+      freeSignal = await fetchFreeDemandSignal(opportunity.niche, geo);
     } catch {
       freeSignal = { ok: false, free: true, honesty: "Free signal fetch failed" };
     }

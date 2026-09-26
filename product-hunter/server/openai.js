@@ -2,8 +2,10 @@
  * Optional OpenAI JSON helper. Falls back to null if no key / failure.
  */
 export async function chatJson(system, user, { model = "gpt-4o-mini" } = {}) {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
+  const key = String(process.env.OPENAI_API_KEY || "").trim();
+  if (!key || key === "YOUR_KEY" || key === "YOUR_OPENAI_API_KEY") {
+    return null;
+  }
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -25,7 +27,10 @@ export async function chatJson(system, user, { model = "gpt-4o-mini" } = {}) {
 
     if (!res.ok) {
       const text = await res.text();
-      console.warn("OpenAI error:", res.status, text.slice(0, 200));
+      const safeMessage = res.status === 401
+        ? "API key missing/invalid. Check OPENAI_API_KEY in Render Environment."
+        : text.slice(0, 200);
+      console.warn("OpenAI error:", res.status, safeMessage);
       return null;
     }
 

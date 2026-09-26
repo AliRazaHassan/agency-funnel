@@ -43,7 +43,6 @@ function GlobalActionProgress({ state }) {
       </progress>
       <small>{state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
     </div>
-    </>
   );
 }
 
@@ -481,7 +480,7 @@ export default function App() {
               </div>
               <div className="radar-grid">
                 {radarProducts.filter(p=>trendFilter==="ALL"||p.trendStatus===trendFilter).map(p=>(
-                  <article className="radar-card" key={p.id}>
+                  <article className="radar-card" key={p.id} data-ai-product-id={p.id}>
                     <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.winnerDecision?.label||"Validate"}</span><span className="confidence">{p.dataConfidence||"LOW"} confidence</span></div>
                     <div className="lifecycle-line"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><strong>{p.winnerDecision?.score??"—"}/100 winner score</strong></div>
                     <h3>{p.title}</h3><p className="muted">{p.category}</p>

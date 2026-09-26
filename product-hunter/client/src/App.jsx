@@ -32,17 +32,19 @@ function GlobalActionProgress({ state }) {
   if (!state.visible) return null;
   return (
     <div className="global-progress" role="status" aria-live="polite">
-      <div className="global-progress-top">
-        <div>
-          <strong>{state.label}</strong>
-          <span>{state.failed ? "Request failed" : state.done ? "Complete" : "Estimated progress"}</span>
+      <div className="global-progress-card">
+        <div className="global-progress-top">
+          <div>
+            <strong>{state.label}</strong>
+            <span>{state.failed ? "Request failed" : state.done ? "Complete" : "Estimated progress"}</span>
+          </div>
+          <b>{state.failed ? "Failed" : `${Math.round(state.percent)}%`}</b>
         </div>
-        <b>{state.failed ? "Failed" : `${Math.round(state.percent)}%`}</b>
+        <progress max="100" value={state.percent} aria-label={state.label}>
+          {Math.round(state.percent)}%
+        </progress>
+        <small>{state.failed ? "The action did not complete. Please retry." : state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
       </div>
-      <progress max="100" value={state.percent} aria-label={state.label}>
-        {Math.round(state.percent)}%
-      </progress>
-      <small>{state.failed ? "The action did not complete. Please retry." : state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
     </div>
   );
 }

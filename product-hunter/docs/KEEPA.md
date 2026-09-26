@@ -1,50 +1,53 @@
-# Keepa — keys & pricing
+# Keepa — one-time data (recommended) vs live API
 
-## Two different Keepa products
-
-| Product | What it is | Price (typical) |
-|--------|------------|------------------|
-| **Keepa Pro** (website) | Manual Amazon research in browser | **~€29/mo** (or ~€290/yr) |
-| **Keepa API** | Live data for *our app* (JSON) | **Starts ~€49/mo** — no free API tier |
-
-Pro ≠ API. For Signal Desk live Amazon stats you need the **API**.
-
-## Keepa API plan prices (token rate)
-
-From Keepa’s published API plans (verify at checkout — can change):
-
-| Tokens / minute | Approx. monthly price |
-|-----------------|------------------------|
-| 20 (starter) | **€49** |
-| 60 | **€129** |
-| 250 | **€459** |
-| 500 | **€879** |
-| 2,000 | **€2,499** |
-| 10,000 | **€11,099** |
-
-- Tokens refill every minute; unused tokens expire after ~60 minutes  
-- **1 ASIN product request ≈ 1 token** (offers/search cost more)  
-- Docs: https://keepa.com/#!api and https://keepa.com/api-docs/plans-tokens.html  
-
-For early Signal Desk use, **€49 / 20 tokens/min** is usually enough to test.
-
-## How to get a key
-
-1. https://keepa.com → account  
-2. https://keepa.com/#!api → choose API plan → pay  
-3. Copy access key → set `KEEPA_API_KEY` in `.env` / Render  
-4. Tell the agent to wire Keepa into product cards  
-
-## Without Keepa (free for users)
-
-Signal Desk still gives **trusted free** signals:
+## What we use day-to-day (free)
 
 | Source | Cost | What you get |
 |--------|------|----------------|
-| **Wikimedia Pageviews** | $0, no key | Live public interest proxy |
-| **Google Trends** | $0 when reachable | Relative search interest (may fail on cloud IPs) |
-| **Cited industry totals** | $0 | Modeled niche $ (APPA etc.) — labeled as models |
+| **Wikimedia Pageviews** | $0 | Live public interest |
+| **Cited industry totals** | $0 | Modeled niche $ (labeled) |
+| **Google Trends** | $0 opt-in (`ENABLE_GOOGLE_TRENDS=1`) | Relative search interest |
 
-These are **not** Amazon sold units / BSR. That still needs Keepa API.
+No monthly Keepa required for Scout / Hunt / Winning scorecard.
 
-We will **not** invent Amazon sales volume.
+## Amazon proof = one-time Keepa dump
+
+Keepa API has **no free tier** (~€49/mo starter). For Signal Desk you do **not** need it forever:
+
+1. Buy Keepa API for **one month** (or use tokens while testing)  
+2. Pull ASINs into a local snapshot file  
+3. **Cancel** the plan  
+4. App keeps reading `server/data/keepa-snapshot.json`
+
+### Pull command
+
+```bash
+# in product-hunter/
+# set KEEPA_API_KEY in .env for this session only
+npm run keepa:pull -- B0XXXXXXXXX B0YYYYYYYYY --niche="Pet Supplies"
+```
+
+Or paste Keepa product JSON into `server/data/keepa-snapshot.json` under `products[]`.
+
+### Snapshot fields we use
+
+- `asin`, `title`
+- `monthlySold` (Amazon “bought in past month” bracket)
+- `stats.avg30` / `current` → sales rank + price
+- Optional: `niche` for matching
+
+Hunt matches snapshot rows by **ASIN** or **fuzzy title**, then Winning scorecard can use real Amazon sold/BSR when matched.
+
+## Live key (optional)
+
+`KEEPA_API_KEY` is only needed for `npm run keepa:pull`.  
+You do **not** need the key on Render for daily free-mode use — just deploy the snapshot file if you want Amazon rows in production.
+
+## Pricing reference (API)
+
+| Tokens / minute | Approx. monthly |
+|-----------------|-----------------|
+| 20 (starter) | **€49** |
+| … | higher tiers |
+
+Pro website ≠ API. Docs: https://keepa.com/#!api

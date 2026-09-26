@@ -6,6 +6,7 @@ import { enrichMarketingPack, normalizeMarketingPack } from "./marketingPack.js"
 import { chatJson } from "./openai.js";
 import { opportunityTradeRoutes } from "./sourcing.js";
 import { enrichOpportunityResearch } from "./researchEngine.js";
+import { keepaStatus } from "./keepa.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const seeds = JSON.parse(readFileSync(join(__dirname, "data", "market-seeds.json"), "utf8"));
@@ -110,12 +111,13 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
   return {
     source,
     researchLabel:
-      "Free trusted layer: Wikimedia Pageviews (± Google Trends) + cited industry benchmarks. Amazon unit sales = Keepa paid only.",
+      "Free trusted layer: Wikimedia + cited benchmarks. Keepa = optional one-time snapshot (not monthly).",
     regionFocus,
     count: ranked.length,
     freeSignalsAttached: freeOk,
+    keepa: keepaStatus(),
     opportunities: ranked,
     engineNote:
-      "Users pay $0 for interest + benchmark models. Keepa optional for real Amazon sold units.",
+      "Users pay $0 for interest + benchmark models. Keepa dump optional for Amazon sold/BSR.",
   };
 }

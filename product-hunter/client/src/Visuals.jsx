@@ -31,24 +31,83 @@ function resolveUnitEconomics(item = {}) {
   };
 }
 
-export function DataHonestyBanner({ freeSignal }) {
+export function DataHonestyBanner({ freeSignal, keepa }) {
+  const snapCount = keepa?.snapshot?.count || 0;
   return (
     <div className="honesty-banner">
-      <strong>Trusted data · free for users</strong>
+      <strong>Trusted data · free first, Keepa optional one-time</strong>
       <p>
-        Live interest comes from <strong>Wikimedia Pageviews</strong> (free, no key)
+        Live interest: <strong>Wikimedia Pageviews</strong> (free)
         {freeSignal?.providers?.some((p) => p.provider === "Google Trends")
           ? " + Google Trends when reachable"
           : ""}
-        . Dollar niche models use cited industry totals.{" "}
-        <strong>Amazon sold units / BSR</strong> still need Keepa API (paid — no free tier). Supplier
-        landed cost = catalog estimate until AutoDS/CJ keys.
+        . Dollar niches use cited industry models.{" "}
+        {snapCount > 0 ? (
+          <>
+            Amazon proof: <strong>one-time Keepa snapshot</strong> ({snapCount} ASINs on file) — not a live paid feed.
+          </>
+        ) : (
+          <>
+            Amazon sold units / BSR: drop a <strong>one-time Keepa dump</strong> when needed (buy API 1 month → pull →
+            cancel). No monthly Keepa required for daily use.
+          </>
+        )}
       </p>
       {freeSignal?.ok ? (
         <p className="muted" style={{ margin: "0.4rem 0 0" }}>
           Free interest index this niche: {freeSignal.interestScore}/100 ·{" "}
           {(freeSignal.providers || []).map((p) => p.provider).join(" + ")}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function KeepaSnapshotCard({ keepa }) {
+  if (!keepa) return null;
+  const k = keepa.keepa || keepa;
+  if (!k?.asin && k?.monthlySold == null && k?.salesRank == null) {
+    return (
+      <div className="viz-card">
+        <div className="viz-head">
+          <h3>Amazon (Keepa)</h3>
+          <p className="muted">No snapshot match — using free signals only</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="viz-card">
+      <div className="viz-head">
+        <h3>Amazon · one-time Keepa</h3>
+        <p className="muted">
+          {k.match === "asin" ? "ASIN match" : `Title match ${Math.round((k.matchScore || 0) * 100)}%`} · not live API
+        </p>
+      </div>
+      <div className="unit-strip">
+        <div>
+          <span>ASIN</span>
+          <b>{k.asin || "—"}</b>
+        </div>
+        <div>
+          <span>Bought / mo</span>
+          <b>{k.monthlySold != null ? `${k.monthlySold}+` : "—"}</b>
+        </div>
+        <div>
+          <span>Sales rank</span>
+          <b>{k.salesRank != null ? k.salesRank.toLocaleString() : "—"}</b>
+        </div>
+        <div>
+          <span>Buy box</span>
+          <b>{k.buyBoxUsd != null ? `$${k.buyBoxUsd}` : "—"}</b>
+        </div>
+      </div>
+      {k.amazonUrl ? (
+        <div className="card-actions" style={{ marginTop: "0.75rem" }}>
+          <a className="btn" href={k.amazonUrl} target="_blank" rel="noreferrer">
+            Open Amazon ASIN
+          </a>
+        </div>
       ) : null}
     </div>
   );
@@ -330,7 +389,7 @@ export function FunnelViz({ item, title }) {
   );
 }
 
-export function MarketVizBoard({ opportunities, selectedOpp }) {
+export function MarketVizBoard({ opportunities, selectedOpp, keepa }) {
   if (!opportunities?.length) return null;
   const focus = selectedOpp || opportunities[0];
 
@@ -340,7 +399,7 @@ export function MarketVizBoard({ opportunities, selectedOpp }) {
         <h2>Market view · {focus.niche}</h2>
         <p className="muted">Demand index + platform mix. Click a product later for its own funnel.</p>
       </div>
-      <DataHonestyBanner freeSignal={focus.freeSignal} />
+      <DataHonestyBanner freeSignal={focus.freeSignal} keepa={keepa} />
       <div className="viz-grid two">
         <DemandBreakdown research={focus.demandResearch} score={focus.scores?.demand} />
         <PlatformMixViz sales={focus.marketplaceSales} title={`Platform mix · ${focus.niche}`} />
@@ -481,6 +540,10 @@ export function ProductDetailPanel({ product, onClose }) {
 
       <div style={{ marginTop: "0.75rem" }}>
         <WinningScorecardPanel product={product} />
+      </div>
+
+      <div style={{ marginTop: "0.75rem" }}>
+        <KeepaSnapshotCard keepa={product} />
       </div>
 
       <div style={{ marginTop: "0.75rem" }}>

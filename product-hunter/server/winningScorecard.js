@@ -43,7 +43,14 @@ export function buildWinningScorecard(product = {}, opportunity = {}) {
   let demandScore =
     demandType === "evergreen" ? 78 : demandType === "seasonal" ? 58 : 28;
   if (product.problemSolved) demandScore += 8;
-  if (Number.isFinite(freeInterest)) {
+  const keepa = product.keepa;
+  if (keepa?.monthlySold != null) {
+    // Amazon bought-past-month bracket (real Keepa field when snapshot present)
+    const ms = Number(keepa.monthlySold) || 0;
+    const soldScore = clamp(20 + Math.log10(ms + 1) * 28);
+    demandScore = demandScore * 0.35 + soldScore * 0.65;
+    if (ms >= 100) passReasons.push(`Amazon bought ~${ms}+/mo (Keepa snapshot)`);
+  } else if (Number.isFinite(freeInterest)) {
     demandScore = demandScore * 0.55 + freeInterest * 0.45;
   } else if (Number.isFinite(nicheDemand)) {
     demandScore = demandScore * 0.7 + nicheDemand * 0.3;
@@ -51,7 +58,13 @@ export function buildWinningScorecard(product = {}, opportunity = {}) {
   demandScore = clamp(demandScore);
   if (demandType === "fad") hardFails.push("Fad demand — not a durable winner");
   if (demandScore >= 65) passReasons.push("Demand fit looks solid (evergreen / interest)");
-  else if (demandScore < 45) softWarnings.push("Weak demand signals — validate with Keepa/Trends");
+  else if (demandScore < 45) softWarnings.push("Weak demand signals — validate with Keepa dump or Trends");
+
+  if (keepa?.salesRank != null && keepa.salesRank > 0 && keepa.salesRank < 5000) {
+    passReasons.push(`Strong BSR ~${keepa.salesRank} (Keepa snapshot)`);
+  } else if (keepa?.salesRank != null && keepa.salesRank > 100000) {
+    softWarnings.push(`High BSR ~${keepa.salesRank} — soft demand on Amazon`);
+  }
 
   // —— Margin (0–100) ——
   const marginScore = clamp(
@@ -114,9 +127,11 @@ export function buildWinningScorecard(product = {}, opportunity = {}) {
       label: "Demand",
       weight: WINNING_WEIGHTS.demand,
       score: round1(demandScore),
-      note: Number.isFinite(freeInterest)
-        ? `Includes free interest ${freeInterest}`
-        : demandType,
+      note: keepa?.monthlySold != null
+        ? `Keepa monthlySold ${keepa.monthlySold}`
+        : Number.isFinite(freeInterest)
+          ? `Includes free interest ${freeInterest}`
+          : demandType,
     },
     {
       id: "margin",
@@ -168,10 +183,19 @@ export function buildWinningScorecard(product = {}, opportunity = {}) {
     verdictLabel = "Pass score, but check warnings";
   }
 
-  const keepaGap = {
-    status: "missing",
-    note: "Amazon sold units / BSR not connected — add KEEPA_API_KEY for marketplace proof",
-  };
+  const keepaGap = keepa
+    ? {
+        status: "snapshot",
+        note: `One-time Keepa match (${keepa.match}): ASIN ${keepa.asin || "—"} · sold ${keepa.monthlySold ?? "n/a"} · BSR ${keepa.salesRank ?? "n/a"}`,
+        asin: keepa.asin,
+        monthlySold: keepa.monthlySold,
+        salesRank: keepa.salesRank,
+        buyBoxUsd: keepa.buyBoxUsd,
+      }
+    : {
+        status: "missing",
+        note: "No Keepa row matched — free signals only. Add one-time dump via npm run keepa:pull (then cancel API).",
+      };
 
   return {
     version: "winning/v1",

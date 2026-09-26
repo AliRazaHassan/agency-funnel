@@ -2,7 +2,8 @@ import { chatJson } from "./openai.js";
 import { scoreProduct } from "./scorer.js";
 import { rankProducts } from "./rankingAI.js";
 import { buildProductMarketplaceSales } from "./marketSales.js";
-import { summarizeWinningDeck } from "./winningScorecard.js";
+import { summarizeWinningDeck, buildWinningScorecard } from "./winningScorecard.js";
+import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -153,18 +154,24 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
   raw = raw.slice(0, target);
 
   const scored = raw.map((p) => scoreProduct(p, opportunity));
-  const ranked = rankProducts(scored).map((p) => ({
+  const withKeepa = attachKeepaToProducts(scored, opportunity).map((p) => ({
+    ...p,
+    winning: buildWinningScorecard(p, opportunity),
+  }));
+  const ranked = rankProducts(withKeepa).map((p) => ({
     ...p,
     marketplaceSales: buildProductMarketplaceSales(p, opportunity),
   }));
 
   return {
     source,
-    researchLabel: "Research score (model + rules) — not live marketplace proof",
+    researchLabel:
+      "Free signals + rules scorecard. Amazon units only if one-time Keepa snapshot matched.",
     opportunityId: opportunity.id,
     niche: opportunity.niche,
     count: ranked.length,
     winningSummary: summarizeWinningDeck(ranked),
+    keepa: keepaStatus(),
     products: ranked,
   };
 }

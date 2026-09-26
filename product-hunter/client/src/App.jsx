@@ -334,6 +334,7 @@ export default function App() {
                 <MarketVizBoard
                   opportunities={scout.opportunities}
                   selectedOpp={selectedOpp}
+                  keepa={hunt?.keepa || scout.keepa}
                 />
                 <div className="section-head">
                   <div>

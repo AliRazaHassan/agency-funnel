@@ -8,6 +8,7 @@ import { scoutMarket } from "./marketScout.js";
 import { huntProducts } from "./productHunt.js";
 import { productsToMatrixifyCsv } from "./exportShopify.js";
 import { createAuth } from "./auth.js";
+import { keepaStatus } from "./keepa.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -45,12 +46,22 @@ app.use(auth.middleware);
 let lastScout = { opportunities: [] };
 
 app.get("/api/health", (_req, res) => {
+  const k = keepaStatus();
   res.json({
     ok: true,
     openai: Boolean(process.env.OPENAI_API_KEY),
     authRequired: auth.enabled,
     label: "Signal Desk",
+    dataMode: {
+      freeSignals: true,
+      keepaLiveKey: k.liveKeyConfigured,
+      keepaSnapshot: k.snapshot,
+    },
   });
+});
+
+app.get("/api/keepa/status", (_req, res) => {
+  res.json(keepaStatus());
 });
 
 app.get("/api/auth/status", (req, res) => {

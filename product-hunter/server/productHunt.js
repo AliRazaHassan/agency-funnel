@@ -4,6 +4,7 @@ import { rankProducts } from "./rankingAI.js";
 import { buildProductMarketplaceSales } from "./marketSales.js";
 import { summarizeWinningDeck, buildWinningScorecard } from "./winningScorecard.js";
 import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
+import { buildIntelligence } from "./intelligence.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -158,10 +159,29 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     ...p,
     winning: buildWinningScorecard(p, opportunity),
   }));
-  const ranked = rankProducts(withKeepa).map((p) => ({
-    ...p,
-    marketplaceSales: buildProductMarketplaceSales(p, opportunity),
-  }));
+  const ranked = rankProducts(withKeepa).map((p) => {
+    const marketplaceSales = buildProductMarketplaceSales(p, opportunity);
+    const amazonVerified = Boolean(p.keepaMatched || p.keepa?.matched || p.amazon?.matched);
+    const free = opportunity.freeSignal || {};
+    const demand = Number(opportunity.scores?.demand || 0);
+    const marketing = Number(opportunity.marketingStrength || opportunity.scores?.marketing || 0);
+    const social = Number(free.socialScore || free.social || 0);
+    const signals = {
+      amazon: amazonVerified ? Number(p.amazon?.score || p.keepa?.score || demand) : 0,
+      tiktok: Number(p.socialSignals?.tiktok || social || marketing * 0.7),
+      meta: Number(p.socialSignals?.meta || social || marketing * 0.65),
+      google: Number(free.googleScore || free.google || demand),
+      crossPlatform: Math.round((demand + marketing) / 2),
+      confidence: amazonVerified ? 78 : source === "seed" ? 30 : 48,
+    };
+    const dataStatus = {
+      amazon: amazonVerified ? "RECENT" : "UNAVAILABLE",
+      tiktok: p.socialSignals?.tiktok ? "RECENT" : "ESTIMATED",
+      meta: p.socialSignals?.meta ? "RECENT" : "ESTIMATED",
+      google: free.googleScore || free.google ? "RECENT" : "ESTIMATED",
+    };
+    return buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+  });
 
   return {
     source,

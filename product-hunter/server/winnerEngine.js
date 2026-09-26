@@ -47,8 +47,11 @@ export function summarizeWinnerDecisions(products=[]){
 }
 
 
-export function selectFinalWinners(products=[], limit=2){
-  const max=Math.max(1,Math.min(5,Number(limit)||2));
+export function selectFinalWinners(products=[], limit){
+  const target = Number.isFinite(Number(limit))
+    ? Math.max(1, Math.min(12, Number(limit)))
+    : Math.max(6, Math.min(10, Math.ceil(products.length * 0.20)));
+
   const eligible=products
     .filter(p=>{
       const d=p.winnerDecision||{};
@@ -69,41 +72,45 @@ export function selectFinalWinners(products=[], limit=2){
         (Number(b.marginPct)||0)-(Number(a.marginPct)||0);
     });
 
-  const winnerIds=new Set(eligible.slice(0,max).map(p=>p.id));
-  let rank=0;
+  const selected=eligible.slice(0,target);
+  const winnerIds=new Set(selected.map(p=>p.id));
+  const rankById=new Map(selected.map((p,i)=>[p.id,i+1]));
 
   return products.map(p=>{
     const current=p.winnerDecision||{};
-    const isFinalWinner=winnerIds.has(p.id);
-    if(isFinalWinner){
-      rank++;
+    const rank=rankById.get(p.id);
+    if(winnerIds.has(p.id)){
+      const verified=Number(current.verifiedSources)||0;
+      const evidenceNote=verified>=2
+        ? "with multiple verified/recent sources"
+        : verified===1
+          ? "with one verified/recent source"
+          : "with mostly estimated evidence";
       return {
         ...p,
         isFinalWinner:true,
+        isTopPick:true,
         winnerRank:rank,
         winnerDecision:{
           ...current,
           verdict:"STRONG_CANDIDATE",
-          label:`Final winner #${rank}`,
-          reason:"Selected as one of the top 2 products after comparing all 50 candidates on trend, economics, competition, evidence quality, supplier ease and creative potential."
+          label:`Top pick #${rank}`,
+          reason:`Ranks in the top ${target} of ${products.length} eligible products on trend, economics, competition, supplier ease and creative potential, ${evidenceNote}. Validate live evidence before scaling.`
         }
       };
     }
 
-    if(current.verdict==="STRONG_CANDIDATE"){
-      return {
-        ...p,
-        isFinalWinner:false,
-        winnerRank:null,
-        winnerDecision:{
-          ...current,
-          verdict:"VALIDATE",
-          label:"Shortlisted — not top 2",
-          reason:"This product cleared base winner gates but ranked below the final top-2 selection across the full 50-product hunt."
-        }
-      };
-    }
-
-    return {...p,isFinalWinner:false,winnerRank:null};
+    return {...p,isFinalWinner:false,isTopPick:false,winnerRank:null};
   });
+}
+
+export function summarizeFinalWinners(products=[]){
+  const topPicks=products.filter(p=>p.isTopPick);
+  return {
+    topPicks:topPicks.length,
+    strong:products.filter(p=>p.winnerDecision?.verdict==="STRONG_CANDIDATE").length,
+    validate:products.filter(p=>p.winnerDecision?.verdict==="VALIDATE").length,
+    avoid:products.filter(p=>p.winnerDecision?.verdict==="AVOID").length,
+    total:products.length,
+  };
 }

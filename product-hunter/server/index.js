@@ -13,6 +13,7 @@ import { fetchSocialTrends, saveManualSocialTrends } from "./socialTrends.js";
 import { listProjects, getProject, saveProject, deleteProject } from "./projects.js";
 import { buildClientBrief } from "./clientBrief.js";
 import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
+import { answerConcierge } from "./concierge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -188,6 +189,15 @@ app.post("/api/intelligence/why-trending", (req, res) => {
   res.json(whyTrending(product));
 });
 
+app.post("/api/concierge", async (req, res) => {
+  try {
+    const result = await answerConcierge(req.body || {});
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Concierge failed" });
+  }
+});
+
 app.get("/api/intelligence/radar", (_req, res) => {
   const products = lastHuntProducts.map(buildIntelligence);
   const groups = Object.groupBy ? Object.groupBy(products, p => p.trendStatus) : products.reduce((a,p)=>{(a[p.trendStatus] ||= []).push(p);return a;},{});
@@ -284,6 +294,7 @@ app.get("/api/workspace/status", (_req, res) => {
       freeSignals: true,
       amazonManualPaste: true,
       keepaSnapshot: k.snapshot?.ok || false,
+      aiConcierge: true,
     },
     openai: hasOpenAIKey,
     keepa: k,

@@ -517,8 +517,13 @@ a.ext-link:hover {
   color: var(--ink);
 }
 
-.win-badge {
-  display: inline-block;
+.opp-card.service-card {
+  border-style: dashed;
+}
+
+.opp-card.service-card h3 {
+  margin-top: 0.35rem;
+}
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;

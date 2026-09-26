@@ -17,6 +17,9 @@ const WIKI_MAP = {
   "Baby Travel & Nursery Accessories": ["Baby_transport", "Infant", "Diaper_bag"],
   "Desk & WFH Comfort Accessories": ["Remote_work", "Computer_desk", "Ergonomics"],
   "Outdoor Micro-Adventure Gear": ["Camping", "Hiking", "Outdoor_recreation"],
+  "Travel Packing & Compression Accessories": ["Luggage", "Travel", "Packing"],
+  "Car Interior Micro-Accessories": ["Car", "Automotive", "Cleaning"],
+  "Phone Creator Tripod & Lighting Kits": ["Photography", "Smartphone", "Videography"],
 };
 
 function ymd(d) {

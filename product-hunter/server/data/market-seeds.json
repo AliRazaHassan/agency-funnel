@@ -166,7 +166,7 @@
   },
   {
     "id": "wp-leads-local",
-    "niche": "Local Service Lead Automation (sell system, not physical SKUs)",
+    "niche": "Agency Model 2 — Local Lead Automation",
     "audience": "Realtors, clinics, salons needing WhatsApp lead speed",
     "demandDrivers": ["speed to lead", "missed call pain", "automation curiosity"],
     "sellWhere": {
@@ -174,7 +174,7 @@
       "geos": ["US mid-size cities", "UK", "Gulf"],
       "secondaryChannels": ["LinkedIn outreach", "pSEO landing pages"]
     },
-    "whyNow": "High ticket ($1k+) and pairs with your Model 2 automation offer.",
+    "whyNow": "This is YOUR agency service ($1k+) — not a Shopify product niche. Sell the system, not SKUs.",
     "regionTags": ["US", "UK", "Gulf", "Global"],
     "scores": { "demand": 77, "competition": 45, "gap": 78 },
     "estAovUsd": 1200,
@@ -195,7 +195,7 @@
         { "q": "Tech heavy?", "a": "Done-for-you install; they get a working form + WhatsApp flow." }
       ]
     },
-    "riskFlags": ["Service offer — not a Shopify product import"],
+    "riskFlags": ["Agency service — not Shopify product import; Hunt SKUs will be empty"],
     "isServiceOffer": true
   },
   {
@@ -263,5 +263,104 @@
       ]
     },
     "riskFlags": ["No trademarked brand replicas"]
+  },
+  {
+    "id": "travel-pack",
+    "niche": "Travel Packing & Compression Accessories",
+    "audience": "Frequent flyers and weekend travelers who hate overpacked bags",
+    "demandDrivers": ["travel rebound", "giftability", "light ship cubes"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States", "United Kingdom", "UAE"],
+      "secondaryChannels": ["TikTok travel hacks", "Amazon selective"]
+    },
+    "whyNow": "Packing cubes, bottle adapters, and cable kits stack into $45–80 carts with easy creatives.",
+    "regionTags": ["US", "UK", "Gulf", "Global"],
+    "scores": { "demand": 74, "competition": 58, "gap": 64 },
+    "estAovUsd": 52,
+    "estContributionUsd": 22,
+    "projectedMonthlyOrders": { "conservative": 35, "base": 85, "aggressive": 170 },
+    "marketing": {
+      "persona": "Traveler who wants one less bag meltdown",
+      "hook": "Pack the same bag — bring twice the calm",
+      "adAngles": [
+        "Airport chaos vs cubed calm",
+        "Weekend trip kit under $60",
+        "Gift for the friend who always overpacks"
+      ],
+      "offer": "Packing cube trio + cable kit — free ship over $49",
+      "landingPromise": "Travel accessories built for DTC ads and light shipping",
+      "objections": [
+        { "q": "Seasonal only?", "a": "Business + leisure travel is year-round; push kits around holidays." },
+        { "q": "Amazon clones?", "a": "Win with kits, PDPs, and creative — not single commodity SKUs." }
+      ]
+    },
+    "riskFlags": ["Avoid liquids/aerosols for easy shipping"]
+  },
+  {
+    "id": "car-micro",
+    "niche": "Car Interior Micro-Accessories",
+    "audience": "Drivers who want cleaner, safer cabin upgrades without big installs",
+    "demandDrivers": ["rideshare/detailing culture", "gift hooks", "compact SKUs"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States"],
+      "secondaryChannels": ["TikTok car clean", "Amazon selective"]
+    },
+    "whyNow": "Trash bins, seat-gap fillers, phone mounts — light, demoable, strong UGC.",
+    "regionTags": ["US", "Global"],
+    "scores": { "demand": 72, "competition": 62, "gap": 58 },
+    "estAovUsd": 48,
+    "estContributionUsd": 20,
+    "projectedMonthlyOrders": { "conservative": 40, "base": 95, "aggressive": 190 },
+    "marketing": {
+      "persona": "Daily driver tired of a messy cabin",
+      "hook": "A cleaner car in 60 seconds of video",
+      "adAngles": [
+        "Before/after crumb chaos",
+        "Rideshare driver kit",
+        "Gift for new car owners"
+      ],
+      "offer": "Cabin clean kit — free shipping over $45",
+      "landingPromise": "Micro car accessories optimized for short-form ads",
+      "objections": [
+        { "q": "Too competitive?", "a": "Compete on kits + creative angles, not single mounts alone." },
+        { "q": "Fitment issues?", "a": "Stick to universal, low-return categories first." }
+      ]
+    },
+    "riskFlags": ["Skip heavy electronics / vehicle-specific parts at first"]
+  },
+  {
+    "id": "phone-desk",
+    "niche": "Phone Creator Tripod & Lighting Kits",
+    "audience": "Creators and small businesses filming on phones",
+    "demandDrivers": ["UGC boom", "bundle AOV", "demoable gear"],
+    "sellWhere": {
+      "primary": "Shopify turnkey store",
+      "geos": ["United States", "United Kingdom"],
+      "secondaryChannels": ["TikTok Shop", "YouTube Shorts"]
+    },
+    "whyNow": "Tripod + light + mic accessory kits convert well on social and stay shippable.",
+    "regionTags": ["US", "UK", "Global"],
+    "scores": { "demand": 76, "competition": 64, "gap": 61 },
+    "estAovUsd": 69,
+    "estContributionUsd": 28,
+    "projectedMonthlyOrders": { "conservative": 30, "base": 75, "aggressive": 150 },
+    "marketing": {
+      "persona": "Creator who needs a cleaner setup without a studio",
+      "hook": "Look like a studio — from your phone",
+      "adAngles": [
+        "Shaky footage vs locked-in tripod",
+        "Lighting before/after",
+        "Starter creator kit under $80"
+      ],
+      "offer": "Creator desk kit — tripod + light — free ship over $59",
+      "landingPromise": "Phone filming accessories for DTC and TikTok traffic",
+      "objections": [
+        { "q": "Tech support?", "a": "Sell simple universal kits with clear PDPs; avoid niche camera systems." },
+        { "q": "Returns?", "a": "Pick sturdy, well-reviewed supplier SKUs before ads." }
+      ]
+    },
+    "riskFlags": ["Battery lights — check shipping rules"]
   }
 ]

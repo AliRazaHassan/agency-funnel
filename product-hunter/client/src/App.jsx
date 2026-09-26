@@ -344,9 +344,10 @@ export default function App() {
                 ) : null}
                 <div className="section-head">
                   <div>
-                    <h2>Ranked opportunities</h2>
+                    <h2>Ranked opportunities · {scout.count || scout.opportunities?.length || 0} Shopify niches</h2>
                     <p>
-                      Source: {scout.source} · research score is model + rules, not live marketplace scrape
+                      Source: {scout.source} · physical product niches for turnkey stores (top 10). Research score =
+                      model + rules, not live marketplace scrape.
                     </p>
                   </div>
                 </div>
@@ -461,6 +462,42 @@ export default function App() {
                     </article>
                   ))}
                 </div>
+
+                {scout.serviceOffers?.length ? (
+                  <>
+                    <div className="section-head" style={{ marginTop: "1.5rem" }}>
+                      <div>
+                        <h2>Agency Model 2 · service offers</h2>
+                        <p>
+                          Not physical products. You sell a <strong>lead automation system</strong> (WordPress +
+                          WhatsApp) to local businesses — high ticket. “Hunt products” does not apply.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="opp-grid">
+                      {scout.serviceOffers.map((opp) => (
+                        <article key={opp.id} className="opp-card service-card">
+                          <div className="opp-top">
+                            <div>
+                              <span className="flag">Service · not SKUs</span>
+                              <h3>{opp.niche}</h3>
+                              <p className="muted">{opp.audience}</p>
+                            </div>
+                            <div className="muted" style={{ textAlign: "right", fontSize: "0.85rem" }}>
+                              <div>{opp.sellWhere?.primary}</div>
+                              <div>~${opp.estAovUsd} package</div>
+                            </div>
+                          </div>
+                          <div className="hook-box">
+                            <strong>Hook</strong>
+                            <p>{opp.marketing?.hook}</p>
+                          </div>
+                          <p className="muted">{opp.note || opp.whyNow}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
               </>
             )}
           </div>

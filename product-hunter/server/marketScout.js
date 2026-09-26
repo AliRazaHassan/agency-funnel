@@ -41,12 +41,14 @@ function applyBudgetHint(list, budget) {
 async function aiOpportunities({ regionFocus, nicheHint, budget }) {
   const ai = await chatJson(
     `You are a market research analyst for a turnkey Shopify + automation agency.
-Return JSON: { "opportunities": [ ... ] } with 5-6 items.
+Return JSON: { "opportunities": [ ... ] } with EXACTLY 10 items.
 Each item keys: id, niche, audience, demandDrivers (string[]), sellWhere {primary, geos[], secondaryChannels[]},
 whyNow, scores {demand, competition, gap 0-100}, estAovUsd, estContributionUsd,
 projectedMonthlyOrders {conservative, base, aggressive},
 marketing {persona, hook, adAngles[3], offer, landingPromise, objections[{q,a}]},
-riskFlags[], isServiceOffer (bool).
+riskFlags[], isServiceOffer (bool — almost always false).
+All 10 must be PHYSICAL product niches suitable for Shopify turnkey stores (light ship, evergreen).
+Do NOT include local-service / WhatsApp automation / DFY agency packages in this list.
 No trademarked brand replicas. Prefer evergreen. Be concrete.`,
     `Region focus: ${regionFocus || "Global"}
 Budget USD (ads/setup): ${budget || "unspecified"}
@@ -85,7 +87,29 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
 
   list = applyBudgetHint(list, budget);
 
-  // Free trusted signals (Wikimedia) + cited benchmarks — no Keepa cost for users
+  // Split: Shopify product niches vs agency service offers (Model 2)
+  const serviceOffers = list.filter((o) => o.isServiceOffer);
+  list = list.filter((o) => !o.isServiceOffer);
+
+  // Pad product list to 10 from seeds when AI/short
+  if (list.length < 10) {
+    const seedProducts = filterByRegion(seeds, regionFocus)
+      .filter((o) => !o.isServiceOffer)
+      .map((o) => ({
+        ...o,
+        marketing: normalizeMarketingPack(o.marketing, o.niche),
+      }));
+    const seen = new Set(list.map((o) => String(o.niche || "").toLowerCase()));
+    for (const s of seedProducts) {
+      if (list.length >= 10) break;
+      const key = String(s.niche || "").toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push(s);
+    }
+  }
+  list = list.slice(0, 10);
+
   list = await Promise.all(
     list.map((o) =>
       enrichOpportunityResearch({
@@ -97,7 +121,7 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
 
   if (source === "seed" && process.env.OPENAI_API_KEY) {
     list = await Promise.all(
-      list.slice(0, 6).map(async (o) => {
+      list.slice(0, 10).map(async (o) => {
         const marketing = await enrichMarketingPack(o, { regionFocus });
         return enrichOpportunityResearch({ ...o, marketing, freeSignal: o.freeSignal });
       })
@@ -120,7 +144,14 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
     keepa: keepaStatus(),
     socialTrends,
     opportunities: ranked,
+    serviceOffers: serviceOffers.map((o) => ({
+      ...o,
+      marketing: normalizeMarketingPack(o.marketing, o.niche),
+      tradeRoutes: opportunityTradeRoutes(o),
+      offerType: "agency_service",
+      note: "Model 2 — sell a lead automation system (WordPress/WhatsApp). Not physical SKUs; Hunt products will be empty.",
+    })),
     engineNote:
-      "Users pay $0 for interest + social trend board + deep links. Keepa/manual Amazon optional.",
+      "Shows 10 ranked Shopify product niches. Agency service offers listed separately (not product imports).",
   };
 }

@@ -1,6 +1,6 @@
 {
   "capturedAt": null,
   "domain": "com",
-  "note": "One-time Keepa dump placeholder. Replace by: (1) npm run keepa:pull -- B0XXXX B0YYYY  OR (2) paste Keepa product JSON into products[]. Free Wikimedia signals work without this file.",
+  "note": "Empty snapshot. Use UI “Add Amazon one-time data” (paste from amazon.com) or npm run keepa:pull. Free Wikimedia works without this.",
   "products": []
 }

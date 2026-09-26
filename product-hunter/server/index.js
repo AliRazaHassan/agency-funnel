@@ -8,7 +8,7 @@ import { scoutMarket } from "./marketScout.js";
 import { huntProducts } from "./productHunt.js";
 import { productsToMatrixifyCsv } from "./exportShopify.js";
 import { createAuth } from "./auth.js";
-import { keepaStatus } from "./keepa.js";
+import { keepaStatus, saveManualAmazonEntries } from "./keepa.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -62,6 +62,22 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/keepa/status", (_req, res) => {
   res.json(keepaStatus());
+});
+
+app.post("/api/amazon/manual", (req, res) => {
+  try {
+    const body = req.body || {};
+    const entries = body.entries || body.products || [body];
+    const snap = saveManualAmazonEntries(entries);
+    res.json({
+      ok: true,
+      snapshot: snap,
+      message:
+        "Saved manual Amazon one-time data. Re-hunt products to match. (We do not scrape Amazon.)",
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Save failed" });
+  }
 });
 
 app.get("/api/auth/status", (req, res) => {

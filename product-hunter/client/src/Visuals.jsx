@@ -48,8 +48,8 @@ export function DataHonestyBanner({ freeSignal, keepa }) {
           </>
         ) : (
           <>
-            Amazon sold units / BSR: drop a <strong>one-time Keepa dump</strong> when needed (buy API 1 month → pull →
-            cancel). No monthly Keepa required for daily use.
+            Amazon sold units: paste ASIN + “bought in past month” from amazon.com in the product panel (free,
+            one-time, no scrape). Or optional Keepa dump later.
           </>
         )}
       </p>
@@ -70,8 +70,8 @@ export function KeepaSnapshotCard({ keepa }) {
     return (
       <div className="viz-card">
         <div className="viz-head">
-          <h3>Amazon (Keepa)</h3>
-          <p className="muted">No snapshot match — using free signals only</p>
+          <h3>Amazon (one-time)</h3>
+          <p className="muted">No snapshot yet — paste numbers from Amazon below (we don’t scrape)</p>
         </div>
       </div>
     );
@@ -79,9 +79,13 @@ export function KeepaSnapshotCard({ keepa }) {
   return (
     <div className="viz-card">
       <div className="viz-head">
-        <h3>Amazon · one-time Keepa</h3>
+        <h3>Amazon · one-time data</h3>
         <p className="muted">
-          {k.match === "asin" ? "ASIN match" : `Title match ${Math.round((k.matchScore || 0) * 100)}%`} · not live API
+          {k.source === "manual-amazon-paste"
+            ? "Manual paste from amazon.com"
+            : k.match === "asin"
+              ? "ASIN match"
+              : `Title match ${Math.round((k.matchScore || 0) * 100)}%`}
         </p>
       </div>
       <div className="unit-strip">
@@ -110,6 +114,113 @@ export function KeepaSnapshotCard({ keepa }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Paste ASIN + “bought in past month” from Amazon in your browser — free one-time proof */
+export function ManualAmazonPasteForm({ product, onSaved }) {
+  const [asin, setAsin] = useState(product?.asin || product?.keepa?.asin || "");
+  const [boughtText, setBoughtText] = useState(
+    product?.keepa?.monthlySold != null ? `${product.keepa.monthlySold}+` : ""
+  );
+  const [salesRank, setSalesRank] = useState(product?.keepa?.salesRank ?? "");
+  const [priceUsd, setPriceUsd] = useState(product?.keepa?.buyBoxUsd ?? product?.estSellPriceUsd ?? "");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch("/api/amazon/manual", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          asin,
+          title: product?.title,
+          niche: product?.category,
+          boughtText,
+          salesRank: salesRank === "" ? null : Number(salesRank),
+          priceUsd: priceUsd === "" ? null : Number(priceUsd),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      setMsg(`Saved. Snapshot now has ${data.snapshot?.products?.length || 0} rows. Re-hunt to rematch.`);
+      onSaved?.(data);
+    } catch (ex) {
+      setErr(ex.message || "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="viz-card" onSubmit={save}>
+      <div className="viz-head">
+        <h3>Add Amazon one-time data (free)</h3>
+        <p className="muted">
+          Open Amazon search → copy ASIN + “bought in past month” (e.g. 1K+) into here. We never scrape Amazon.
+        </p>
+      </div>
+      <div className="manual-amazon-grid">
+        <label className="field">
+          <span>ASIN</span>
+          <input
+            value={asin}
+            onChange={(ev) => setAsin(ev.target.value)}
+            placeholder="B0XXXXXXXXX"
+            required
+          />
+        </label>
+        <label className="field">
+          <span>Bought / mo (from Amazon)</span>
+          <input
+            value={boughtText}
+            onChange={(ev) => setBoughtText(ev.target.value)}
+            placeholder="1000+ or 1K+"
+          />
+        </label>
+        <label className="field">
+          <span>BSR / sales rank (optional)</span>
+          <input
+            value={salesRank}
+            onChange={(ev) => setSalesRank(ev.target.value)}
+            placeholder="12450"
+            type="number"
+          />
+        </label>
+        <label className="field">
+          <span>Price USD (optional)</span>
+          <input
+            value={priceUsd}
+            onChange={(ev) => setPriceUsd(ev.target.value)}
+            placeholder="24.99"
+            type="number"
+            step="0.01"
+          />
+        </label>
+      </div>
+      {err ? <div className="error">{err}</div> : null}
+      {msg ? <p className="muted">{msg}</p> : null}
+      <div className="card-actions">
+        <button className="btn" type="submit" disabled={busy || !asin}>
+          {busy ? "Saving…" : "Save one-time Amazon row"}
+        </button>
+        <a
+          className="ghost"
+          href={`https://www.amazon.com/s?k=${encodeURIComponent(product?.title || "")}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open Amazon search
+        </a>
+      </div>
+    </form>
   );
 }
 
@@ -544,6 +655,10 @@ export function ProductDetailPanel({ product, onClose }) {
 
       <div style={{ marginTop: "0.75rem" }}>
         <KeepaSnapshotCard keepa={product} />
+      </div>
+
+      <div style={{ marginTop: "0.75rem" }}>
+        <ManualAmazonPasteForm product={product} />
       </div>
 
       <div style={{ marginTop: "0.75rem" }}>

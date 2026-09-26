@@ -10,7 +10,16 @@
 
 No monthly Keepa required for Scout / Hunt / Winning scorecard.
 
-## Amazon proof = one-time Keepa dump
+### Free Amazon proof (no Keepa, no scrape)
+
+1. Hunt a product → open detail  
+2. Click **Open Amazon search**  
+3. Copy **ASIN** + “X bought in past month” from the listing  
+4. Paste into **Add Amazon one-time data** → Save  
+
+We do **not** scrape Amazon (ToS / block risk). Manual paste is the free one-time path.
+
+## Amazon proof = one-time Keepa dump (paid optional)
 
 Keepa API has **no free tier** (~€49/mo starter). For Signal Desk you do **not** need it forever:
 

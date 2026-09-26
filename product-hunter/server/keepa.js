@@ -222,6 +222,62 @@ export async function pullKeepaOnce(asins = [], { domain = 1, niche = null } = {
   return loadKeepaSnapshot({ force: true });
 }
 
+/**
+ * Manual one-time Amazon observation (you copy from amazon.com in your browser).
+ * Not scraping — legal/ToS-safe path for free Amazon proof.
+ */
+export function saveManualAmazonEntries(entries = []) {
+  const list = (Array.isArray(entries) ? entries : [entries])
+    .map((e) => {
+      const asin = String(e.asin || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 10);
+      let monthlySold = e.monthlySold;
+      if (monthlySold == null && e.boughtText) {
+        const m = String(e.boughtText).replace(/,/g, "").match(/(\d+)\s*\+?/);
+        monthlySold = m ? Number(m[1]) : null;
+      }
+      return normalizeEntry({
+        asin: asin.length === 10 ? asin : null,
+        title: e.title || "",
+        niche: e.niche || null,
+        monthlySold,
+        salesRank: e.salesRank,
+        buyBoxUsd: e.buyBoxUsd ?? e.priceUsd,
+        avgPriceUsd: e.avgPriceUsd ?? e.priceUsd,
+        rating: e.rating,
+        reviewCount: e.reviewCount,
+        source: "manual-amazon-paste",
+        capturedAt: new Date().toISOString(),
+      });
+    })
+    .filter((p) => p.asin || p.title);
+
+  if (!list.length) {
+    throw new Error("Need at least ASIN or title + numbers from Amazon page");
+  }
+
+  const existing = loadKeepaSnapshot({ force: true });
+  const byKey = new Map();
+  for (const p of existing.products || []) {
+    byKey.set(p.asin || p.titleKey, p);
+  }
+  for (const p of list) {
+    byKey.set(p.asin || p.titleKey, p);
+  }
+
+  const payload = {
+    capturedAt: new Date().toISOString(),
+    domain: "com",
+    note: "Manual Amazon paste (one-time). Copied from amazon.com by a human — not scraped, not Keepa API.",
+    products: [...byKey.values()],
+  };
+  writeFileSync(SNAPSHOT_PATH, JSON.stringify(payload, null, 2), "utf8");
+  cached = null;
+  return loadKeepaSnapshot({ force: true });
+}
+
 export function attachKeepaToProducts(products = [], opportunity = {}) {
   const snap = loadKeepaSnapshot();
   return products.map((p) => {

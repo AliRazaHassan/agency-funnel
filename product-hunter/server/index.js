@@ -19,6 +19,7 @@ dotenv.config({ path: join(__dirname, "..", ".env") });
 const app = express();
 const PORT = process.env.PORT || 8787;
 const isProd = process.env.NODE_ENV === "production";
+const hasOpenAIKey = Boolean(String(process.env.OPENAI_API_KEY || "").trim());
 
 const auth = createAuth({
   password: process.env.APP_PASSWORD,
@@ -52,7 +53,7 @@ app.get("/api/health", (_req, res) => {
   const k = keepaStatus();
   res.json({
     ok: true,
-    openai: Boolean(process.env.OPENAI_API_KEY),
+    openai: hasOpenAIKey,
     authRequired: auth.enabled,
     label: "Signal Desk",
     dataMode: {
@@ -251,7 +252,7 @@ app.get("/api/workspace/status", (_req, res) => {
       amazonManualPaste: true,
       keepaSnapshot: k.snapshot?.ok || false,
     },
-    openai: Boolean(process.env.OPENAI_API_KEY),
+    openai: hasOpenAIKey,
     keepa: k,
   });
 });
@@ -267,5 +268,5 @@ if (existsSync(clientDist)) {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Signal Desk http://127.0.0.1:${PORT}`);
   console.log(`Auth: ${auth.enabled ? "password required" : "open (set APP_PASSWORD)"}`);
-  console.log(`OpenAI: ${process.env.OPENAI_API_KEY ? "on" : "seed fallback"}`);
+  console.log(`OpenAI: ${hasOpenAIKey ? "configured" : "seed fallback (OPENAI_API_KEY missing)"}`);
 });

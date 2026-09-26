@@ -10,6 +10,8 @@ import { productsToMatrixifyCsv } from "./exportShopify.js";
 import { createAuth } from "./auth.js";
 import { keepaStatus, saveManualAmazonEntries } from "./keepa.js";
 import { fetchSocialTrends, saveManualSocialTrends } from "./socialTrends.js";
+import { listProjects, getProject, saveProject, deleteProject } from "./projects.js";
+import { buildClientBrief } from "./clientBrief.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -178,6 +180,80 @@ app.post("/api/products/export", (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message || "Export failed" });
   }
+});
+
+app.get("/api/projects", (_req, res) => {
+  res.json({ projects: listProjects() });
+});
+
+app.get("/api/projects/:id", (req, res) => {
+  const p = getProject(req.params.id);
+  if (!p) return res.status(404).json({ error: "Project not found" });
+  res.json(p);
+});
+
+app.post("/api/projects", (req, res) => {
+  try {
+    const saved = saveProject(req.body || {});
+    res.json(saved);
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Save failed" });
+  }
+});
+
+app.delete("/api/projects/:id", (req, res) => {
+  const ok = deleteProject(req.params.id);
+  if (!ok) return res.status(404).json({ error: "Project not found" });
+  res.json({ ok: true });
+});
+
+app.post("/api/export/brief", (req, res) => {
+  try {
+    const { format } = req.body || {};
+    const brief = buildClientBrief(req.body || {});
+    if (format === "html") {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${String(brief.title || "brief")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")}-brief.html"`
+      );
+      return res.send(brief.html);
+    }
+    res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${String(brief.title || "brief")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")}-brief.md"`
+    );
+    res.send(brief.markdown);
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Brief failed" });
+  }
+});
+
+app.get("/api/workspace/status", (_req, res) => {
+  const k = keepaStatus();
+  res.json({
+    label: "Signal Desk",
+    version: "1.0",
+    modules: {
+      scout: true,
+      socialTrends: true,
+      productHunt: true,
+      winningScorecard: true,
+      shopifyExport: true,
+      clientBrief: true,
+      projects: true,
+      freeSignals: true,
+      amazonManualPaste: true,
+      keepaSnapshot: k.snapshot?.ok || false,
+    },
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    keepa: k,
+  });
 });
 
 const clientDist = join(__dirname, "..", "client", "dist");

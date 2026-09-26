@@ -1,0 +1,51 @@
+{
+  "id": "proj_mui8onjp_e3adc1",
+  "name": "Test Pet",
+  "createdAt": "2026-09-26T10:20:58.548Z",
+  "updatedAt": "2026-09-26T10:20:58.548Z",
+  "regionFocus": "US",
+  "budget": null,
+  "nicheHint": "",
+  "scout": {
+    "count": 10,
+    "opportunities": [
+      {
+        "niche": "Pet Supplies",
+        "rankScore": 80
+      }
+    ]
+  },
+  "selectedOpp": {
+    "niche": "Pet Supplies",
+    "estAovUsd": 58,
+    "marketing": {
+      "hook": "h",
+      "adAngles": [
+        "a"
+      ]
+    }
+  },
+  "hunt": {
+    "count": 50,
+    "winningSummary": {
+      "pass": 2,
+      "watch": 3,
+      "fail": 1,
+      "total": 6
+    },
+    "products": [
+      {
+        "rank": 1,
+        "title": "Harness",
+        "estCostUsd": 9,
+        "estSellPriceUsd": 25,
+        "marginPct": 55,
+        "problemSolved": "pull",
+        "winning": {
+          "verdict": "PASS"
+        }
+      }
+    ]
+  },
+  "selectedProductIds": []
+}

@@ -1,44 +1,43 @@
-# Signal Desk (Product Hunter)
+# Signal Desk
 
-Private AI market research → ranking → product hunt → Shopify CSV.
+Complete research workspace for turnkey Shopify stores + agency offers.
 
-## Local
+## Product modules
+
+| Module | What it does |
+|--------|----------------|
+| **Home** | Saved projects, start new session |
+| **Desk · Scout** | 10 ranked Shopify niches + TikTok/Meta trending board |
+| **Desk · Hunt** | 50+ SKUs, costs, links, PASS/WATCH/FAIL scorecard |
+| **Amazon paste** | Free one-time Amazon ASIN / bought-in-past-month notes |
+| **Projects** | Save / resume scout+hunt packages |
+| **Client brief** | Download HTML research brief for clients |
+| **Shopify export** | Matrixify CSV |
+| **Settings** | Module + data-mode status |
+
+## Run locally
 
 ```bash
 cd product-hunter
-cp .env.example .env
-# set APP_PASSWORD=your-secret
+cp .env.example .env   # set APP_PASSWORD
 npm install
-npm run dev
+npm run dev            # API :8787 + Vite :5177
 ```
 
-- UI: http://localhost:5177  
-- API: http://localhost:8787  
+Open **http://127.0.0.1:5177/** (prefer `127.0.0.1` over `localhost` on Windows).
 
-Without `APP_PASSWORD`, auth is open (local only). Production **requires** it.
+## Production (Render)
 
-## Keepa (live Amazon stats)
+Blueprint: `render.yaml` · root `product-hunter` · set `APP_PASSWORD`.
 
-See [docs/KEEPA.md](docs/KEEPA.md).
+## Data honesty
 
-1. Sign up at [keepa.com](https://keepa.com) → open [API](https://keepa.com/#!api) → buy a plan → copy access key  
-2. Set `KEEPA_API_KEY` in `.env` or Render Environment  
-3. Tell the agent to wire live Keepa lookups (paid API; not free)
+- Free: Wikimedia interest + cited industry models + social creative boards  
+- Amazon units: manual paste or optional one-time Keepa snapshot (`docs/KEEPA.md`)  
+- No Amazon/TikTok/FB shop scraping  
 
-Without Keepa you still get **per-source cost + shipping days** (AutoDS / Zendrop / CJ / AliExpress estimates) when you click a product and select a source.
+## Scripts
 
-## Render deploy
-
-1. Push repo to GitHub  
-2. Render → **New** → **Blueprint** → select repo (`render.yaml`)  
-   Or Web Service: root `product-hunter`, build `npm install && npm run build`, start `npm start`  
-3. Set env vars:
-   - `APP_PASSWORD` (required)
-   - `SESSION_SECRET` (auto if Blueprint)
-   - `OPENAI_API_KEY` (optional)
-
-App URL will serve the built UI + API together (password gate on open).
-
-## Auth
-
-Cookie session (`ph_session`, HttpOnly). Login via `/api/auth/login`.
+```bash
+npm run keepa:pull -- B0XXXXXXXXX   # optional one-time Keepa dump
+```

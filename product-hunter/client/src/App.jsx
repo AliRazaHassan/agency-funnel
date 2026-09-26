@@ -1,30 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, SocialTrendsBoard } from "./Visuals.jsx";
-
-async function api(url, { method = "GET", body } = {}) {
-  let res;
-  try {
-    res = await fetch(url, {
-      method,
-      credentials: "include",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    const err = new Error(
-      "Cannot reach API (is Signal Desk server running on port 8787?)."
-    );
-    err.network = true;
-    throw err;
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error(data.error || res.statusText);
-    err.needLogin = data.needLogin;
-    throw err;
-  }
-  return data;
-}
+import { api, downloadBlob } from "./api.js";
+import { Onboarding, HomeView, SettingsView } from "./Shell.jsx";
 
 function ScoreBar({ label, value }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
@@ -96,6 +73,11 @@ export default function App() {
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
+  const [view, setView] = useState("home"); // home | desk | settings
+  const [projectId, setProjectId] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => localStorage.getItem("sd_onboarded") !== "1"
+  );
 
   const step = hunt ? 3 : scout ? 2 : 1;
 
@@ -191,32 +173,95 @@ export default function App() {
     setError("");
     setLoading("export");
     try {
-      const res = await fetch("/api/products/export", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await downloadBlob(
+        "/api/products/export",
+        {
           products: selectedProducts,
           niche: selectedOpp?.niche || "Store",
           vendor: "AgencyFunnel",
-        }),
-      });
-      if (res.status === 401) {
-        refreshAuth();
-        throw new Error("Session expired — log in again");
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Export failed");
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${(selectedOpp?.niche || "shopify").toLowerCase().replace(/\s+/g, "-")}-import.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+        },
+        `${(selectedOpp?.niche || "shopify").toLowerCase().replace(/\s+/g, "-")}-import.csv`
+      );
     } catch (e) {
+      if (e.needLogin) refreshAuth();
+      setError(e.message);
+    } finally {
+      setLoading("");
+    }
+  }
+
+  async function exportBrief() {
+    setError("");
+    setLoading("brief");
+    try {
+      await downloadBlob(
+        "/api/export/brief",
+        {
+          format: "html",
+          scout,
+          selectedOpp,
+          hunt,
+          selectedProducts,
+        },
+        `${(selectedOpp?.niche || "signal-desk").toLowerCase().replace(/\s+/g, "-")}-brief.html`
+      );
+    } catch (e) {
+      if (e.needLogin) refreshAuth();
+      setError(e.message);
+    } finally {
+      setLoading("");
+    }
+  }
+
+  async function saveCurrentProject() {
+    if (!scout) {
+      setError("Run a scout before saving a project");
+      return;
+    }
+    setError("");
+    setLoading("save");
+    try {
+      const saved = await api("/api/projects", {
+        method: "POST",
+        body: {
+          id: projectId || undefined,
+          name: selectedOpp?.niche || hunt?.niche || `Research ${new Date().toLocaleDateString()}`,
+          regionFocus,
+          budget,
+          nicheHint,
+          scout,
+          selectedOpp,
+          hunt,
+          selectedProductIds: [...selectedIds],
+        },
+      });
+      setProjectId(saved.id);
+    } catch (e) {
+      if (e.needLogin) refreshAuth();
+      setError(e.message);
+    } finally {
+      setLoading("");
+    }
+  }
+
+  async function openProject(id) {
+    setError("");
+    setLoading("load");
+    try {
+      const p = await api(`/api/projects/${id}`);
+      setProjectId(p.id);
+      setRegionFocus(p.regionFocus || "Global");
+      setBudget(p.budget != null ? String(p.budget) : "500");
+      setNicheHint(p.nicheHint || "");
+      setScout(p.scout || null);
+      setSelectedOpp(p.selectedOpp || null);
+      setHunt(p.hunt || null);
+      setSelectedIds(new Set(p.selectedProductIds || []));
+      setSelectedProduct(p.hunt?.products?.[0] || null);
+      setWinFilter("ALL");
+      setView("desk");
+    } catch (e) {
+      if (e.needLogin) refreshAuth();
       setError(e.message);
     } finally {
       setLoading("");
@@ -227,6 +272,8 @@ export default function App() {
     await api("/api/auth/logout", { method: "POST", body: {} });
     setScout(null);
     setHunt(null);
+    setProjectId(null);
+    setView("home");
     setAuth((a) => ({ ...a, authenticated: false }));
   }
 
@@ -247,13 +294,29 @@ export default function App() {
 
   return (
     <div className="shell">
+      {showOnboarding ? <Onboarding onDone={() => setShowOnboarding(false)} /> : null}
       <header className="topbar">
         <div className="brand-block">
           <h1 className="brand">
             Signal <span>Desk</span>
           </h1>
-          <p className="tagline">Market demand → marketing → AOV rank → Shopify import</p>
+          <p className="tagline">Complete research workspace · niche → SKUs → Shopify + client brief</p>
         </div>
+        <nav className="top-nav">
+          <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>
+            Home
+          </button>
+          <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}>
+            Desk
+          </button>
+          <button
+            type="button"
+            className={view === "settings" ? "nav-on" : ""}
+            onClick={() => setView("settings")}
+          >
+            Settings
+          </button>
+        </nav>
         <div className="top-actions">
           {auth.required ? (
             <button type="button" className="ghost" onClick={logout}>
@@ -262,6 +325,21 @@ export default function App() {
           ) : null}
         </div>
       </header>
+
+      {error ? <div className="error" style={{ margin: "0 1.25rem 0.75rem" }}>{error}</div> : null}
+
+      {view === "home" ? (
+        <HomeView
+          onOpenDesk={() => {
+            setView("desk");
+          }}
+          onOpenProject={openProject}
+        />
+      ) : null}
+
+      {view === "settings" ? <SettingsView /> : null}
+
+      {view === "desk" ? (
 
       <div className="layout">
         <aside className="side">
@@ -317,6 +395,25 @@ export default function App() {
 
         <section>
           {error ? <div className="error">{error}</div> : null}
+          <div className="desk-actions btn-row" style={{ marginBottom: "0.75rem" }}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={saveCurrentProject}
+              disabled={!scout || loading === "save"}
+            >
+              {loading === "save" ? "Saving…" : projectId ? "Update project" : "Save project"}
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={exportBrief}
+              disabled={!selectedOpp || loading === "brief"}
+            >
+              {loading === "brief" ? "Brief…" : "Download client brief"}
+            </button>
+            {projectId ? <span className="muted">Project saved · {projectId}</span> : null}
+          </div>
 
           <div className="main-panel">
             {!scout ? (
@@ -560,6 +657,22 @@ export default function App() {
                   </button>
                   <button
                     type="button"
+                    className="ghost"
+                    onClick={saveCurrentProject}
+                    disabled={!scout || loading === "save"}
+                  >
+                    {loading === "save" ? "Saving…" : projectId ? "Update project" : "Save project"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={exportBrief}
+                    disabled={!selectedOpp || loading === "brief"}
+                  >
+                    {loading === "brief" ? "Brief…" : "Client brief"}
+                  </button>
+                  <button
+                    type="button"
                     className="btn"
                     style={{ width: "auto" }}
                     onClick={exportCsv}
@@ -678,6 +791,7 @@ export default function App() {
           ) : null}
         </section>
       </div>
+      ) : null}
     </div>
   );
 }

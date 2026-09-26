@@ -5,20 +5,20 @@ export function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
   const steps = [
     {
-      title: "Welcome to Signal Desk",
-      body: "Your research workspace: pick a niche, hunt winning SKUs, export to Shopify, and hand clients a brief.",
+      title: "Welcome to Product Hunter AI",
+      body: "Discover products, understand why they are trending, compare market signals, validate profitability, and export winners to Shopify.",
     },
     {
       title: "1 · Scout markets",
       body: "Get 10 ranked Shopify niches + TikTok/Meta trending board. Service (agency) offers stay separate.",
     },
     {
-      title: "2 · Hunt & score",
-      body: "Pull 50+ products with cost, links, and PASS / WATCH / FAIL winning scorecard.",
+      title: "2 · Trend intelligence",
+      body: "Score products across Amazon, TikTok, Meta, Google and cross-platform momentum with confidence and saturation signals.",
     },
     {
-      title: "3 · Deliver",
-      body: "Save the project, download Matrixify CSV, and export a client research brief.",
+      title: "3 · Validate & launch",
+      body: "Inspect Why Trending evidence, profitability and suppliers, then save, export Matrixify CSV, or launch the Shopify workflow.",
     },
   ];
 
@@ -88,12 +88,17 @@ export function HomeView({ onOpenDesk, onOpenProject }) {
   return (
     <div className="home-view">
       <div className="home-hero">
-        <h2>Research desk for turnkey stores</h2>
-        <p className="muted">
-          Scout niches → hunt winning products → export Shopify CSV + client brief. Built for your agency funnel.
-        </p>
+        <div className="hero-kicker">PRODUCT INTELLIGENCE V2</div>
+        <h2>Find products before the market gets crowded.</h2>
+        <p className="muted">Discover → understand why it is trending → measure momentum and saturation → validate profit → export to Shopify.</p>
+        <div className="intelligence-feature-grid">
+          <div><strong>Trend Score</strong><span>Amazon · TikTok · Meta · Google</span></div>
+          <div><strong>Why Trending</strong><span>Evidence, not a black-box score</span></div>
+          <div><strong>Lifecycle</strong><span>Emerging · Accelerating · Saturating</span></div>
+          <div><strong>Shopify Ready</strong><span>Source, validate and export</span></div>
+        </div>
         <button type="button" className="btn" style={{ width: "auto" }} onClick={onOpenDesk}>
-          New research session
+          Launch Product Hunter
         </button>
       </div>
 

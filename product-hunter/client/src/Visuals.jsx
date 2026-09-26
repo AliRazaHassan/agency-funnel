@@ -522,6 +522,11 @@ export function MarketVizBoard({ opportunities, selectedOpp, keepa }) {
   );
 }
 
+function ScoreBarMini({ label, value }) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  return <div className="bar-row"><span>{label}</span><div className="bar-track"><div className="bar-fill" style={{ width: `${v}%` }} /></div><span>{Math.round(v)}</span></div>;
+}
+
 export function ProductDetailPanel({ product, onClose }) {
   if (!product) return null;
   const options = product.supplierOptions || [];
@@ -647,6 +652,28 @@ export function ProductDetailPanel({ product, onClose }) {
           ) : null}
         </div>
         <FunnelViz item={funnelProduct} title={`Funnel · ${product.title}`} />
+      </div>
+
+      <div className="viz-card" style={{ marginTop: "0.75rem" }}>
+        <div className="viz-head">
+          <h3>Trend Intelligence · {product.trendScore ?? "—"}/100</h3>
+          <p className="muted">{product.trendStatus || "DISCOVERED"} · {product.dataConfidence || "LOW"} confidence</p>
+        </div>
+        <div className="unit-strip">
+          <div><span>7-day</span><b>{product.momentum?.d7 == null ? "—" : `${product.momentum.d7}%`}</b></div>
+          <div><span>14-day</span><b>{product.momentum?.d14 == null ? "—" : `${product.momentum.d14}%`}</b></div>
+          <div><span>30-day</span><b>{product.momentum?.d30 == null ? "—" : `${product.momentum.d30}%`}</b></div>
+          <div><span>Saturation</span><b>{product.saturation?.risk || "—"}</b></div>
+        </div>
+        <div className="bars" style={{ marginTop: "0.75rem" }}>
+          {Object.entries(product.trendComponents || {}).map(([key,value]) => <ScoreBarMini key={key} label={key} value={value} />)}
+        </div>
+        <div className="hook-box" style={{ marginTop: "0.75rem" }}>
+          <strong>Why is this trending?</strong>
+          <p>{product.whyTrending?.summary || "Not enough cross-platform evidence yet."}</p>
+          {(product.whyTrending?.evidence || []).map((e) => <p key={e.source} className="muted"><b>{e.source}</b>: {e.reason} · {e.value}/100 · {e.status}</p>)}
+        </div>
+        <p className="viz-disclaimer">Trend score is an evidence index, not a claim of verified unit sales. Missing sources stay unavailable.</p>
       </div>
 
       <div style={{ marginTop: "0.75rem" }}>

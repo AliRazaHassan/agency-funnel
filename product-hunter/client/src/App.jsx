@@ -373,7 +373,7 @@ export default function App() {
             <>
               <div className="radar-kpis">
                 <div><b>{radarProducts.length}</b><span>Products</span></div>
-                <div><b>{radarProducts.filter(p=>p.trendStatus==="ACCELERATING").length}</b><span>Accelerating</span></div>
+                <div><b>{radarProducts.filter(p=>p.winnerDecision?.verdict==="STRONG_CANDIDATE").length}</b><span>Strong candidates</span></div>
                 <div><b>{radarProducts.filter(p=>["EMERGING","DISCOVERED"].includes(p.trendStatus)).length}</b><span>Early opportunities</span></div>
                 <div><b>{radarProducts.filter(p=>p.trendStatus==="SATURATING"||p.saturation?.risk==="HIGH").length}</b><span>Saturation risks</span></div>
               </div>
@@ -383,11 +383,12 @@ export default function App() {
               <div className="radar-grid">
                 {radarProducts.filter(p=>trendFilter==="ALL"||p.trendStatus===trendFilter).map(p=>(
                   <article className="radar-card" key={p.id}>
-                    <div className="radar-card-top"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><span className="confidence">{p.dataConfidence||"LOW"} confidence</span></div>
+                    <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.winnerDecision?.label||"Validate"}</span><span className="confidence">{p.dataConfidence||"LOW"} confidence</span></div>
+                    <div className="lifecycle-line"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><strong>{p.winnerDecision?.score??"—"}/100 winner score</strong></div>
                     <h3>{p.title}</h3><p className="muted">{p.category}</p>
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winning?.score??p.profitScore??"—"}</b><span>Profit</span></div><div><b>{p.competitionScore??p.winning?.components?.competition??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).slice(0,4).map(([k,v])=><span key={k}><em>{k}</em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
-                    <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div>
+                    <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.winnerDecision?.verifiedSources||0} verified/recent sources</strong><p>{p.winnerDecision?.reason}</p></div>
                     <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>View intelligence</button><button className="btn" onClick={()=>{setSelectedIds(new Set([p.id]));setSelectedProduct(p);setView("desk")}}>Shopify actions</button></div>
                   </article>
                 ))}

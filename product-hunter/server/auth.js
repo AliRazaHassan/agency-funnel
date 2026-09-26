@@ -16,7 +16,7 @@ function sign(exp, secret) {
   return crypto.createHmac("sha256", secret).update(String(exp)).digest("hex");
 }
 
-function makeToken(secret, ttlMs = 1000 * 60 * 60 * 24 * 7) {
+function makeToken(secret, ttlMs = 1000 * 60 * 60 * 4) {
   const exp = Date.now() + ttlMs;
   return `${exp}.${sign(exp, secret)}`;
 }
@@ -35,7 +35,7 @@ function verifyToken(token, secret) {
   }
 }
 
-export function createAuth({ password, secret }) {
+export function createAuth({ password, secret, sessionHours = 4 }) {
   const enabled = Boolean(password);
   const sessionSecret = secret || password || "dev-insecure-secret";
 
@@ -45,11 +45,13 @@ export function createAuth({ password, secret }) {
   }
 
   function setSessionCookie(res) {
-    const token = makeToken(sessionSecret);
+    const ttlMs = Math.max(1, Number(sessionHours) || 4) * 60 * 60 * 1000;
+    const token = makeToken(sessionSecret, ttlMs);
     const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    // Session cookie: browser close requires login again. Token also expires server-side.
     res.setHeader(
       "Set-Cookie",
-      `ph_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${secure}`
+      `ph_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`
     );
   }
 

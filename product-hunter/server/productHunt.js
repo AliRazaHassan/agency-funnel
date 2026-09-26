@@ -5,7 +5,7 @@ import { buildProductMarketplaceSales } from "./marketSales.js";
 import { summarizeWinningDeck, buildWinningScorecard } from "./winningScorecard.js";
 import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
 import { buildIntelligence } from "./intelligence.js";
-import { buildWinnerDecision, summarizeWinnerDecisions } from "./winnerEngine.js";
+import { buildWinnerDecision, summarizeWinnerDecisions, selectFinalWinners, summarizeFinalWinners } from "./winnerEngine.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -160,7 +160,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     ...p,
     winning: buildWinningScorecard(p, opportunity),
   }));
-  const ranked = rankProducts(withKeepa).map((p) => {
+  const rankedBase = rankProducts(withKeepa).map((p) => {
     const marketplaceSales = buildProductMarketplaceSales(p, opportunity);
     const amazonVerified = Boolean(p.keepaMatched || p.keepa?.matched || p.amazon?.matched);
     const free = opportunity.freeSignal || {};
@@ -185,6 +185,8 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     return { ...intelligence, winnerDecision: buildWinnerDecision(intelligence) };
   });
 
+  const ranked = selectFinalWinners(rankedBase);
+
   return {
     source,
     researchLabel:
@@ -193,7 +195,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     niche: opportunity.niche,
     count: ranked.length,
     winningSummary: summarizeWinningDeck(ranked),
-    winnerSummary: summarizeWinnerDecisions(ranked),
+    winnerSummary: summarizeFinalWinners(ranked),
     keepa: keepaStatus(),
     products: ranked,
   };

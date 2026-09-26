@@ -133,7 +133,7 @@ async function fetchWikipediaInterest(niche) {
 /**
  * Soft Google Trends probe — often fails on Render/datacenter. Never throws.
  */
-async function fetchGoogleTrendsSoft(keyword) {
+async function fetchGoogleTrendsSoft(keyword, geo = "US") {
   try {
     const end = new Date();
     const start = new Date();
@@ -142,7 +142,7 @@ async function fetchGoogleTrendsSoft(keyword) {
       hl: "en-US",
       tz: "0",
       req: JSON.stringify({
-        comparisonItem: [{ keyword, geo: "US", time: "today 3-m" }],
+        comparisonItem: [{ keyword, geo: String(geo || "US").toUpperCase(), time: "today 3-m" }],
         category: 0,
         property: "",
       }),
@@ -205,8 +205,10 @@ async function fetchGoogleTrendsSoft(keyword) {
 /**
  * Free demand signal bundle for a niche.
  */
-export async function fetchFreeDemandSignal(niche) {
-  const key = `free:${String(niche || "").toLowerCase()}`;
+export async function fetchFreeDemandSignal(niche, geo = "US") {
+  const normalizedGeo = String(geo || "US").toUpperCase().replace("GB", "UK");
+  const trendsGeo = normalizedGeo === "UK" ? "GB" : normalizedGeo === "GLOBAL" ? "US" : normalizedGeo;
+  const key = `free:${String(niche || "").toLowerCase()}:${trendsGeo}`;
   const cached = cacheGet(key);
   if (cached) return { ...cached, cached: true };
 
@@ -214,7 +216,7 @@ export async function fetchFreeDemandSignal(niche) {
   // Google Trends often hangs / 429 on cloud + Windows — opt-in only
   const trends =
     process.env.ENABLE_GOOGLE_TRENDS === "1"
-      ? await fetchGoogleTrendsSoft(String(niche || "").split("&")[0].trim())
+      ? await fetchGoogleTrendsSoft(String(niche || "").split("&")[0].trim(), trendsGeo)
       : null;
 
   const parts = [wiki, trends].filter(Boolean);
@@ -239,7 +241,8 @@ export async function fetchFreeDemandSignal(niche) {
     interestScore: clamp(interestScore),
     providers: parts,
     honesty:
-      "Free trusted signals: Wikimedia Pageviews (± Google Trends when reachable). These measure public interest — NOT Keepa/Amazon sold units.",
+      `Free trusted signals: Wikimedia Pageviews + Google Trends for ${trendsGeo} when reachable. These measure public interest — NOT Keepa/Amazon sold units.`,
+    market: trendsGeo,
     amazonUnits: {
       available: false,
       reason: "Amazon sales/rank history requires Keepa API (~€49+/mo) — no free tier.",

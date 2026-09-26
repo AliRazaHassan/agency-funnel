@@ -9,6 +9,7 @@ import { huntProducts } from "./productHunt.js";
 import { productsToMatrixifyCsv } from "./exportShopify.js";
 import { createAuth } from "./auth.js";
 import { keepaStatus, saveManualAmazonEntries } from "./keepa.js";
+import { fetchSocialTrends, saveManualSocialTrends } from "./socialTrends.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -75,6 +76,30 @@ app.post("/api/amazon/manual", (req, res) => {
       message:
         "Saved manual Amazon one-time data. Re-hunt products to match. (We do not scrape Amazon.)",
     });
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Save failed" });
+  }
+});
+
+app.get("/api/trends/social", async (req, res) => {
+  try {
+    const { regionFocus, nicheHint } = req.query || {};
+    const data = await fetchSocialTrends({
+      regionFocus: regionFocus || "Global",
+      nicheHint: nicheHint || undefined,
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Trends failed" });
+  }
+});
+
+app.post("/api/trends/social/manual", (req, res) => {
+  try {
+    const body = req.body || {};
+    const items = body.items || body.entries || [body];
+    const saved = saveManualSocialTrends(items);
+    res.json({ ok: true, count: saved.length, items: saved.slice(0, 20) });
   } catch (err) {
     res.status(400).json({ error: err.message || "Save failed" });
   }

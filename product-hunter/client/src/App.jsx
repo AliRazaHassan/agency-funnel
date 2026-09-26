@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge } from "./Visuals.jsx";
+import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, SocialTrendsBoard } from "./Visuals.jsx";
 
 async function api(url, { method = "GET", body } = {}) {
   let res;
@@ -336,6 +336,12 @@ export default function App() {
                   selectedOpp={selectedOpp}
                   keepa={hunt?.keepa || scout.keepa}
                 />
+                {scout.socialTrends ? (
+                  <SocialTrendsBoard
+                    trends={scout.socialTrends}
+                    onUseNiche={(title) => setNicheHint(String(title).slice(0, 80))}
+                  />
+                ) : null}
                 <div className="section-head">
                   <div>
                     <h2>Ranked opportunities</h2>

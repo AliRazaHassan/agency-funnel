@@ -670,3 +670,157 @@ export function ProductDetailPanel({ product, onClose }) {
     </div>
   );
 }
+
+export function SocialTrendsBoard({ trends, onUseNiche }) {
+  if (!trends) return null;
+  const tiktok = trends.tiktok || [];
+  const meta = trends.meta || [];
+  const manual = trends.manual || [];
+
+  return (
+    <div className="viz-board social-trends">
+      <div className="viz-board-head">
+        <h2>Trending · TikTok & Meta</h2>
+        <p className="muted">{trends.honesty}</p>
+      </div>
+      <div className="honesty-banner">
+        <strong>Creatives ≠ sold units</strong>
+        <p>
+          Sources: TikTok {trends.sources?.tiktok} · Meta {trends.sources?.meta}
+          {manual.length ? ` · ${manual.length} manual` : ""}. Open hub links to verify live charts.
+        </p>
+        <div className="link-row" style={{ marginTop: "0.5rem" }}>
+          {trends.hubs?.tiktokCreativeCenter ? (
+            <a className="ext-link" href={trends.hubs.tiktokCreativeCenter} target="_blank" rel="noreferrer">
+              TikTok Creative Center
+            </a>
+          ) : null}
+          {trends.hubs?.metaAdLibrary ? (
+            <a className="ext-link" href={trends.hubs.metaAdLibrary} target="_blank" rel="noreferrer">
+              Meta Ad Library
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="viz-grid two" style={{ marginTop: "0.75rem" }}>
+        <TrendColumn title="TikTok" items={tiktok} onUseNiche={onUseNiche} />
+        <TrendColumn title="Meta / Facebook" items={meta} onUseNiche={onUseNiche} />
+      </div>
+
+      {manual.length ? (
+        <div style={{ marginTop: "0.75rem" }}>
+          <TrendColumn title="Your manual social notes" items={manual} onUseNiche={onUseNiche} />
+        </div>
+      ) : null}
+
+      <ManualSocialTrendForm region={trends.regionFocus} />
+    </div>
+  );
+}
+
+function TrendColumn({ title, items, onUseNiche }) {
+  return (
+    <div className="viz-card">
+      <div className="viz-head">
+        <h3>{title}</h3>
+        <p className="muted">{items.length} ideas · click research link</p>
+      </div>
+      <ul className="trend-list">
+        {items.map((t, i) => (
+          <li key={`${t.platform}-${t.title}-${i}`}>
+            <div className="trend-top">
+              <strong>
+                #{t.rank || i + 1} {t.title}
+              </strong>
+              <span className={`win-badge ${t.platform === "tiktok" ? "watch" : "pass"}`}>
+                {t.platform}
+              </span>
+            </div>
+            <p className="muted" style={{ margin: "0.2rem 0" }}>
+              {t.category} · {t.metric || t.trendSignal}
+            </p>
+            <p className="prod-problem">{t.why || t.note}</p>
+            <div className="link-row" style={{ marginTop: "0.35rem" }}>
+              {t.researchUrl ? (
+                <a className="ext-link" href={t.researchUrl} target="_blank" rel="noreferrer">
+                  Research
+                </a>
+              ) : null}
+              {onUseNiche ? (
+                <button type="button" className="ext-link" onClick={() => onUseNiche(t.title)}>
+                  Use as niche hint
+                </button>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ManualSocialTrendForm({ region }) {
+  const [platform, setPlatform] = useState("tiktok");
+  const [title, setTitle] = useState("");
+  const [metric, setMetric] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/trends/social/manual", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, title, metric, region }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      setMsg("Saved. Run scout again to refresh the board.");
+      setTitle("");
+      setMetric("");
+    } catch (ex) {
+      setMsg(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="viz-card" style={{ marginTop: "0.75rem" }} onSubmit={save}>
+      <div className="viz-head">
+        <h3>Add TikTok / Meta trend (manual)</h3>
+        <p className="muted">Saw it in Creative Center or Ad Library? Paste here — free, no scrape.</p>
+      </div>
+      <div className="manual-amazon-grid">
+        <label className="field">
+          <span>Platform</span>
+          <select value={platform} onChange={(ev) => setPlatform(ev.target.value)}>
+            <option value="tiktok">TikTok</option>
+            <option value="meta">Meta</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Product / angle</span>
+          <input value={title} onChange={(ev) => setTitle(ev.target.value)} required placeholder="LED neck fan" />
+        </label>
+        <label className="field" style={{ gridColumn: "1 / -1" }}>
+          <span>What you saw (optional)</span>
+          <input
+            value={metric}
+            onChange={(ev) => setMetric(ev.target.value)}
+            placeholder="Top products US · high post volume"
+          />
+        </label>
+      </div>
+      {msg ? <p className="muted">{msg}</p> : null}
+      <button className="btn" type="submit" disabled={busy || !title} style={{ width: "auto" }}>
+        {busy ? "Saving…" : "Save social trend note"}
+      </button>
+    </form>
+  );
+}

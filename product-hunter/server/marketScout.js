@@ -7,6 +7,7 @@ import { chatJson } from "./openai.js";
 import { opportunityTradeRoutes } from "./sourcing.js";
 import { enrichOpportunityResearch } from "./researchEngine.js";
 import { keepaStatus } from "./keepa.js";
+import { fetchSocialTrends } from "./socialTrends.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const seeds = JSON.parse(readFileSync(join(__dirname, "data", "market-seeds.json"), "utf8"));
@@ -108,16 +109,18 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
     tradeRoutes: opportunityTradeRoutes(o),
   }));
   const freeOk = ranked.filter((o) => o.freeSignal?.ok).length;
+  const socialTrends = await fetchSocialTrends({ regionFocus, nicheHint });
   return {
     source,
     researchLabel:
-      "Free trusted layer: Wikimedia + cited benchmarks. Keepa = optional one-time snapshot (not monthly).",
+      "Free trusted layer: Wikimedia + cited benchmarks. TikTok/Meta = trending creatives board (not shop GMV).",
     regionFocus,
     count: ranked.length,
     freeSignalsAttached: freeOk,
     keepa: keepaStatus(),
+    socialTrends,
     opportunities: ranked,
     engineNote:
-      "Users pay $0 for interest + benchmark models. Keepa dump optional for Amazon sold/BSR.",
+      "Users pay $0 for interest + social trend board + deep links. Keepa/manual Amazon optional.",
   };
 }

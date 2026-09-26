@@ -1,8 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, SocialTrendsBoard } from "./Visuals.jsx";
 import { api, downloadBlob } from "./api.js";
 import { Onboarding, HomeView, SettingsView } from "./Shell.jsx";
 import { Concierge } from "./Concierge.jsx";
+
+function actionLabel(url = "") {
+  if (url.includes("/market/scout")) return "Researching markets";
+  if (url.includes("/products/hunt")) return "Hunting winning products";
+  if (url.includes("/projects") && url.includes("/api/projects")) return "Saving or loading project";
+  if (url.includes("/products/export")) return "Preparing Shopify export";
+  if (url.includes("/export/brief")) return "Building client brief";
+  if (url.includes("/concierge")) return "AI Concierge is reading the stats";
+  if (url.includes("/auth/login")) return "Signing you in";
+  if (url.includes("/auth/logout")) return "Securing workspace";
+  if (url.includes("/trends/social")) return "Refreshing trend evidence";
+  if (url.includes("/amazon/manual")) return "Saving Amazon evidence";
+  if (url.includes("/intelligence")) return "Analyzing product intelligence";
+  return "Working on your request";
+}
+
+function expectedMs(url = "") {
+  if (url.includes("/products/hunt")) return 18000;
+  if (url.includes("/market/scout")) return 14000;
+  if (url.includes("/concierge")) return 7000;
+  if (url.includes("/export/")) return 5000;
+  return 4000;
+}
+
+function GlobalActionProgress({ state }) {
+  if (!state.visible) return null;
+  return (
+    <div className="global-progress" role="status" aria-live="polite">
+      <div className="global-progress-top">
+        <div>
+          <strong>{state.label}</strong>
+          <span>{state.done ? "Complete" : "Estimated progress"}</span>
+        </div>
+        <b>{Math.round(state.percent)}%</b>
+      </div>
+      <progress max="100" value={state.percent} aria-label={state.label}>
+        {Math.round(state.percent)}%
+      </progress>
+      <small>{state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
+    </div>
+    </>
+  );
+}
 
 function ScoreBar({ label, value }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
@@ -63,6 +106,8 @@ function Login({ onSuccess }) {
 
 export default function App() {
   const [auth, setAuth] = useState({ loading: true, required: true, authenticated: false });
+  const [globalProgress, setGlobalProgress] = useState({ visible: false, percent: 0, label: "", done: false });
+  const progressRef = useRef({ active: new Map(), timer: null, hideTimer: null, startedAt: 0, url: "" });
   const [regionFocus, setRegionFocus] = useState("Global");
   const [budget, setBudget] = useState("500");
   const [nicheHint, setNicheHint] = useState("");
@@ -122,6 +167,57 @@ export default function App() {
       setAuth({ loading: false, required: true, authenticated: false });
     }
   }
+
+  useEffect(() => {
+    function stopTimers() {
+      if (progressRef.current.timer) clearInterval(progressRef.current.timer);
+      if (progressRef.current.hideTimer) clearTimeout(progressRef.current.hideTimer);
+      progressRef.current.timer = null;
+      progressRef.current.hideTimer = null;
+    }
+
+    function startTicker(url) {
+      stopTimers();
+      progressRef.current.startedAt = Date.now();
+      progressRef.current.url = url;
+      setGlobalProgress({ visible: true, percent: 6, label: actionLabel(url), done: false });
+      const expected = expectedMs(url);
+      progressRef.current.timer = setInterval(() => {
+        const elapsed = Date.now() - progressRef.current.startedAt;
+        const eased = 6 + 86 * (1 - Math.exp(-elapsed / Math.max(1200, expected * 0.55)));
+        setGlobalProgress((p) => p.done ? p : { ...p, percent: Math.min(92, eased) });
+      }, 250);
+    }
+
+    function onRequest(e) {
+      const d = e.detail || {};
+      if (d.phase === "start") {
+        progressRef.current.active.set(d.id, d.url);
+        startTicker(d.url);
+        return;
+      }
+      if (d.phase === "end") {
+        progressRef.current.active.delete(d.id);
+        if (progressRef.current.active.size > 0) {
+          const nextUrl = [...progressRef.current.active.values()].at(-1) || d.url;
+          startTicker(nextUrl);
+          return;
+        }
+        if (progressRef.current.timer) clearInterval(progressRef.current.timer);
+        progressRef.current.timer = null;
+        setGlobalProgress((p) => ({ ...p, visible: true, percent: 100, done: true }));
+        progressRef.current.hideTimer = setTimeout(() => {
+          setGlobalProgress({ visible: false, percent: 0, label: "", done: false });
+        }, 650);
+      }
+    }
+
+    window.addEventListener("ph:request-progress", onRequest);
+    return () => {
+      window.removeEventListener("ph:request-progress", onRequest);
+      stopTimers();
+    };
+  }, []);
 
   useEffect(() => {
     refreshAuth();
@@ -311,6 +407,8 @@ export default function App() {
   }
 
   return (
+    <>
+    <GlobalActionProgress state={globalProgress} />
     <div className="shell">
       {showOnboarding ? <Onboarding onDone={() => setShowOnboarding(false)} /> : null}
       <header className="topbar">

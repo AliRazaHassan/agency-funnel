@@ -12,6 +12,7 @@ import { keepaStatus, saveManualAmazonEntries } from "./keepa.js";
 import { fetchSocialTrends, saveManualSocialTrends } from "./socialTrends.js";
 import { listProjects, getProject, saveProject, deleteProject } from "./projects.js";
 import { buildClientBrief } from "./clientBrief.js";
+import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -47,6 +48,7 @@ app.use((err, _req, res, next) => {
 app.use(auth.middleware);
 
 let lastScout = { opportunities: [] };
+let lastHuntProducts = [];
 
 app.get("/api/health", (_req, res) => {
   const k = keepaStatus();
@@ -153,11 +155,39 @@ app.post("/api/products/hunt", async (req, res) => {
       });
     }
     const result = await huntProducts(opp, { limit: limit || 50 });
+    const rawProducts = Array.isArray(result) ? result : (result.products || []);
+    lastHuntProducts = rawProducts;
     res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || "Hunt failed" });
   }
+});
+
+app.get("/api/intelligence/products", (req, res) => {
+  const products = searchIntelligence(lastHuntProducts, req.query || {});
+  res.json({ products, count: products.length, scoring: "evidence-based-v2" });
+});
+
+app.post("/api/intelligence/search", (req, res) => {
+  const products = searchIntelligence(lastHuntProducts, req.body || {});
+  res.json({ products, count: products.length });
+});
+
+app.post("/api/intelligence/analyze", (req, res) => {
+  const product = req.body?.product || req.body || {};
+  res.json(buildIntelligence(product));
+});
+
+app.post("/api/intelligence/why-trending", (req, res) => {
+  const product = req.body?.product || req.body || {};
+  res.json(whyTrending(product));
+});
+
+app.get("/api/intelligence/radar", (_req, res) => {
+  const products = lastHuntProducts.map(buildIntelligence);
+  const groups = Object.groupBy ? Object.groupBy(products, p => p.trendStatus) : products.reduce((a,p)=>{(a[p.trendStatus] ||= []).push(p);return a;},{});
+  res.json({ groups, updatedAt: new Date().toISOString(), note: "Radar uses collected/stored signals; unavailable sources are not fabricated." });
 });
 
 app.post("/api/products/export", (req, res) => {

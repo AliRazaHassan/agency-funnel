@@ -25,6 +25,7 @@ const hasOpenAIKey = Boolean(String(process.env.OPENAI_API_KEY || "").trim());
 const auth = createAuth({
   password: process.env.APP_PASSWORD,
   secret: process.env.SESSION_SECRET,
+  sessionHours: Number(process.env.AUTH_SESSION_HOURS || 4),
 });
 
 if (isProd && !process.env.APP_PASSWORD) {
@@ -111,6 +112,7 @@ app.post("/api/trends/social/manual", (req, res) => {
 });
 
 app.get("/api/auth/status", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   res.json({
     required: auth.enabled,
     authenticated: !auth.enabled || auth.readSession(req),
@@ -118,6 +120,7 @@ app.get("/api/auth/status", (req, res) => {
 });
 
 app.post("/api/auth/login", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   const { password } = req.body || {};
   if (!auth.login(password)) {
     return res.status(401).json({ error: "Wrong password" });
@@ -127,6 +130,7 @@ app.post("/api/auth/login", (req, res) => {
 });
 
 app.post("/api/auth/logout", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   auth.clearSessionCookie(res);
   res.json({ ok: true });
 });
@@ -268,7 +272,7 @@ app.get("/api/workspace/status", (_req, res) => {
   const k = keepaStatus();
   res.json({
     label: "Signal Desk",
-    version: "1.0",
+    version: "2.1",
     modules: {
       scout: true,
       socialTrends: true,

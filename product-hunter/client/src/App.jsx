@@ -276,7 +276,7 @@ export default function App() {
       setSelectedIds(new Set(p.selectedProductIds || []));
       setSelectedProduct(p.hunt?.products?.[0] || null);
       setWinFilter("ALL");
-      setView("desk");
+      setView("radar");
     } catch (e) {
       if (e.needLogin) refreshAuth();
       setError(e.message);
@@ -433,6 +433,10 @@ export default function App() {
               <option>Global</option>
               <option>US</option>
               <option>UK</option>
+              <option>CA</option>
+              <option>AU</option>
+              <option>DE</option>
+              <option>FR</option>
               <option>Gulf</option>
             </select>
           </label>

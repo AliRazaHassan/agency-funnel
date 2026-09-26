@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, SocialTrendsBoard } from "./Visuals.jsx";
 import { api, downloadBlob } from "./api.js";
 import { Onboarding, HomeView, SettingsView } from "./Shell.jsx";
+import { Concierge } from "./Concierge.jsx";
 
 function ScoreBar({ label, value }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
@@ -399,6 +400,8 @@ export default function App() {
       ) : null}
 
       {view === "settings" ? <SettingsView /> : null}
+
+      <Concierge product={selectedProduct} products={hunt?.products || []} />
 
       {view === "desk" ? (
 

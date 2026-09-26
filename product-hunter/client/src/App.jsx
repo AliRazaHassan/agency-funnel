@@ -3,6 +3,7 @@ import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, Socia
 import { api, downloadBlob } from "./api.js";
 import { Onboarding, HomeView, SettingsView } from "./Shell.jsx";
 import { Concierge } from "./Concierge.jsx";
+import { ValidationPanel } from "./ValidationPanel.jsx";
 
 function actionLabel(url = "") {
   if (url.includes("/market/scout")) return "Researching markets";
@@ -114,6 +115,8 @@ export default function App() {
   const [selectedOpp, setSelectedOpp] = useState(null);
   const [hunt, setHunt] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [validationProduct, setValidationProduct] = useState(null);
+  const [validationOpen, setValidationOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [loading, setLoading] = useState("");
   const [trendFilter, setTrendFilter] = useState("ALL");
@@ -487,7 +490,7 @@ export default function App() {
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winning?.score??p.profitScore??"—"}</b><span>Profit</span></div><div><b>{p.competitionScore??p.winning?.components?.competition??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).slice(0,4).map(([k,v])=><span key={k}><em>{k}</em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Ranked #${p.winnerRank} of ${hunt?.products?.length || radarProducts.length}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.winnerDecision?.reason}</p></div>
-                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>View intelligence</button><button className="btn" onClick={()=>{setSelectedIds(new Set([p.id]));setSelectedProduct(p);setView("desk")}}>Shopify actions</button></div>
+                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>View intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate product</button></div>
                   </article>
                 ))}
               </div>
@@ -499,6 +502,19 @@ export default function App() {
       {view === "settings" ? <SettingsView /> : null}
 
       <Concierge product={selectedProduct} products={hunt?.products || []} />
+      <ValidationPanel
+        product={validationProduct}
+        open={validationOpen}
+        onClose={()=>setValidationOpen(false)}
+        onStatusChange={(status)=>{
+          if (!validationProduct) return;
+          const id=validationProduct.id;
+          const next={...validationProduct,validationStatus:status};
+          setValidationProduct(next);
+          setSelectedProduct((p)=>p?.id===id?{...p,validationStatus:status}:p);
+          setHunt((h)=>h?{...h,products:(h.products||[]).map(p=>p.id===id?{...p,validationStatus:status}:p)}:h);
+        }}
+      />
 
       {view === "desk" ? (
 

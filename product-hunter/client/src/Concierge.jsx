@@ -1,13 +1,38 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
+
+const STAT_SELECTOR = [
+  ".metric",
+  ".score-quads > div",
+  ".platform-signals > span",
+  ".unit-strip > div",
+  ".radar-kpis > div",
+  ".winner-pill",
+  ".lifecycle-line",
+  ".bar-row",
+  ".win-badge",
+  ".rank-pill",
+  ".vol-row",
+  ".source-option",
+  ".confidence",
+  ".lifecycle",
+].join(",");
+
+function cleanStatText(el) {
+  return String(el?.innerText || el?.textContent || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
+}
 
 export function Concierge({ product, products = [] }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "assistant", text: "Ask me what the stats mean, why a product looks strong, or what risk to validate next." },
-  ]);
+  const [focus, setFocus] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const inputRef = useRef(null);
 
   const radarSummary = useMemo(() => ({
     total: products.length,
@@ -16,68 +41,191 @@ export function Concierge({ product, products = [] }) {
     avoid: products.filter((p) => p.winnerDecision?.verdict === "AVOID").length,
   }), [products]);
 
-  async function ask(text) {
+  const activeProduct = focus?.product || product || null;
+
+  useEffect(() => {
+    function onContextMenu(e) {
+      const target = e.target?.closest?.(STAT_SELECTOR);
+      if (!target) return;
+      e.preventDefault();
+
+      const card = target.closest("[data-ai-product-id]");
+      const productId = card?.dataset?.aiProductId;
+      const contextualProduct = productId
+        ? products.find((p) => String(p.id) === String(productId)) || product
+        : product;
+
+      const rect = target.getBoundingClientRect();
+      const x = Math.min(e.clientX, window.innerWidth - 230);
+      const y = Math.min(e.clientY, window.innerHeight - 170);
+
+      setMenu({
+        x: Math.max(8, x),
+        y: Math.max(8, y),
+        label: cleanStatText(target) || "Selected stat",
+        product: contextualProduct || null,
+        elementLabel: target.getAttribute("aria-label") || target.dataset?.aiLabel || "",
+        rect: { top: rect.top, left: rect.left },
+      });
+    }
+
+    function dismiss(e) {
+      if (!e.target?.closest?.(".ai-context-menu")) setMenu(null);
+    }
+
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("pointerdown", dismiss);
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
+    return () => {
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("resize", dismiss);
+    };
+  }, [product, products]);
+
+  async function ask(text, chosenFocus = focus) {
     const q = String(text || question).trim();
     if (!q || busy) return;
+    const currentProduct = chosenFocus?.product || activeProduct;
+    const selectedStat = chosenFocus?.label || null;
     setQuestion("");
-    setMessages((m) => [...m, { role: "user", text: q }]);
+    setOpen(true);
+    setMessages((m) => [...m, { role: "user", text: q, stat: selectedStat }]);
     setBusy(true);
     try {
       const data = await api("/api/concierge", {
         method: "POST",
-        body: { question: q, context: { product, radarSummary } },
+        body: {
+          question: q,
+          context: {
+            product: currentProduct,
+            selectedStat,
+            radarSummary,
+          },
+        },
       });
-      setMessages((m) => [...m, { role: "assistant", text: data.answer, mode: data.mode, chips: data.chips || [] }]);
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: data.answer,
+        mode: data.mode,
+        chips: data.chips || [],
+      }]);
     } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", text: e.message || "I couldn't read the stats right now." }]);
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: e.message || "I couldn't read this stat right now.",
+      }]);
     } finally {
       setBusy(false);
     }
   }
 
-  const starters = product
-    ? ["Why is this winning?", "What are the risks?", "Explain the stats"]
-    : ["What makes a strong candidate?", "How should I read confidence?", "What should I validate first?"];
+  function askFromMenu(prompt) {
+    const nextFocus = { label: menu.label, product: menu.product };
+    setFocus(nextFocus);
+    setMenu(null);
+    setOpen(true);
+    ask(prompt, nextFocus);
+  }
+
+  function openAssistant() {
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  const starters = activeProduct
+    ? ["Why is this product strong?", "What is the biggest risk?", "What should I validate next?"]
+    : ["Explain winner score", "How should I read confidence?", "What should I validate first?"];
 
   return (
     <>
-      <button className="concierge-fab" type="button" onClick={() => setOpen((v) => !v)}>
-        <span>AI</span><b>Concierge</b>
+      <button className="concierge-fab" type="button" onClick={openAssistant} aria-label="Open AI analyst">
+        <span>AI</span>
+        <b>Ask analyst</b>
       </button>
+
+      {menu ? (
+        <div className="ai-context-menu" style={{ left: menu.x, top: menu.y }} role="menu">
+          <div className="ai-context-title">
+            <span>AI</span>
+            <div><b>Ask about this</b><small>{menu.label}</small></div>
+          </div>
+          <button type="button" onClick={() => askFromMenu("Explain this stat in simple terms and tell me what it means for this product.")}>
+            Explain this number
+          </button>
+          <button type="button" onClick={() => askFromMenu("Is this stat good or risky? Compare it with the other available evidence.")}>
+            Is this good or risky?
+          </button>
+          <button type="button" onClick={() => askFromMenu("What should I do next based on this stat? Give me one practical validation step.")}>
+            What should I do next?
+          </button>
+        </div>
+      ) : null}
+
       {open ? (
         <aside className="concierge-panel">
           <div className="concierge-head">
-            <div>
-              <strong>Product Hunter Concierge</strong>
-              <span>{product ? product.title : "Radar guide"}</span>
+            <div className="concierge-brand">
+              <span className="concierge-orb">AI</span>
+              <div>
+                <strong>Product Analyst</strong>
+                <span>{activeProduct ? activeProduct.title : "Context-aware research assistant"}</span>
+              </div>
             </div>
-            <button className="ghost" type="button" onClick={() => setOpen(false)}>×</button>
+            <button className="concierge-close" type="button" onClick={() => setOpen(false)} aria-label="Close AI analyst">×</button>
           </div>
-          {product ? (
+
+          {focus?.label ? (
+            <div className="concierge-focus">
+              <small>Analyzing selected stat</small>
+              <b>{focus.label}</b>
+            </div>
+          ) : activeProduct ? (
             <div className="concierge-snapshot">
-              <div><b>{product.trendScore ?? "—"}</b><span>Trend</span></div>
-              <div><b>{product.winnerDecision?.score ?? "—"}</b><span>Winner</span></div>
-              <div><b>{product.marginPct ?? "—"}%</b><span>Margin</span></div>
-              <div><b>{product.dataConfidence || "LOW"}</b><span>Confidence</span></div>
+              <div><b>{activeProduct.trendScore ?? "—"}</b><span>Trend</span></div>
+              <div><b>{activeProduct.winnerDecision?.score ?? "—"}</b><span>Winner</span></div>
+              <div><b>{activeProduct.marginPct ?? "—"}%</b><span>Margin</span></div>
+              <div><b>{activeProduct.dataConfidence || "LOW"}</b><span>Confidence</span></div>
             </div>
           ) : null}
+
           <div className="concierge-messages">
-            {messages.slice(-8).map((m, i) => (
+            {!messages.length ? (
+              <div className="concierge-empty">
+                <strong>Ask the data, not a generic chatbot.</strong>
+                <p>Right-click any score, margin, confidence, trend signal or KPI and choose “Ask about this”.</p>
+              </div>
+            ) : null}
+            {messages.slice(-10).map((m, i) => (
               <div key={i} className={`concierge-msg ${m.role}`}>
+                {m.stat ? <small>About: {m.stat}</small> : null}
                 <p>{m.text}</p>
-                {m.mode ? <small>{m.mode === "ai" ? "AI explanation" : "Stats explanation"}</small> : null}
+                {m.mode ? <em>{m.mode === "ai" ? "AI analysis" : "Rules analysis"}</em> : null}
               </div>
             ))}
-            {busy ? <div className="concierge-msg assistant"><p>Reading the evidence…</p></div> : null}
+            {busy ? (
+              <div className="concierge-thinking">
+                <i></i><i></i><i></i><span>Reading evidence</span>
+              </div>
+            ) : null}
           </div>
+
           <div className="concierge-chips">
             {starters.map((s) => <button key={s} type="button" onClick={() => ask(s)}>{s}</button>)}
           </div>
+
           <form className="concierge-input" onSubmit={(e) => { e.preventDefault(); ask(); }}>
-            <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask about this product…" />
+            <input
+              ref={inputRef}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder={focus?.label ? "Ask a follow-up about this stat…" : "Ask about the product or evidence…"}
+            />
             <button className="btn" type="submit" disabled={busy || !question.trim()}>Ask</button>
           </form>
-          <p className="concierge-note">Explains evidence; it does not guarantee sales or profit.</p>
+          <p className="concierge-note">Uses the product's current evidence. It does not guarantee sales or profit.</p>
         </aside>
       ) : null}
     </>

@@ -16,6 +16,10 @@ const REGION_MAP = {
   Global: { tiktok: "US", meta: "US", label: "US (proxy for Global)" },
   US: { tiktok: "US", meta: "US", label: "United States" },
   UK: { tiktok: "GB", meta: "GB", label: "United Kingdom" },
+  CA: { tiktok: "CA", meta: "CA", label: "Canada" },
+  AU: { tiktok: "AU", meta: "AU", label: "Australia" },
+  DE: { tiktok: "DE", meta: "DE", label: "Germany" },
+  FR: { tiktok: "FR", meta: "FR", label: "France" },
   Gulf: { tiktok: "AE", meta: "AE", label: "UAE / Gulf proxy" },
 };
 
@@ -87,6 +91,10 @@ SEED_TRENDS.GB = SEED_TRENDS.US.map((t) => ({
   ...t,
   why: `${t.why} (UK creative angle — localise hooks)`,
 }));
+SEED_TRENDS.CA = SEED_TRENDS.US.map((t) => ({ ...t, why: `${t.why} (Canada — localise pricing and shipping)` }));
+SEED_TRENDS.AU = SEED_TRENDS.US.map((t) => ({ ...t, why: `${t.why} (Australia — validate seasonality and shipping)` }));
+SEED_TRENDS.DE = SEED_TRENDS.US.map((t) => ({ ...t, why: `${t.why} (Germany — localise language and compliance)` }));
+SEED_TRENDS.FR = SEED_TRENDS.US.map((t) => ({ ...t, why: `${t.why} (France — localise language and creative)` }));
 SEED_TRENDS.AE = SEED_TRENDS.US.map((t) => ({
   ...t,
   why: `${t.why} (Gulf — heat / gifting / mobile-first creatives)`,
@@ -178,6 +186,8 @@ async function fetchTikTokCreativeCenter(country = "US") {
         metric: r.post || r.cost || r.ctr ? `CC signal · posts/cost available` : "Creative Center row",
         rank: i + 1,
         source: "tiktok-creative-center",
+        dataStatus: "RECENT",
+        capturedAt: new Date().toISOString(),
         researchUrl: researchLinks(title, country === "GB" ? "UK" : country === "AE" ? "Gulf" : "US")
           .tiktokTopProducts,
       };

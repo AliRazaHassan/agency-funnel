@@ -71,6 +71,7 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [loading, setLoading] = useState("");
+  const [trendFilter, setTrendFilter] = useState("ALL");
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
   const [view, setView] = useState("home"); // home | desk | settings
@@ -88,9 +89,12 @@ export default function App() {
 
   const filteredHuntProducts = useMemo(() => {
     const list = hunt?.products || [];
-    if (winFilter === "ALL") return list;
-    return list.filter((p) => p.winning?.verdict === winFilter);
-  }, [hunt, winFilter]);
+    return list.filter((p) => {
+      const winOk = winFilter === "ALL" || p.winning?.verdict === winFilter;
+      const trendOk = trendFilter === "ALL" || p.trendStatus === trendFilter;
+      return winOk && trendOk;
+    });
+  }, [hunt, winFilter, trendFilter]);
 
   async function refreshAuth() {
     try {
@@ -142,6 +146,7 @@ export default function App() {
     setSelectedIds(new Set());
     setSelectedProduct(null);
     setWinFilter("ALL");
+    setTrendFilter("ALL");
     try {
       const data = await api("/api/products/hunt", {
         method: "POST",
@@ -607,9 +612,16 @@ export default function App() {
                     Products · {hunt.niche || selectedOpp?.niche} · {hunt.count || hunt.products?.length || 0} SKUs
                   </h2>
                   <p className="muted" style={{ margin: "0.2rem 0 0" }}>
-                    Winning scorecard: PASS / WATCH / FAIL (rules — Keepa optional later).{" "}
+                    Winning scorecard + Trend Intelligence V2. Trend score is separate from profitability.{" "}
                     {hunt.note || `${hunt.source} catalog`}
                   </p>
+                  <div className="win-summary" style={{ marginTop: "0.5rem" }}>
+                    {["ALL","ACCELERATING","EMERGING","STABLE","DECLINING","SATURATING"].map((status) => (
+                      <button key={status} type="button" className={`win-chip ${trendFilter === status ? "on" : ""}`} onClick={() => setTrendFilter(status)}>
+                        {status === "ALL" ? "All trends" : status}
+                      </button>
+                    ))}
+                  </div>
                   {hunt.winningSummary ? (
                     <div className="win-summary">
                       <button
@@ -699,6 +711,7 @@ export default function App() {
                         <th></th>
                         <th>#</th>
                         <th>Win</th>
+                        <th>Trend</th>
                         <th>Product</th>
                         <th>Buy cost</th>
                         <th>Sell</th>
@@ -728,6 +741,10 @@ export default function App() {
                           <td>{p.rank}</td>
                           <td>
                             <WinningBadge winning={p.winning} />
+                          </td>
+                          <td>
+                            <strong>{p.trendScore ?? "—"}</strong>
+                            <div className="prod-cat">{p.trendStatus || "DISCOVERED"} · {p.dataConfidence || "LOW"} confidence</div>
                           </td>
                           <td>
                             <div className="prod-title">{p.title}</div>

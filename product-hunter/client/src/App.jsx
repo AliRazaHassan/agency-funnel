@@ -43,6 +43,7 @@ function GlobalActionProgress({ state }) {
       </progress>
       <small>{state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
     </div>
+    </>
   );
 }
 

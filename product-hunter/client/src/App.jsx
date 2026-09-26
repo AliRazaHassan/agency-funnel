@@ -303,9 +303,9 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <h1 className="brand">
-            Signal <span>Desk</span>
+            Product <span>Hunter AI</span>
           </h1>
-          <p className="tagline">Complete research workspace · niche → SKUs → Shopify + client brief</p>
+          <p className="tagline">Trend intelligence · evidence → momentum → profit → Shopify</p>
         </div>
         <nav className="top-nav">
           <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>
@@ -352,22 +352,22 @@ export default function App() {
             <li className={step === 1 ? "on" : step > 1 ? "done" : ""}>
               <span className="n">1</span>
               <div>
-                <div>Scout markets</div>
-                <div className="muted">Demand, sell-where, marketing</div>
+                <div>Discover markets</div>
+                <div className="muted">Demand + cross-platform signals</div>
               </div>
             </li>
             <li className={step === 2 ? "on" : step > 2 ? "done" : ""}>
               <span className="n">2</span>
               <div>
-                <div>Pick opportunity</div>
-                <div className="muted">Ranked by revenue potential</div>
+                <div>Validate opportunity</div>
+                <div className="muted">Trend + competition + profitability</div>
               </div>
             </li>
             <li className={step === 3 ? "on" : ""}>
               <span className="n">3</span>
               <div>
-                <div>Hunt & export</div>
-                <div className="muted">Products → Shopify CSV</div>
+                <div>Analyze & launch</div>
+                <div className="muted">Why Trending → supplier → Shopify</div>
               </div>
             </li>
           </ol>

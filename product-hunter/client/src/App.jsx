@@ -264,6 +264,9 @@ export default function App() {
         body: { opportunity: opp, limit: 50 },
       });
       setHunt(data);
+      requestAnimationFrame(() => {
+        document.querySelector(".products-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
       const winners = (data.products || []).filter((p) => p.winning?.verdict === "PASS");
       const pickPool = winners.length ? winners : (data.products || []).filter((p) => !p.rejected);
       setSelectedIds(new Set(pickPool.slice(0, 20).map((p) => p.id)));

@@ -1198,3 +1198,5 @@ tr.row-active td {
 .validation-checklist{display:grid;gap:.3rem;margin-top:.65rem}.validation-checklist>div{display:flex;gap:.45rem;align-items:center;border:1px solid var(--line);border-radius:9px;padding:.5rem .58rem}.validation-checklist span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:.66rem;font-weight:800;background:#eef2f4;color:var(--muted)}.validation-checklist p{margin:0;font-size:.7rem;color:var(--ink-soft)}.validation-checklist .done span{background:#e8f6ee;color:#17643a}.validation-checklist .todo span{background:#fff4e8;color:#8a5a10}
 .validation-note{text-align:center;font-size:.58rem;color:var(--muted);margin:.65rem 0 0}
 @media(max-width:700px){.validation-panel{right:14px;top:68px;width:calc(100vw - 28px);max-height:calc(100vh - 88px)}.validation-flow{grid-template-columns:repeat(2,1fr)}}
+
+.main-panel:empty{display:none}

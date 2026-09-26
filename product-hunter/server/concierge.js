@@ -2,6 +2,7 @@ import { chatJson } from "./openai.js";
 
 function fallbackAnswer(question, context = {}) {
   const p = context.product || {};
+  const selectedStat = String(context.selectedStat || "").trim();
   const w = p.winnerDecision || {};
   const trend = p.trendScore ?? "—";
   const confidence = p.dataConfidence || "LOW";
@@ -13,13 +14,16 @@ function fallbackAnswer(question, context = {}) {
 
   if (!p.title) {
     return {
-      answer: "Select a product first. I can explain its trend score, evidence quality, margin, saturation and whether it is a strong candidate.",
+      answer: selectedStat
+        ? `You selected: ${selectedStat}. I can explain what this metric generally means, but select/open a product for a product-specific verdict.`
+        : "Select a product first. I can explain its trend score, evidence quality, margin, saturation and whether it is a strong candidate.",
       mode: "rules",
       chips: ["Why is this winning?", "What are the risks?", "Can I test ads?"],
     };
   }
 
   let answer = `${p.title}: trend ${trend}/100, ${status}, ${confidence} confidence, margin ${margin}%, with ${verified} verified/recent sources. `;
+  if (selectedStat) answer = `For the selected stat “${selectedStat}”: ` + answer;
   if (w.verdict === "STRONG_CANDIDATE") answer += "It clears the current winner gates, but it still needs a small ad test before scaling.";
   else if (w.verdict === "AVOID") answer += "It currently fails one or more winner gates, so I would not treat it as launch-ready.";
   else answer += "It looks promising, but the evidence is not strong enough yet to call it a winner.";
@@ -53,6 +57,7 @@ export async function answerConcierge({ question, context = {} } = {}) {
     trendComponents: product.trendComponents,
     winning: product.winning,
     radarSummary: context.radarSummary,
+    selectedStat: context.selectedStat,
   };
 
   const ai = await chatJson(
@@ -60,7 +65,7 @@ export async function answerConcierge({ question, context = {} } = {}) {
 Never claim guaranteed winners or guaranteed profit. Distinguish VERIFIED/RECENT/MANUAL from ESTIMATED/UNAVAILABLE.
 Answer in 2-5 short sentences. Mention the strongest evidence and the biggest risk. If asked what to do, suggest validation steps, not certainty.
 Return JSON: {"answer":"...", "chips":["...","...","..."]}.`,
-    `Question: ${question || "Explain this product"}\nContext: ${JSON.stringify(compact)}`
+    `Question: ${question || "Explain this product"}\nSelected stat: ${context.selectedStat || "none"}\nContext: ${JSON.stringify(compact)}`
   );
 
   if (ai?.answer) return { ...ai, mode: "ai" };

@@ -35,14 +35,14 @@ function GlobalActionProgress({ state }) {
       <div className="global-progress-top">
         <div>
           <strong>{state.label}</strong>
-          <span>{state.done ? "Complete" : "Estimated progress"}</span>
+          <span>{state.failed ? "Request failed" : state.done ? "Complete" : "Estimated progress"}</span>
         </div>
-        <b>{Math.round(state.percent)}%</b>
+        <b>{state.failed ? "Failed" : `${Math.round(state.percent)}%`}</b>
       </div>
       <progress max="100" value={state.percent} aria-label={state.label}>
         {Math.round(state.percent)}%
       </progress>
-      <small>{state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
+      <small>{state.failed ? "The action did not complete. Please retry." : state.done ? "Done" : "This reaches 100% when the server finishes the action."}</small>
     </div>
   );
 }
@@ -106,7 +106,7 @@ function Login({ onSuccess }) {
 
 export default function App() {
   const [auth, setAuth] = useState({ loading: true, required: true, authenticated: false });
-  const [globalProgress, setGlobalProgress] = useState({ visible: false, percent: 0, label: "", done: false });
+  const [globalProgress, setGlobalProgress] = useState({ visible: false, percent: 0, label: "", done: false, failed: false });
   const progressRef = useRef({ active: new Map(), timer: null, hideTimer: null, startedAt: 0, url: "" });
   const [regionFocus, setRegionFocus] = useState("Global");
   const [budget, setBudget] = useState("500");
@@ -182,7 +182,7 @@ export default function App() {
       stopTimers();
       progressRef.current.startedAt = Date.now();
       progressRef.current.url = url;
-      setGlobalProgress({ visible: true, percent: 6, label: actionLabel(url), done: false });
+      setGlobalProgress({ visible: true, percent: 6, label: actionLabel(url), done: false, failed: false });
       const expected = expectedMs(url);
       progressRef.current.timer = setInterval(() => {
         const elapsed = Date.now() - progressRef.current.startedAt;
@@ -207,9 +207,10 @@ export default function App() {
         }
         if (progressRef.current.timer) clearInterval(progressRef.current.timer);
         progressRef.current.timer = null;
-        setGlobalProgress((p) => ({ ...p, visible: true, percent: 100, done: true }));
+        const failed = d.ok === false;
+        setGlobalProgress((p) => ({ ...p, visible: true, percent: failed ? Math.max(10, p.percent) : 100, done: !failed, failed }));
         progressRef.current.hideTimer = setTimeout(() => {
-          setGlobalProgress({ visible: false, percent: 0, label: "", done: false });
+          setGlobalProgress({ visible: false, percent: 0, label: "", done: false, failed: false });
         }, 650);
       }
     }

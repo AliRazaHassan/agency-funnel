@@ -1246,3 +1246,6 @@ tr.row-active td {
   font-size:.6rem;
   color:var(--muted);
 }
+
+.concierge-thinking .thinking-cloud{font-size:.78rem;line-height:1;color:var(--muted);margin-right:.05rem;animation:cloudFloat 1.2s ease-in-out infinite}
+@keyframes cloudFloat{0%,100%{transform:translateY(0);opacity:.65}50%{transform:translateY(-2px);opacity:1}}

@@ -203,6 +203,9 @@ export function SettingsView() {
           </strong>
         </p>
         <p className="muted">{status?.keepa?.recommendation}</p>
+        <p><strong>Research store:</strong> {status?.researchStore || "file"}</p>
+        <p><strong>Shopify:</strong> {status?.shopify?.configured ? `connected · ${status.shopify.store}` : "not connected"}</p>
+        {!status?.shopify?.configured ? <p className="muted">Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN with write_products scope to enable one-click draft creation.</p> : null}
       </div>
     </div>
   );

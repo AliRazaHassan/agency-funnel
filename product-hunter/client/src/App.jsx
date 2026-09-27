@@ -10,6 +10,8 @@ function actionLabel(url = "") {
   if (url.includes("/products/hunt")) return "Hunting winning products";
   if (url.includes("/projects") && url.includes("/api/projects")) return "Saving or loading project";
   if (url.includes("/products/export")) return "Preparing Shopify export";
+  if (url.includes("/shopify/products")) return "Creating Shopify draft";
+  if (url.includes("/tracking/") && url.includes("/tests")) return "Saving ad test results";
   if (url.includes("/export/brief")) return "Building client brief";
   if (url.includes("/concierge")) return "AI Concierge is reading the stats";
   if (url.includes("/auth/login")) return "Signing you in";
@@ -390,6 +392,16 @@ export default function App() {
     }
   }
 
+  async function addToShopify(product) {
+    setError("");
+    try {
+      const result = await api("/api/shopify/products", { method: "POST", body: { product } });
+      alert(`Shopify draft created: ${result.product?.title || product.title}`);
+    } catch (e) {
+      setError(e.message || "Shopify create failed");
+    }
+  }
+
   async function logout() {
     await api("/api/auth/logout", { method: "POST", body: {} });
     setScout(null);
@@ -496,7 +508,7 @@ export default function App() {
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winning?.score??p.profitScore??"—"}</b><span>Profit</span></div><div><b>{p.competitionScore??p.winning?.components?.competition??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).slice(0,4).map(([k,v])=><span key={k}><em>{k}</em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Ranked #${p.winnerRank} of ${hunt?.products?.length || radarProducts.length}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.winnerDecision?.reason}</p></div>
-                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>View intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate product</button></div>
+                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
                   </article>
                 ))}
               </div>
@@ -512,13 +524,17 @@ export default function App() {
         product={validationProduct}
         open={validationOpen}
         onClose={()=>setValidationOpen(false)}
-        onStatusChange={(status)=>{
+        onStatusChange={async (status, alreadySaved=false)=>{
           if (!validationProduct) return;
           const id=validationProduct.id;
           const next={...validationProduct,validationStatus:status};
           setValidationProduct(next);
           setSelectedProduct((p)=>p?.id===id?{...p,validationStatus:status}:p);
           setHunt((h)=>h?{...h,products:(h.products||[]).map(p=>p.id===id?{...p,validationStatus:status}:p)}:h);
+          if (!alreadySaved) {
+            try { await api(`/api/tracking/${encodeURIComponent(id)}/status`, { method: "POST", body: { status } }); }
+            catch (e) { setError(e.message || "Could not persist validation status"); }
+          }
         }}
       />
 

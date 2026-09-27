@@ -207,7 +207,7 @@ export function Concierge({ product, products = [] }) {
             ))}
             {busy ? (
               <div className="concierge-thinking">
-                <i></i><i></i><i></i><span>Reading evidence</span>
+                <span className="thinking-cloud">☁</span><i></i><i></i><i></i><span>AI is thinking…</span>
               </div>
             ) : null}
           </div>

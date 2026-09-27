@@ -15,6 +15,8 @@ import { buildClientBrief } from "./clientBrief.js";
 import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
 import { answerConcierge } from "./concierge.js";
 import { buildValidationPlan } from "./validation.js";
+import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests } from "./researchStore.js";
+import { shopifyStatus, createShopifyDraft } from "./shopify.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -23,6 +25,8 @@ const app = express();
 const PORT = process.env.PORT || 8787;
 const isProd = process.env.NODE_ENV === "production";
 const hasOpenAIKey = Boolean(String(process.env.OPENAI_API_KEY || "").trim());
+
+await initResearchStore();
 
 const auth = createAuth({
   password: process.env.APP_PASSWORD,
@@ -163,7 +167,8 @@ app.post("/api/products/hunt", async (req, res) => {
     }
     const result = await huntProducts(opp, { limit: limit || 50 });
     lastHuntProducts = Array.isArray(result) ? result : (result.products || []);
-    res.json(result);
+    await trackProducts(lastHuntProducts, { opportunityId: opp.id, niche: opp.niche, market: opp.sellWhere?.geos?.[0] || "Global" });
+    res.json({ ...result, tracking: { mode: researchStoreMode(), captured: lastHuntProducts.length } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || "Hunt failed" });
@@ -214,6 +219,32 @@ app.get("/api/intelligence/radar", (_req, res) => {
   const products = lastHuntProducts.map(buildIntelligence);
   const groups = Object.groupBy ? Object.groupBy(products, p => p.trendStatus) : products.reduce((a,p)=>{(a[p.trendStatus] ||= []).push(p);return a;},{});
   res.json({ groups, updatedAt: new Date().toISOString(), note: "Radar uses collected/stored signals; unavailable sources are not fabricated." });
+});
+
+app.get("/api/tracking/products", async (_req,res)=>{
+  try{res.json({products:await listTrackedProducts(),mode:researchStoreMode()});}
+  catch(err){res.status(500).json({error:err.message||"Tracking failed"});}
+});
+app.get("/api/tracking/:id/history", async (req,res)=>{
+  try{const days=Math.max(1,Math.min(90,Number(req.query.days)||30));res.json({productId:req.params.id,days,history:await getHistory(req.params.id,days)});}
+  catch(err){res.status(500).json({error:err.message||"History failed"});}
+});
+app.post("/api/tracking/:id/status", async (req,res)=>{
+  try{res.json(await updateValidationStatus(req.params.id,req.body?.status));}
+  catch(err){res.status(400).json({error:err.message||"Status update failed"});}
+});
+app.post("/api/tracking/:id/tests", async (req,res)=>{
+  try{res.json(await addAdTest(req.params.id,req.body||{}));}
+  catch(err){res.status(400).json({error:err.message||"Ad test save failed"});}
+});
+app.get("/api/tracking/:id/tests", async (req,res)=>{
+  try{res.json({tests:await getAdTests(req.params.id)});}
+  catch(err){res.status(500).json({error:err.message||"Ad tests failed"});}
+});
+app.get("/api/shopify/status", (_req,res)=>res.json(shopifyStatus()));
+app.post("/api/shopify/products", async (req,res)=>{
+  try{res.json(await createShopifyDraft(req.body?.product||req.body||{}));}
+  catch(err){res.status(400).json({error:err.message||"Shopify create failed"});}
 });
 
 app.post("/api/products/export", (req, res) => {
@@ -308,9 +339,14 @@ app.get("/api/workspace/status", (_req, res) => {
       keepaSnapshot: k.snapshot?.ok || false,
       aiConcierge: true,
       productValidation: true,
+      historicalTracking: true,
+      adTestFeedback: true,
+      directShopify: shopifyStatus().configured,
     },
     openai: hasOpenAIKey,
     keepa: k,
+    researchStore: researchStoreMode(),
+    shopify: shopifyStatus(),
   });
 });
 

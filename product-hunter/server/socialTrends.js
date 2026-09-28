@@ -188,8 +188,7 @@ async function fetchTikTokCreativeCenter(country = "US") {
         source: "tiktok-creative-center",
         dataStatus: "RECENT",
         capturedAt: new Date().toISOString(),
-        researchUrl: researchLinks(title, country === "GB" ? "UK" : country === "AE" ? "Gulf" : "US")
-          .tiktokTopProducts,
+        researchUrl: researchLinks(title, country === "GB" ? "UK" : country === "AE" ? "Gulf" : ["US","CA","AU","DE","FR"].includes(country) ? country : "Global").tiktokTopProducts,
       };
     });
   } catch {

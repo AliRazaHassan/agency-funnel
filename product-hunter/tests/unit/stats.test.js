@@ -131,3 +131,11 @@ test("opportunity rank positive weights sum to 1 and lower budget fit lowers ran
   assert.ok(high.rankScore>low.rankScore);
   assert.ok(high.rankScore<=100&&low.rankScore>=0);
 });
+
+
+test("tracked product ids are market-context safe", () => {
+  const raw={title:"Same Product",category:"QA",estCostUsd:8,estSellPriceUsd:25,estWeightKg:.2,shippingDifficulty:"low",demandType:"evergreen",problemSolved:"QA",hook:"Hook",pdpBullets:["a","b","c"]};
+  const us=scoreProduct(raw,{niche:"QA Niche",sellWhere:{geos:["US"]},marketing:{offer:"x"}});
+  const uk=scoreProduct(raw,{niche:"QA Niche",sellWhere:{geos:["UK"]},marketing:{offer:"x"}});
+  assert.notEqual(us.id,uk.id);
+});

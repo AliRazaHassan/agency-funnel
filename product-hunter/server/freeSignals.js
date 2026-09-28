@@ -247,6 +247,8 @@ export async function fetchFreeDemandSignal(niche, geo = "US") {
     ok: true,
     free: true,
     interestScore: clamp(interestScore),
+    wikipediaScore: wiki ? clamp(wiki.interestScore) : null,
+    googleScore: trends ? clamp(trends.interestScore) : null,
     providers: parts,
     honesty:
       `Free trusted signals: Wikimedia Pageviews + Google Trends for ${trendsGeo} when reachable. These measure public interest — NOT Keepa/Amazon sold units.`,

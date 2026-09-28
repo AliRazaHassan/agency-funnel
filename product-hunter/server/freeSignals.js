@@ -206,8 +206,16 @@ async function fetchGoogleTrendsSoft(keyword, geo = "US") {
  * Free demand signal bundle for a niche.
  */
 export async function fetchFreeDemandSignal(niche, geo = "US") {
-  const normalizedGeo = String(geo || "US").toUpperCase().replace("GB", "UK");
-  const trendsGeo = normalizedGeo === "UK" ? "GB" : normalizedGeo === "GLOBAL" ? "US" : normalizedGeo;
+  const rawGeo = String(geo || "US").trim().toUpperCase();
+  const GEO_MAP = {
+    "UNITED STATES":"US","USA":"US","US":"US",
+    "UNITED KINGDOM":"GB","GREAT BRITAIN":"GB","UK":"GB","GB":"GB",
+    "CANADA":"CA","CA":"CA","AUSTRALIA":"AU","AU":"AU",
+    "GERMANY":"DE","DE":"DE","FRANCE":"FR","FR":"FR",
+    "UAE":"AE","UNITED ARAB EMIRATES":"AE","AE":"AE",
+    "GLOBAL":"US"
+  };
+  const trendsGeo = GEO_MAP[rawGeo] || "US";
   const key = `free:${String(niche || "").toLowerCase()}:${trendsGeo}`;
   const cached = cacheGet(key);
   if (cached) return { ...cached, cached: true };

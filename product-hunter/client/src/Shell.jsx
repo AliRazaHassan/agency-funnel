@@ -203,7 +203,7 @@ export function SettingsView() {
           </strong>
         </p>
         <p className="muted">{status?.keepa?.recommendation}</p>
-        <p><strong>Research store:</strong> {status?.researchStore || "file"}</p>
+        <p><strong>Research history:</strong> {status?.researchStore || "file"}</p><p><strong>Saved projects:</strong> {status?.projectStore || "file"}</p>
         {status?.researchStore !== "postgres" ? <div className="honesty-banner"><strong>Persistence warning</strong><p>File mode on Render is not durable across service replacement/redeploys. Set DATABASE_URL before relying on 7/14/30-day history.</p></div> : null}
         <p><strong>Shopify:</strong> {status?.shopify?.configured ? `connected · ${status.shopify.store}` : "not connected"}</p>
         {!status?.shopify?.configured ? <p className="muted">Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN with write_products scope to enable one-click draft creation.</p> : null}

@@ -58,7 +58,7 @@ export function productsToMatrixifyCsv(products, { vendor = "AgencyFunnel", nich
       vendor,
       p.category || niche,
       `${niche.toLowerCase().replace(/\s+/g, "-")},turnkey,ai-hunted`,
-      "TRUE",
+      "FALSE",
       "Title",
       "Default Title",
       price.toFixed(2),
@@ -70,7 +70,7 @@ export function productsToMatrixifyCsv(products, { vendor = "AgencyFunnel", nich
       "lb",
       `${title} | ${niche}`,
       `${(p.hook || p.problemSolved || title).slice(0, 140)}`,
-      "active",
+      "draft",
     ];
     lines.push(row.map(csvEscape).join(","));
   }

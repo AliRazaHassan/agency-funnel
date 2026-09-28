@@ -45,11 +45,20 @@ export function momentum(history=[]){
   };
 }
 
-export function saturation({demandGrowth=0,advertiserGrowth=0}={}){
+export function saturation({demandGrowth=0,advertiserGrowth=null}={}){
+  if(advertiserGrowth==null||!Number.isFinite(Number(advertiserGrowth))) return {status:"UNKNOWN",risk:"UNKNOWN",reason:"Advertising-growth evidence is unavailable; saturation cannot be inferred reliably."};
   const gap=Number(advertiserGrowth)-Number(demandGrowth);
   if(gap>=50)return {status:"SATURATING",risk:"HIGH",reason:"Advertising competition is growing much faster than observed demand."};
   if(Number(demandGrowth)-Number(advertiserGrowth)>=30)return {status:"DEMAND_OUTPACING_AD_COMPETITION",risk:"LOW",reason:"Observed demand is growing faster than advertising competition."};
   return {status:"BALANCED",risk:"MEDIUM",reason:"Demand and advertising competition are moving at similar rates."};
+}
+
+
+export function evidenceConfidence(dataStatus={}){
+  const keys=["amazon","tiktok","meta","google"];
+  const weights={LIVE:100,RECENT:85,MANUAL:70,ESTIMATED:35,UNAVAILABLE:0};
+  const values=keys.map(k=>weights[String(dataStatus?.[k]||"UNAVAILABLE").toUpperCase()] ?? 0);
+  return Math.round(avg(values));
 }
 
 export function whyTrending(product={}){
@@ -60,17 +69,27 @@ export function whyTrending(product={}){
     ["Meta",s.meta,"Meta advertising activity"],
     ["Google",s.google,"Google search momentum"],
   ].filter(([,v])=>Number(v)>0).map(([source,value,reason])=>({source,value:clamp(value),reason,status:product.dataStatus?.[source.toLowerCase()]||"ESTIMATED"}));
-  return {productId:product.id||null,title:product.title||product.name||"Product",trend:trendScore(s),evidence,summary:evidence.length>=3?"Multiple independent platforms show product momentum.":evidence.length?"Some market signals are present; more cross-platform evidence is needed.":"Insufficient evidence.",generatedFromEvidence:true};
+  const verified=evidence.filter(e=>["LIVE","RECENT","MANUAL"].includes(String(e.status).toUpperCase())).length;
+  const summary=verified>=3
+    ?"Multiple independently sourced platform signals support current momentum."
+    :evidence.length>=3
+      ?"Multiple modeled signals are present, but verified/recent evidence is still limited."
+      :evidence.length
+        ?"Some market signals are present; more independent evidence is needed."
+        :"Insufficient evidence.";
+  return {productId:product.id||null,title:product.title||product.name||"Product",trend:trendScore(s),evidence,verifiedSources:verified,summary,generatedFromEvidence:true};
 }
 
 export function buildIntelligence(product={}){
-  const signals=product.signals||{};
+  const sourceConfidence=evidenceConfidence(product.dataStatus||{});
+  const signals={...(product.signals||{}),confidence:sourceConfidence};
   const history=product.history||[];
   const trend=trendScore(signals);
   const movement=momentum(history);
-  const sat=saturation({demandGrowth:movement.d30||0,advertiserGrowth:product.advertiserGrowth||0});
-  const confidence=clamp(signals.confidence||avg(Object.values(signals).filter(Number.isFinite)));
-  return {...product,trendScore:trend.score,trendComponents:trend.components,trendStatus:sat.status==="SATURATING"?"SATURATING":movement.status,dataConfidence:confidence>=75?"HIGH":confidence>=45?"MEDIUM":"LOW",momentum:movement,saturation:sat,whyTrending:whyTrending(product)};
+  const sat=saturation({demandGrowth:movement.d30||0,advertiserGrowth:product.advertiserGrowth??null});
+  const confidence=sourceConfidence;
+  const enriched={...product,signals};
+  return {...enriched,trendScore:trend.score,trendComponents:trend.components,trendStatus:sat.status==="SATURATING"?"SATURATING":movement.status,dataConfidence:confidence>=75?"HIGH":confidence>=45?"MEDIUM":"LOW",evidenceConfidence:confidence,momentum:movement,saturation:sat,whyTrending:whyTrending(enriched)};
 }
 
 export function searchIntelligence(products=[],filters={}){

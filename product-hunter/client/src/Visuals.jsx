@@ -414,7 +414,7 @@ export function PlatformMixViz({ sales, title = "Where demand sits by platform" 
       <div className="viz-head">
         <h3>{title}</h3>
         <p className="muted">
-          Relative mix only (%). Not live GMV. {sales.dataQuality ? `Confidence: ${sales.dataQuality}.` : ""}
+          Relative mix only (%). <strong>{sales.dataStatus || "ESTIMATED"}</strong> model, not live GMV. {sales.dataQuality ? `Confidence: ${sales.dataQuality}.` : ""}
         </p>
       </div>
       <div className="vol-chart">

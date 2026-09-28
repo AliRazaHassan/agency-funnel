@@ -88,7 +88,7 @@ export function selectFinalWinners(products=[], limit){
           : "with mostly estimated evidence";
       return {
         ...p,
-        isFinalWinner:true,
+        isFinalWinner:current.verdict==="STRONG_CANDIDATE",
         isTopPick:true,
         winnerRank:rank,
         topPickReason:`Ranks #${rank} among eligible products using winner score, trend, evidence and margin; ${evidenceNote}. Top Pick is a shortlist rank and does not replace the underlying verdict.`

@@ -18,6 +18,17 @@ function centsToUsd(n) {
   return Math.round(Number(n)) / 100;
 }
 
+export function parseBoughtCount(value) {
+  if (value == null || value === "") return null;
+  if (Number.isFinite(Number(value))) return Math.max(0, Math.round(Number(value)));
+  const text = String(value).replace(/,/g, "").trim().toUpperCase();
+  const m = text.match(/(\d+(?:\.\d+)?)\s*([KM])?\s*\+?/);
+  if (!m) return null;
+  const base = Number(m[1]);
+  const mult = m[2] === "M" ? 1000000 : m[2] === "K" ? 1000 : 1;
+  return Number.isFinite(base) ? Math.max(0, Math.round(base * mult)) : null;
+}
+
 function normalizeEntry(raw = {}) {
   const asin = String(raw.asin || raw.ASIN || "").toUpperCase().trim();
   const title = String(raw.title || raw.Title || "").trim();
@@ -234,15 +245,7 @@ export function saveManualAmazonEntries(entries = []) {
         .replace(/[^A-Z0-9]/g, "")
         .slice(0, 10);
       let monthlySold = e.monthlySold;
-      if (monthlySold == null && e.boughtText) {
-        const text = String(e.boughtText).replace(/,/g, "").trim().toUpperCase();
-        const m = text.match(/(\d+(?:\.\d+)?)\s*([KM])?\s*\+?/);
-        if (m) {
-          const base = Number(m[1]);
-          const mult = m[2] === "M" ? 1000000 : m[2] === "K" ? 1000 : 1;
-          monthlySold = Number.isFinite(base) ? Math.round(base * mult) : null;
-        } else monthlySold = null;
-      }
+      if (monthlySold == null && e.boughtText) monthlySold = parseBoughtCount(e.boughtText);
       return normalizeEntry({
         asin: asin.length === 10 ? asin : null,
         title: e.title || "",

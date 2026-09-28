@@ -3,6 +3,7 @@ import { api } from "./api.js";
 
 const STATUS_ORDER=["NEEDS_DATA","READY_TO_TEST","TESTING","VALIDATED"];
 const EMPTY_TEST={spendUsd:"",impressions:"",clicks:"",addToCarts:"",purchases:"",revenueUsd:""};
+const EMPTY_SUPPLIER={source:"",landedCostUsd:"",shippingDays:"",productUrl:""};
 
 export function ValidationPanel({ product, open, onClose, onStatusChange }) {
   const [data,setData]=useState(null);
@@ -13,6 +14,9 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
   const [tests,setTests]=useState([]);
   const [test,setTest]=useState(EMPTY_TEST);
   const [savingTest,setSavingTest]=useState(false);
+  const [supplier,setSupplier]=useState(null);
+  const [supplierForm,setSupplierForm]=useState(EMPTY_SUPPLIER);
+  const [savingSupplier,setSavingSupplier]=useState(false);
 
   async function loadHistory(targetDays=days){
     if(!product?.id) return;
@@ -32,9 +36,10 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
     Promise.all([
       api("/api/products/validate",{method:"POST",body:{product}}),
       api(`/api/tracking/${encodeURIComponent(product.id)}/history?days=30`),
-      api(`/api/tracking/${encodeURIComponent(product.id)}/tests`)
+      api(`/api/tracking/${encodeURIComponent(product.id)}/tests`),
+      api(`/api/tracking/${encodeURIComponent(product.id)}/supplier`)
     ])
-      .then(([plan,h,t])=>{if(alive){setData(plan);setHistory(h.history||[]);setTests(t.tests||[]);setDays(30)}})
+      .then(([plan,h,t,s])=>{if(alive){setData(plan);setHistory(h.history||[]);setTests(t.tests||[]);setSupplier(s.verification||null);setDays(30)}})
       .catch(e=>{if(alive)setError(e.message||"Validation failed")})
       .finally(()=>{if(alive)setBusy(false)});
     return()=>{alive=false};
@@ -54,6 +59,26 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
   async function changeDays(n){
     setDays(n);
     try{await loadHistory(n)}catch(e){setError(e.message||"History failed")}
+  }
+
+  async function saveSupplier(e){
+    e.preventDefault();
+    if(!product?.id||savingSupplier) return;
+    setSavingSupplier(true);setError("");
+    try{
+      const saved=await api(`/api/tracking/${encodeURIComponent(product.id)}/supplier`,{
+        method:"POST",
+        body:{
+          source:supplierForm.source.trim(),
+          landedCostUsd:Number(supplierForm.landedCostUsd),
+          shippingDays:Number(supplierForm.shippingDays),
+          productUrl:supplierForm.productUrl.trim()
+        }
+      });
+      setSupplier(saved.verification);
+      setSupplierForm(EMPTY_SUPPLIER);
+    }catch(e){setError(e.message||"Supplier verification failed")}
+    finally{setSavingSupplier(false)}
   }
 
   async function saveTest(e){
@@ -122,13 +147,34 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
           <div><small>Scale condition</small><p>{data.plan?.scaleCondition}</p></div>
         </div>
 
+        <div className="ad-test-card supplier-verify-card">
+          <div className="history-head">
+            <div><small>SUPPLIER ECONOMICS</small><b>Verify landed cost</b></div>
+            {supplier?.verified ? <span className="proof-pill">Verified</span> : <span className="proof-pill pending">Estimate only</span>}
+          </div>
+          {supplier?.verified ? <div className="history-grid">
+            <div><b>{"$"+Number(supplier.landedCostUsd).toFixed(2)}</b><span>Landed cost</span></div>
+            <div><b>{supplier.shippingDays}d</b><span>Shipping</span></div>
+            <div><b>{Number(supplier.marginPct).toFixed(1)}%</b><span>Verified margin</span></div>
+            <div><b>{"$"+Number(supplier.contributionUsd).toFixed(2)}</b><span>Break-even CPA</span></div>
+          </div> : <p className="muted">Enter a real supplier quote. “Validated” stays locked until landed cost passes the 50% margin / $8 contribution gate.</p>}
+          <form className="ad-test-form" onSubmit={saveSupplier}>
+            <label><span>Supplier source</span><input value={supplierForm.source} onChange={e=>setSupplierForm({...supplierForm,source:e.target.value})} placeholder="CJ / AutoDS / AliExpress seller" required /></label>
+            <label><span>Landed cost $</span><input type="number" min="0.01" step="0.01" value={supplierForm.landedCostUsd} onChange={e=>setSupplierForm({...supplierForm,landedCostUsd:e.target.value})} required /></label>
+            <label><span>Shipping days</span><input type="number" min="1" max="90" step="1" value={supplierForm.shippingDays} onChange={e=>setSupplierForm({...supplierForm,shippingDays:e.target.value})} required /></label>
+            <label><span>Product URL (optional)</span><input value={supplierForm.productUrl} onChange={e=>setSupplierForm({...supplierForm,productUrl:e.target.value})} placeholder="Supplier product URL" /></label>
+            <button className="btn" type="submit" disabled={savingSupplier}>{savingSupplier?"Verifying…":"Save verified supplier quote"}</button>
+          </form>
+          {supplier?.verified&&!supplier.economicsPass ? <p className="test-recommendation">Supplier quote is verified, but economics fail the safety gate. Do not scale this product.</p> : null}
+        </div>
+
         <div className="ad-test-card">
-          <div className="history-head"><div><small>MARKET FEEDBACK</small><b>Ad test results</b></div>{latestTest?.derived ? <span className="proof-pill">{latestTest.derived.proofScore}/100 proof</span>:null}</div>
+          <div className="history-head"><div><small>MARKET FEEDBACK</small><b>Ad test results</b></div>{latestTest?.derived ? <span className="proof-pill">{latestTest.derived.proofScore}/100 market proof</span>:null}</div>
           {latestTest?.derived ? <div className="history-grid">
             <div><b>{Number(latestTest.derived.ctr||0).toFixed(1)}%</b><span>CTR</span></div>
             <div><b>{latestTest.derived.cpa==null?"—":"$"+Number(latestTest.derived.cpa).toFixed(2)}</b><span>CPA</span></div>
             <div><b>{latestTest.derived.roas==null?"—":Number(latestTest.derived.roas).toFixed(2)+"x"}</b><span>ROAS</span></div>
-            <div><b>{latestTest.derived.status?.replaceAll("_"," ")}</b><span>Status</span></div>
+            <div><b>{latestTest.derived.marketValidated?"PASS":"BUILDING"}</b><span>Market proof</span></div>
           </div>:null}
           <form className="ad-test-form" onSubmit={saveTest}>
             {[
@@ -137,6 +183,7 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
             ].map(([key,label])=><label key={key}><span>{label}</span><input type="number" min="0" step="any" value={test[key]} onChange={e=>setTest({...test,[key]:e.target.value})}/></label>)}
             <button className="btn" type="submit" disabled={savingTest}>{savingTest?"Saving…":"Save test & re-score"}</button>
           </form>
+          {latestTest?.derived ? <div className="validation-checklist compact"><div className={latestTest.derived.marketValidated?"done":"todo"}><span>{latestTest.derived.marketValidated?"✓":"•"}</span><p>Market test evidence</p></div><div className={latestTest.derived.economicsVerified?"done":"todo"}><span>{latestTest.derived.economicsVerified?"✓":"•"}</span><p>Verified supplier economics</p></div></div>:null}
           {latestTest?.derived?.recommendation ? <p className="test-recommendation">{latestTest.derived.recommendation}</p>:null}
         </div>
 

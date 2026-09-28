@@ -9,6 +9,19 @@ import { computeDemandResearch, PLATFORM_SHARES, computeMarketplaceFromBenchmark
 import { RANK_WEIGHTS, PRODUCT_PILLAR_WEIGHTS, rankOpportunity, scoreOrderValueBlock } from "../../server/rankingAI.js";
 import { WINNING_WEIGHTS, buildWinningScorecard } from "../../server/winningScorecard.js";
 import { buildProductMarketplaceSales } from "../../server/marketSales.js";
+function parseCsvRow(line){
+  const out=[]; let cur="", quoted=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(quoted&&line[i+1]==='"'){cur+='"';i++;}
+      else quoted=!quoted;
+    } else if(ch===","&&!quoted){out.push(cur);cur="";}
+    else cur+=ch;
+  }
+  out.push(cur); return out;
+}
+
 
 test("trend score uses documented weights exactly", () => {
   const r=trendScore({amazon:80,tiktok:70,meta:60,google:50,crossPlatform:40,confidence:30});
@@ -97,7 +110,7 @@ test("Shopify CSV exports drafts with transparent price and cost", () => {
   assert.match(lines[1],/10\.00/);
   assert.match(lines[1],/,FALSE,/);
   assert.match(lines[1],/,draft$/);
-  const cells=lines[1].split(",");
+  const cells=parseCsvRow(lines[1]);
   assert.equal(cells[10],"");
   assert.equal(cells[12],"0");
   assert.equal(cells[13],"");

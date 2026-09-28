@@ -76,7 +76,15 @@ export async function trackProducts(products=[],context={}){
       await pgPool.query(
         `insert into tracked_products(id,title,product,validation_status,updated_at)
          values($1,$2,$3,$4,now())
-         on conflict(id) do update set title=excluded.title,product=excluded.product,updated_at=now()`,
+         on conflict(id) do update set
+           title=excluded.title,
+           product=excluded.product || case
+             when tracked_products.product ? 'supplierVerification'
+             then jsonb_build_object('supplierVerification',tracked_products.product->'supplierVerification','supplierVerified',true)
+             else '{}'::jsonb
+           end,
+           validation_status=tracked_products.validation_status,
+           updated_at=now()`,
         [p.id,p.title,JSON.stringify({...p.product,trackingContext:context}),p.validationStatus]
       );
       await pgPool.query(
@@ -91,7 +99,14 @@ export async function trackProducts(products=[],context={}){
   for(const raw of products){
     const p=normalizeProduct(raw);
     const existing=db.products[p.id]||{};
-    db.products[p.id]={...existing,...p,product:{...p.product,trackingContext:context},updatedAt:now,createdAt:existing.createdAt||now};
+    db.products[p.id]={
+      ...existing,
+      ...p,
+      validationStatus:existing.validationStatus||p.validationStatus,
+      product:{...(existing.product||{}),...p.product,trackingContext:context},
+      updatedAt:now,
+      createdAt:existing.createdAt||now
+    };
     db.snapshots.push({
       productId:p.id,capturedAt:now,trendScore:Number(raw.trendScore)||0,winnerScore:Number(raw.winnerDecision?.score)||0,
       marginPct:Number(raw.marginPct)||0,confidence:raw.dataConfidence||"LOW",lifecycle:raw.trendStatus||"DISCOVERED",payload:raw
@@ -141,12 +156,64 @@ export async function updateValidationStatus(productId,status,options={}){
   return {ok:true,status};
 }
 
-async function getTrackedProduct(productId){
+export async function getTrackedProduct(productId){
   if(pgReady){
     const {rows}=await pgPool.query(`select product from tracked_products where id=$1 limit 1`,[String(productId)]);
     return rows[0]?.product||null;
   }
   return readFileStore().products?.[productId]?.product||null;
+}
+
+export function deriveSupplierEconomics(product={},verification={}){
+  const landedCostUsd=Number(verification.landedCostUsd);
+  const shippingDays=Number(verification.shippingDays);
+  const sell=Number(product.estSellPriceUsd)||0;
+  if(!Number.isFinite(landedCostUsd)||landedCostUsd<=0) throw new Error("Verified landed cost must be greater than 0");
+  if(!Number.isFinite(shippingDays)||shippingDays<=0||shippingDays>90) throw new Error("Verified shipping days must be between 1 and 90");
+  if(sell<=0) throw new Error("Selling price is missing");
+  const contributionUsd=sell-landedCostUsd;
+  const marginPct=contributionUsd/sell*100;
+  return {
+    landedCostUsd:+landedCostUsd.toFixed(2),
+    shippingDays:Math.round(shippingDays),
+    contributionUsd:+contributionUsd.toFixed(2),
+    marginPct:+marginPct.toFixed(1),
+    economicsPass:marginPct>=50&&contributionUsd>=8,
+  };
+}
+
+export async function saveSupplierVerification(productId,input={}){
+  const product=await getTrackedProduct(productId);
+  if(!product) throw new Error("Product must be tracked before supplier verification");
+  const source=String(input.source||"").trim();
+  if(!source) throw new Error("Supplier source is required");
+  const economics=deriveSupplierEconomics(product,input);
+  const verification={
+    verified:true,
+    source,
+    productUrl:String(input.productUrl||"").trim()||null,
+    capturedAt:new Date().toISOString(),
+    ...economics,
+  };
+  const updatedProduct={...product,supplierVerified:true,supplierVerification:verification};
+  if(pgReady){
+    await pgPool.query(
+      `update tracked_products set product=$2,updated_at=now() where id=$1`,
+      [String(productId),JSON.stringify(updatedProduct)]
+    );
+  }else{
+    const db=readFileStore();
+    if(!db.products[productId]) throw new Error("Tracked product not found");
+    db.products[productId].product=updatedProduct;
+    db.products[productId].updatedAt=new Date().toISOString();
+    writeFileStore(db);
+  }
+  return {ok:true,productId:String(productId),verification};
+}
+
+export async function getSupplierVerification(productId){
+  const product=await getTrackedProduct(productId);
+  return product?.supplierVerification||null;
 }
 
 export function deriveAdTestMetrics(metrics={},product={}){
@@ -177,20 +244,29 @@ export function deriveAdTestMetrics(metrics={},product={}){
   const sampleConfidence=Math.min(1,clicks/100)*0.5+Math.min(1,purchases/3)*0.5;
   const proofScore=Math.round(Math.max(0,Math.min(100,baseScore*sampleConfidence)));
 
-  const contribution=Number(product?.estContributionUsd)||0;
-  const cpaEconomicallySafe=cpa!=null && contribution>0 ? cpa<=contribution : false;
+  const supplier=product?.supplierVerification;
+  const supplierVerified=Boolean(product?.supplierVerified===true&&supplier?.verified===true);
+  const verifiedContribution=supplierVerified?Number(supplier.contributionUsd):null;
+  const estimatedContribution=Number(product?.estContributionUsd)||0;
+  const contribution=supplierVerified&&Number.isFinite(verifiedContribution)?verifiedContribution:estimatedContribution;
+  const verifiedMargin=Number(supplier?.marginPct);
+  const economicsVerified=supplierVerified&&Number.isFinite(verifiedMargin)&&verifiedMargin>=50&&contribution>=8;
+  const cpaEconomicallySafe=cpa!=null&&contribution>0?cpa<=contribution:false;
   const enoughEvidence=purchases>=3&&clicks>=50&&spend>=20;
-  const validated=enoughEvidence&&(roas??0)>=1.5&&cpaEconomicallySafe;
+  const marketValidated=enoughEvidence&&(roas??0)>=1.5&&cpaEconomicallySafe;
+  const validated=marketValidated&&economicsVerified;
   const status=validated?"VALIDATED":spend>0?"TESTING":"READY_TO_TEST";
   const recommendation=purchases===0&&spend>=50
     ?"Pause and review creative, offer and landing-page friction before more spend."
-    :validated
-      ?"Evidence is promising; increase spend gradually while watching CPA and contribution margin."
-      :purchases>=3&&!cpaEconomicallySafe
-        ?"Sales are coming in, but CPA is above estimated contribution margin. Improve economics before scaling."
-        :"Keep the test controlled until purchases are repeatable and CPA fits unit economics.";
+    :marketValidated&&!economicsVerified
+      ?"Market test passed, but supplier landed cost is not verified at the 50% margin gate. Verify supplier economics before marking this product validated."
+      :validated
+        ?"Market proof and verified unit economics both pass. Increase spend gradually while watching CPA and contribution margin."
+        :purchases>=3&&!cpaEconomicallySafe
+          ?"Sales are coming in, but CPA is above contribution margin. Improve economics before scaling."
+          :"Keep the test controlled until purchases are repeatable and CPA fits unit economics.";
 
-  return {ctr,cpc,atcRate,cvr,cpa,roas,proofScore,status,recommendation,breakEvenCpa:contribution||null,sampleConfidence:+sampleConfidence.toFixed(2)};
+  return {ctr,cpc,atcRate,cvr,cpa,roas,proofScore,status,recommendation,breakEvenCpa:contribution||null,sampleConfidence:+sampleConfidence.toFixed(2),marketValidated,economicsVerified,supplierVerified};
 }
 
 export async function addAdTest(productId,metrics={}){

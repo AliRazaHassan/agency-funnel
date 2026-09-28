@@ -4,7 +4,7 @@ import { scoreProduct } from "../server/scorer.js";
 import { buildWinnerDecision, selectFinalWinners } from "../server/winnerEngine.js";
 import { deriveAdTestMetrics, deriveSupplierEconomics } from "../server/researchStore.js";
 import { parseBoughtCount } from "../server/keepa.js";
-import { amazonEvidenceStatus } from "../server/productHunt.js";
+import { amazonEvidenceStatus, firstFiniteSignal } from "../server/productHunt.js";
 import { buildFallback as buildValidationFallback } from "../server/validation.js";
 
 function near(actual, expected, epsilon=0.15, label="value"){
@@ -19,6 +19,10 @@ assert.equal(trendScore({amazon:-10,tiktok:120,meta:0,google:0,crossPlatform:0,c
 // Evidence confidence provenance mapping.
 assert.equal(evidenceConfidence({amazon:"LIVE",tiktok:"RECENT",meta:"MANUAL",google:"ESTIMATED"}),73);
 assert.equal(evidenceConfidence({}),0);
+
+// Zero is a real score and must never be replaced by a fallback.
+assert.equal(firstFiniteSignal(0,80,60),0);
+assert.equal(firstFiniteSignal(null,undefined,"",42),42);
 
 // Amazon manual parsing/freshness must be trustworthy.
 assert.equal(parseBoughtCount("1K+"),1000);

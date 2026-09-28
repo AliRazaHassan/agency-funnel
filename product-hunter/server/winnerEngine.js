@@ -7,11 +7,9 @@ function pillar(product,id){
   return Number(product.winning?.pillars?.find?.(p=>p.id===id)?.score||0);
 }
 function evidenceQuality(product){
-  const statuses=Object.values(product.dataStatus||{});
+  const statuses=["amazon","tiktok","meta","google"].map(k=>String(product.dataStatus?.[k]||"UNAVAILABLE").toUpperCase());
   if(!statuses.length)return 0;
-  const score=statuses.reduce((s,x)=>s+(x==="LIVE"?100:x==="RECENT"?85:x==="MANUAL"?70:x==="ESTIMATED"?35:0),0)/statuses.length;
-  const independent=Object.entries(product.trendComponents||{}).filter(([k,v])=>["amazon","tiktok","meta","google"].includes(k)&&Number(v)>=45).length;
-  return clamp(score+(independent>=3?10:independent>=2?5:0));
+  return clamp(statuses.reduce((s,x)=>s+(x==="LIVE"?100:x==="RECENT"?85:x==="MANUAL"?70:x==="ESTIMATED"?35:0),0)/statuses.length);
 }
 
 export function buildWinnerDecision(product={}){
@@ -21,8 +19,7 @@ export function buildWinnerDecision(product={}){
   const supplier=clamp(product.pillars?.supplierEase ?? product.supplierEase ?? 50);
   const creative=clamp(pillar(product,"creative")||50);
   const evidence=evidenceQuality(product);
-  const declaredConfidence=product.dataConfidence==="HIGH"?90:product.dataConfidence==="MEDIUM"?60:30;
-  const confidence=round((evidence*.7)+(declaredConfidence*.3));
+  const confidence=round(Number.isFinite(Number(product.evidenceConfidence)) ? Number(product.evidenceConfidence) : evidence);
   const components={trend,profit,competition,confidence,supplier,creative};
   const score=round(Object.entries(WINNER_WEIGHTS).reduce((s,[k,w])=>s+components[k]*w,0));
 

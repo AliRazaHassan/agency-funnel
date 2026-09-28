@@ -26,6 +26,15 @@ export function scoreProduct(raw, opportunity = {}) {
   let rejected = false;
   const rejectReasons = [];
 
+  if (cost <= 0) {
+    rejected = true;
+    rejectReasons.push("Supplier cost missing or invalid — cannot verify margin");
+  }
+  if (sell <= 0) {
+    rejected = true;
+    rejectReasons.push("Selling price missing or invalid — cannot verify economics");
+  }
+
   if (marginPct < 50) {
     rejected = true;
     rejectReasons.push(`Margin ${marginPct.toFixed(0)}% below 50% gate`);

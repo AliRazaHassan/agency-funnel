@@ -79,9 +79,13 @@ export function scoreOrderValueBlock(item) {
   const baseOrders = item.projectedMonthlyOrders?.base ?? 50;
   const aovScore = clamp((aov / 95) * 85);
   const contribScore = clamp((contrib / (item.isServiceOffer ? 90 : 40)) * 80);
-  const volumeScore = item.isServiceOffer
-    ? clamp((baseOrders / 10) * 70)
-    : clamp((baseOrders / 120) * 60);
+  const volumeStatus = String(item.volumeEvidenceStatus || "ESTIMATED").toUpperCase();
+  const observedVolume = ["LIVE","RECENT","MANUAL"].includes(volumeStatus);
+  const volumeScore = observedVolume
+    ? item.isServiceOffer
+      ? clamp((baseOrders / 10) * 70)
+      : clamp((baseOrders / 120) * 60)
+    : 50;
   return round1(0.4 * aovScore + 0.4 * contribScore + 0.2 * volumeScore);
 }
 

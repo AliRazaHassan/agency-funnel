@@ -5,6 +5,7 @@ import { buildWinnerDecision, selectFinalWinners, WINNER_WEIGHTS } from "../../s
 import { scoreProduct } from "../../server/scorer.js";
 import { deriveAdTestMetrics } from "../../server/researchStore.js";
 import { productsToMatrixifyCsv } from "../../server/exportShopify.js";
+import { computeDemandResearch, PLATFORM_SHARES, computeMarketplaceFromBenchmarks } from "../../server/researchEngine.js";
 
 test("trend score uses documented weights exactly", () => {
   const r=trendScore({amazon:80,tiktok:70,meta:60,google:50,crossPlatform:40,confidence:30});
@@ -93,4 +94,28 @@ test("Shopify CSV exports drafts with transparent price and cost", () => {
   assert.match(lines[1],/10\.00/);
   assert.match(lines[1],/,FALSE,/);
   assert.match(lines[1],/,draft$/);
+});
+
+
+test("demand rubric weights normalize to exactly 1 and marketplace shares conserve totals", () => {
+  const d=computeDemandResearch({
+    niche:"Pet Supplies",
+    whyNow:"evergreen repeat demand",
+    demandDrivers:["evergreen","repeat","social"],
+    sellWhere:{primary:"Shopify",secondaryChannels:["Amazon","TikTok"]},
+    scores:{competition:40}
+  });
+  const totalWeight=d.factors.reduce((s,x)=>s+x.weight,0);
+  assert.ok(Math.abs(totalWeight-1)<1e-9);
+
+  for(const shares of Object.values(PLATFORM_SHARES)){
+    const total=Object.values(shares).reduce((a,b)=>a+b,0);
+    assert.ok(Math.abs(total-1)<1e-9);
+  }
+
+  const m=computeMarketplaceFromBenchmarks({niche:"Pet Supplies",estAovUsd:50,sellWhere:{primary:"Shopify"}});
+  assert.ok(m.overall.revenue>0);
+  const revenueSum=m.byPlatform.reduce((s,x)=>s+Number(x.revenue||0),0);
+  assert.ok(Math.abs(revenueSum-m.overall.revenue)<2);
+  assert.equal(m.scope,"niche_online_model");
 });

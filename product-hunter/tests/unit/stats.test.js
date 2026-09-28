@@ -6,6 +6,7 @@ import { scoreProduct } from "../../server/scorer.js";
 import { deriveAdTestMetrics } from "../../server/researchStore.js";
 import { productsToMatrixifyCsv } from "../../server/exportShopify.js";
 import { computeDemandResearch, PLATFORM_SHARES, computeMarketplaceFromBenchmarks } from "../../server/researchEngine.js";
+import { RANK_WEIGHTS, rankOpportunity } from "../../server/rankingAI.js";
 
 test("trend score uses documented weights exactly", () => {
   const r=trendScore({amazon:80,tiktok:70,meta:60,google:50,crossPlatform:40,confidence:30});
@@ -118,4 +119,15 @@ test("demand rubric weights normalize to exactly 1 and marketplace shares conser
   const revenueSum=m.byPlatform.reduce((s,x)=>s+Number(x.revenue||0),0);
   assert.ok(Math.abs(revenueSum-m.overall.revenue)<2);
   assert.equal(m.scope,"niche_online_model");
+});
+
+
+test("opportunity rank positive weights sum to 1 and lower budget fit lowers rank", () => {
+  const positive=RANK_WEIGHTS.demand+RANK_WEIGHTS.marketing+RANK_WEIGHTS.orderValue+RANK_WEIGHTS.sellability;
+  assert.equal(positive,1);
+  const base={demand:70,marketingStrength:70,orderValueScore:70,sellability:80,riskPenalty:10};
+  const high=rankOpportunity({...base,budgetFit:100});
+  const low=rankOpportunity({...base,budgetFit:40});
+  assert.ok(high.rankScore>low.rankScore);
+  assert.ok(high.rankScore<=100&&low.rankScore>=0);
 });

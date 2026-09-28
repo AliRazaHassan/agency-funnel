@@ -43,7 +43,7 @@ export function DataHonestyBanner({ freeSignal, keepa }) {
   const snapCount = keepa?.snapshot?.count || 0;
   return (
     <div className="honesty-banner">
-      <strong>Trusted data · free first, Keepa optional one-time</strong>
+      <strong>Data provenance · live, manual and modeled sources</strong>
       <p>
         Live interest: <strong>Wikimedia Pageviews</strong> (free)
         {freeSignal?.providers?.some((p) => p.provider === "Google Trends")
@@ -669,7 +669,7 @@ export function ProductDetailPanel({ product, onClose }) {
       <div className="viz-card" style={{ marginTop: "0.75rem" }}>
         <div className="viz-head">
           <h3>Trend Intelligence · {product.trendScore ?? "—"}/100</h3>
-          <p className="muted">{product.trendStatus || "DISCOVERED"} · {product.dataConfidence || "LOW"} confidence</p>
+          <p className="muted">{product.trendStatus || "DISCOVERED"} · {product.dataConfidence || "LOW"} trend confidence · evidence {product.evidenceConfidence ?? "—"}/100</p>
         </div>
         <div className="unit-strip">
           <div><span>7-day</span><b>{product.momentum?.d7 == null ? "—" : `${product.momentum.d7}%`}</b></div>

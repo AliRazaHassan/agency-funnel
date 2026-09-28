@@ -267,6 +267,8 @@ function seedBoard(regionKey, nicheHint) {
       researchUrl: t.platform === "tiktok" ? links.tiktokTopProducts : links.metaAdLibrary,
       links,
       note: "Not live sold units — open research URL to validate trending creatives",
+      dataStatus: "ESTIMATED",
+      capturedAt: null,
     };
   });
 }

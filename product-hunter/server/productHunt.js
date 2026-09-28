@@ -1,6 +1,6 @@
 import { chatJson } from "./openai.js";
 import { scoreProduct } from "./scorer.js";
-import { rankProducts } from "./rankingAI.js";
+import { rankProducts, scoreOrderValueBlock } from "./rankingAI.js";
 import { buildProductMarketplaceSales } from "./marketSales.js";
 import { summarizeWinningDeck, buildWinningScorecard } from "./winningScorecard.js";
 import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
@@ -161,8 +161,21 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     ...p,
     winning: buildWinningScorecard(p, opportunity),
   }));
-  const rankedBase = await Promise.all(rankProducts(withKeepa).map(async (p) => {
+  const marketReady = withKeepa.map((p) => {
     const marketplaceSales = buildProductMarketplaceSales(p, opportunity);
+    const projectedMonthlyOrders = marketplaceSales.yourStoreProjection?.orders || p.projectedMonthlyOrders;
+    const projectedMonthlyRevenue = marketplaceSales.yourStoreProjection?.revenue || p.projectedMonthlyRevenue;
+    const orderValue = scoreOrderValueBlock({ ...p, projectedMonthlyOrders });
+    return {
+      ...p,
+      marketplaceSales,
+      projectedMonthlyOrders,
+      projectedMonthlyRevenue,
+      pillars: { ...p.pillars, orderValue }
+    };
+  });
+  const rankedBase = await Promise.all(rankProducts(marketReady).map(async (p) => {
+    const marketplaceSales = p.marketplaceSales;
     const amazonVerified = Boolean(p.keepaMatched || p.keepa?.matched || p.amazon?.matched);
     const free = opportunity.freeSignal || {};
     const demand = Number(opportunity.scores?.demand || 0);

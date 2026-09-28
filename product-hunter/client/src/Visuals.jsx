@@ -538,7 +538,7 @@ export function ProductDetailPanel({ product, onClose }) {
   const src = product.sourceFrom || {};
   const sell = Number(product.estSellPriceUsd) || 0;
   const buy = Number(selected?.unitCostUsd ?? product.estCostUsd) || 0;
-  const margin = sell > 0 ? Math.round(((sell - buy) / sell) * 1000) / 10 : 0;
+  const margin = sell > 0 ? Math.round(((sell - buy - 3) / sell) * 1000) / 10 : 0;
   const funnelProduct = {
     ...product,
     estCostUsd: buy,

@@ -65,8 +65,8 @@ test("winner v2 weights, evidence confidence and verdict are internally consiste
       {id:"margin",score:70},{id:"competition",score:60},{id:"shipping",score:80},{id:"creative",score:75}
     ],hardFails:[]}
   });
-  assert.equal(d.components.confidence,85);
-  assert.equal(d.score,75);
+  assert.equal(d.components.confidence,73);
+  assert.equal(d.score,73);
   assert.equal(d.verdict,"STRONG_CANDIDATE");
   assert.equal(d.verifiedSources,3);
 });

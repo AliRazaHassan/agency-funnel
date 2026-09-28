@@ -6,7 +6,7 @@ import { scoreProduct } from "../../server/scorer.js";
 import { deriveAdTestMetrics } from "../../server/researchStore.js";
 import { productsToMatrixifyCsv } from "../../server/exportShopify.js";
 import { computeDemandResearch, PLATFORM_SHARES, computeMarketplaceFromBenchmarks } from "../../server/researchEngine.js";
-import { RANK_WEIGHTS, PRODUCT_PILLAR_WEIGHTS, rankOpportunity } from "../../server/rankingAI.js";
+import { RANK_WEIGHTS, PRODUCT_PILLAR_WEIGHTS, rankOpportunity, scoreOrderValueBlock } from "../../server/rankingAI.js";
 import { WINNING_WEIGHTS, buildWinningScorecard } from "../../server/winningScorecard.js";
 import { buildProductMarketplaceSales } from "../../server/marketSales.js";
 
@@ -189,4 +189,15 @@ test("evidence confidence is source-status weighted and missing ad data keeps sa
   assert.equal(p.evidenceConfidence,26);
   assert.equal(p.dataConfidence,"LOW");
   assert.match(p.whyTrending.summary,/modeled signals/i);
+});
+
+
+test("modeled order volume cannot inflate order-value score", () => {
+  const base={estAovUsd:50,estContributionUsd:20,isServiceOffer:false};
+  const low=scoreOrderValueBlock({...base,projectedMonthlyOrders:{base:10}});
+  const high=scoreOrderValueBlock({...base,projectedMonthlyOrders:{base:1000}});
+  assert.equal(low,high);
+  const observedLow=scoreOrderValueBlock({...base,projectedMonthlyOrders:{base:10},volumeEvidenceStatus:"RECENT"});
+  const observedHigh=scoreOrderValueBlock({...base,projectedMonthlyOrders:{base:100},volumeEvidenceStatus:"RECENT"});
+  assert.ok(observedHigh>observedLow);
 });

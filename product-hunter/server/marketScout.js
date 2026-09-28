@@ -20,20 +20,22 @@ function filterByRegion(list, regionFocus) {
 function applyBudgetHint(list, budget) {
   if (!budget) return list;
   const b = Number(budget);
-  if (!Number.isFinite(b)) return list;
+  if (!Number.isFinite(b) || b <= 0) return list;
   return list.map((o) => {
-    let demand = o.scores?.demand || 50;
-    let riskFlags = [...(o.riskFlags || [])];
-    if (b < 800 && o.isServiceOffer) {
-      demand = Math.max(40, demand - 18);
-      riskFlags.push("High-ticket service — needs sales capacity beyond small ad budget");
+    const riskFlags = [...(o.riskFlags || [])];
+    let budgetFit = 85;
+    if (o.isServiceOffer) {
+      budgetFit = b < 500 ? 35 : b < 800 ? 50 : b < 1500 ? 75 : 90;
+      if (b < 800) riskFlags.push("Budget fit is weak for a high-ticket service sales motion");
+    } else {
+      budgetFit = b < 200 ? 45 : b < 400 ? 65 : b < 800 ? 82 : 92;
+      if (b < 300) riskFlags.push("Small validation budget — keep tests narrow and creative count low");
     }
-    if (b < 500 && !o.isServiceOffer) demand = Math.min(100, demand + 4);
-    if (b >= 1000 && o.isServiceOffer) demand = Math.min(100, demand + 6);
     return {
       ...o,
+      budgetUsd: b,
+      budgetFit,
       riskFlags,
-      scores: { ...o.scores, demand },
     };
   });
 }

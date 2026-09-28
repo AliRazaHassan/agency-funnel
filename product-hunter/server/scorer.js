@@ -61,8 +61,11 @@ export function scoreProduct(raw, opportunity = {}) {
 
   const supplierEase = clamp(raw.supplierEase ?? 70);
   const upsell = Number(raw.upsellPriceUsd) || sell * 0.45;
-  const estAovUsd = round1(sell + upsell * 0.55);
-  const estContributionUsd = round1(net + (upsell * 0.55 - (Number(raw.upsellCostUsd) || cost * 0.4) - 1.5));
+  const upsellCost = Number(raw.upsellCostUsd) || cost * 0.4;
+  const upsellTakeRate = 0.55;
+  const upsellShippingBuffer = 1.5;
+  const estAovUsd = round1(sell + upsell * upsellTakeRate);
+  const estContributionUsd = round1(net + upsellTakeRate * (upsell - upsellCost - upsellShippingBuffer));
   const orderValue = clamp((estAovUsd / 90) * 55 + (estContributionUsd / 35) * 45);
   const marketing = clamp(
     (raw.hook ? 70 : 40) + (raw.pdpBullets?.length >= 3 ? 15 : 0) + (raw.offerLine ? 10 : 0)
@@ -127,6 +130,11 @@ export function scoreProduct(raw, opportunity = {}) {
     productUrl: productLinks.primary?.url || null,
     estAovUsd,
     estContributionUsd,
+    shippingBufferUsd: SHIPPING_BUFFER,
+    upsellPriceUsd: round1(upsell),
+    upsellCostUsd: round1(upsellCost),
+    expectedUpsellTakeRate: upsellTakeRate,
+    upsellShippingBufferUsd: upsellShippingBuffer,
     bundleOffer,
     projectedMonthlyOrders: raw.projectedMonthlyOrders || {
       conservative: 20,

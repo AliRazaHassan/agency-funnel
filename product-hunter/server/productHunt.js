@@ -65,6 +65,19 @@ const VARIANTS = [
   { suffix: "Travel Size", costMul: 0.75, sellMul: 0.82 },
 ];
 
+
+function amazonEvidenceStatus(product = {}) {
+  const k = product.keepa || product.amazon || null;
+  if (!k) return "UNAVAILABLE";
+  if (k.source === "manual-amazon-paste") return "MANUAL";
+  const captured = k.capturedAt ? new Date(k.capturedAt).getTime() : NaN;
+  if (Number.isFinite(captured)) {
+    const ageDays = (Date.now() - captured) / 86400000;
+    return ageDays <= 30 ? "RECENT" : "ESTIMATED";
+  }
+  return "ESTIMATED";
+}
+
 /** Expand thin seed catalogs to at least `limit` unique SKUs */
 function expandSeedsToLimit(baseList, limit = 50) {
   const out = [];
@@ -202,18 +215,21 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     const demand = Number(opportunity.scores?.demand || 0);
     const marketing = Number(opportunity.marketingStrength || opportunity.scores?.marketing || 0);
     const social = Number(free.socialScore || free.social || 0);
+    const socialEvidence = opportunity.socialEvidence || {};
+    const tiktokEvidence = socialEvidence.tiktok || null;
+    const metaEvidence = socialEvidence.meta || null;
     const signals = {
       amazon: amazonVerified ? Number(p.amazon?.score || p.keepa?.score || demand) : 0,
-      tiktok: Number(p.socialSignals?.tiktok || social || marketing * 0.7),
-      meta: Number(p.socialSignals?.meta || social || marketing * 0.65),
+      tiktok: Number(p.socialSignals?.tiktok || tiktokEvidence?.score || social || marketing * 0.7),
+      meta: Number(p.socialSignals?.meta || metaEvidence?.score || social || marketing * 0.65),
       google: Number(free.googleScore || free.google || demand),
       crossPlatform: Math.round((demand + marketing) / 2),
       confidence: amazonVerified ? 78 : source === "seed" ? 30 : 48,
     };
     const dataStatus = {
-      amazon: amazonVerified ? "RECENT" : "UNAVAILABLE",
-      tiktok: p.socialSignals?.tiktok ? "RECENT" : "ESTIMATED",
-      meta: p.socialSignals?.meta ? "RECENT" : "ESTIMATED",
+      amazon: amazonVerified ? amazonEvidenceStatus(p) : "UNAVAILABLE",
+      tiktok: p.socialSignals?.tiktok ? "RECENT" : (tiktokEvidence?.status || "ESTIMATED"),
+      meta: p.socialSignals?.meta ? "RECENT" : (metaEvidence?.status || "ESTIMATED"),
       google: free.googleScore || free.google ? "RECENT" : "ESTIMATED",
     };
     const baseIntelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });

@@ -168,19 +168,19 @@ export function buildWinningScorecard(product = {}, opportunity = {}) {
 
   // Verdict
   let verdict = "PASS";
-  let verdictLabel = "Potential winner";
+  let verdictLabel = "Rule gate pass";
   if (hardFails.length || product.rejected) {
     verdict = "FAIL";
-    verdictLabel = "Not a winner yet";
+    verdictLabel = "Rule gate fail";
     if (product.rejected && !hardFails.length) {
       hardFails.push(...(product.reasons || []).filter((r) => /gate|below|fad|trademark/i.test(r)));
     }
   } else if (total < WINNING_PASS_SCORE) {
     verdict = "WATCH";
-    verdictLabel = "Borderline — validate more";
+    verdictLabel = "Rule gate watch — validate more";
   } else if (softWarnings.length >= 3) {
     verdict = "WATCH";
-    verdictLabel = "Pass score, but check warnings";
+    verdictLabel = "Rule score passes, warnings remain";
   }
 
   const keepaGap = keepa
@@ -210,10 +210,10 @@ export function buildWinningScorecard(product = {}, opportunity = {}) {
     keepaGap,
     summary:
       verdict === "PASS"
-        ? `Score ${total}/100 — passes rules without Keepa. Still verify cost + Amazon with links/Keepa.`
+        ? `Rule score ${total}/100 — passes deterministic gates. This is not the evidence-based Winner verdict; verify live evidence before spend.`
         : verdict === "WATCH"
-          ? `Score ${total}/100 — borderline. Fix warnings or get Keepa proof before ads.`
-          : `Score ${total}/100 — fails hard gates. Do not treat as winning SKU.`,
+          ? `Rule score ${total}/100 — borderline. Fix warnings or add verified evidence before ads.`
+          : `Rule score ${total}/100 — fails hard gates. Do not advance until the failed gate is resolved.`,
   };
 }
 

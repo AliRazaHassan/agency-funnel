@@ -7,7 +7,7 @@
     "dev": "concurrently -k \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node --watch server/index.js",
     "dev:client": "vite --config client/vite.config.js",
-    "build": "npm run verify:logic && vite build --config client/vite.config.js",
+    "build": "npm run test:unit && npm run verify:logic && vite build --config client/vite.config.js",
     "start": "node server/index.js",
     "keepa:pull": "node scripts/keepa-pull.mjs",
     "test:e2e": "playwright test",

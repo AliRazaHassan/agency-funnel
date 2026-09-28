@@ -7,11 +7,12 @@
     "dev": "concurrently -k \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node --watch server/index.js",
     "dev:client": "vite --config client/vite.config.js",
-    "build": "vite build --config client/vite.config.js",
+    "build": "npm run test:unit && vite build --config client/vite.config.js",
     "start": "node server/index.js",
     "keepa:pull": "node scripts/keepa-pull.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --reporter=line"
+    "test:e2e:ci": "playwright test --reporter=line",
+    "test:unit": "node --test tests/unit/*.test.js"
   },
   "engines": {
     "node": ">=20"

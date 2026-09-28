@@ -253,18 +253,24 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     };
     const dataStatus = {
       amazon: amazonVerified ? amazonEvidenceStatus(p) : "UNAVAILABLE",
-      tiktok: p.socialSignals?.tiktok ? "RECENT" : (tiktokEvidence?.status || "ESTIMATED"),
-      meta: p.socialSignals?.meta ? "RECENT" : (metaEvidence?.status || "ESTIMATED"),
+      tiktok: p.socialSignals?.tiktok ? "ESTIMATED" : (tiktokEvidence?.status || "ESTIMATED"),
+      meta: p.socialSignals?.meta ? "ESTIMATED" : (metaEvidence?.status || "ESTIMATED"),
       google: Number.isFinite(Number(free.googleScore)) ? "RECENT" : "ESTIMATED",
     };
-    const baseIntelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+    const dataScope = {
+      amazon: amazonVerified ? "PRODUCT" : "NONE",
+      tiktok: tiktokEvidence ? "NICHE" : "MODELED",
+      meta: metaEvidence ? "NICHE" : "MODELED",
+      google: Number.isFinite(Number(free.googleScore)) ? "NICHE" : "MODELED",
+    };
+    const baseIntelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, dataScope, market: opportunity.sellWhere?.geos?.[0] || "Global" });
     let trackedHistory=[];
     try{
       const previous=await getHistory(p.id,30);
       trackedHistory=(previous||[]).map(x=>({date:x.capturedAt,value:Number(x.trendScore)||0}));
     }catch{}
     const history=[...trackedHistory,{date:new Date().toISOString(),value:baseIntelligence.trendScore}];
-    const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, history, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+    const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, dataScope, history, market: opportunity.sellWhere?.geos?.[0] || "Global" });
     return { ...intelligence, winnerDecision: buildWinnerDecision(intelligence) };
   }));
 

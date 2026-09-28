@@ -121,7 +121,7 @@ export async function trackProducts(products=[],context={}){
     }
     return {ok:true,count:products.length,mode:"postgres",capturedAt:now};
   }
-  const db=readFileStore();
+  const db=kvReady ? await readKvStore() : readFileStore();
   for(const raw of products){
     const p=normalizeProduct(raw);
     const existing=db.products[p.id]||{};
@@ -139,8 +139,8 @@ export async function trackProducts(products=[],context={}){
     });
   }
   if(db.snapshots.length>5000) db.snapshots=db.snapshots.slice(-5000);
-  writeFileStore(db);
-  return {ok:true,count:products.length,mode:"file",capturedAt:now};
+  if(kvReady) await writeKvStore(db); else writeFileStore(db);
+  return {ok:true,count:products.length,mode:kvReady?"keyvalue":"file",capturedAt:now};
 }
 
 export async function listTrackedProducts(){
@@ -148,7 +148,7 @@ export async function listTrackedProducts(){
     const {rows}=await pgPool.query(`select id,title,product,validation_status as "validationStatus",created_at as "createdAt",updated_at as "updatedAt" from tracked_products order by updated_at desc limit 500`);
     return rows;
   }
-  const db=readFileStore();
+  const db=kvReady ? await readKvStore() : readFileStore();
   return Object.values(db.products).sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
 }
 
@@ -162,7 +162,7 @@ export async function getHistory(productId,days=30){
     );
     return rows;
   }
-  const db=readFileStore();
+  const db=kvReady ? await readKvStore() : readFileStore();
   return db.snapshots.filter(x=>String(x.productId)===String(productId)&&x.capturedAt>=since).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
 }
 
@@ -174,11 +174,11 @@ export async function updateValidationStatus(productId,status,options={}){
     await pgPool.query(`update tracked_products set validation_status=$2,updated_at=now() where id=$1`,[String(productId),status]);
     return {ok:true,status};
   }
-  const db=readFileStore();
+  const db=kvReady ? await readKvStore() : readFileStore();
   if(!db.products[productId]) db.products[productId]={id:productId,title:productId,product:{}};
   db.products[productId].validationStatus=status;
   db.products[productId].updatedAt=new Date().toISOString();
-  writeFileStore(db);
+  if(kvReady) await writeKvStore(db); else writeFileStore(db);
   return {ok:true,status};
 }
 
@@ -187,7 +187,8 @@ export async function getTrackedProduct(productId){
     const {rows}=await pgPool.query(`select product from tracked_products where id=$1 limit 1`,[String(productId)]);
     return rows[0]?.product||null;
   }
-  return readFileStore().products?.[productId]?.product||null;
+  const db=kvReady ? await readKvStore() : readFileStore();
+  return db.products?.[productId]?.product||null;
 }
 
 export function deriveSupplierEconomics(product={},verification={}){
@@ -228,11 +229,11 @@ export async function saveSupplierVerification(productId,input={}){
       [String(productId),JSON.stringify(updatedProduct)]
     );
   }else{
-    const db=readFileStore();
+    const db=kvReady ? await readKvStore() : readFileStore();
     if(!db.products[productId]) throw new Error("Tracked product not found");
     db.products[productId].product=updatedProduct;
     db.products[productId].updatedAt=new Date().toISOString();
-    writeFileStore(db);
+    if(kvReady) await writeKvStore(db); else writeFileStore(db);
   }
   return {ok:true,productId:String(productId),verification};
 }
@@ -304,11 +305,11 @@ export async function addAdTest(productId,metrics={}){
     await updateValidationStatus(productId,derived.status,{evidence:derived.status==="VALIDATED"});
     return {...rows[0],metrics,derived};
   }
-  const db=readFileStore();
+  const db=kvReady ? await readKvStore() : readFileStore();
   const row={id:"test_"+Date.now().toString(36),productId:String(productId),createdAt:new Date().toISOString(),metrics,derived};
   db.tests.push(row);
   if(db.products[productId]) db.products[productId].validationStatus=derived.status;
-  writeFileStore(db);
+  if(kvReady) await writeKvStore(db); else writeFileStore(db);
   return row;
 }
 export async function getAdTests(productId){
@@ -316,5 +317,6 @@ export async function getAdTests(productId){
     const {rows}=await pgPool.query(`select id,created_at as "createdAt",metrics,derived from ad_tests where product_id=$1 order by created_at desc limit 100`,[String(productId)]);
     return rows;
   }
-  return readFileStore().tests.filter(x=>String(x.productId)===String(productId)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  const db=kvReady ? await readKvStore() : readFileStore();
+  return db.tests.filter(x=>String(x.productId)===String(productId)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
 }

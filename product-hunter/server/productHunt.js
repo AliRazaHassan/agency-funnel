@@ -78,6 +78,26 @@ function amazonEvidenceStatus(product = {}) {
   return "ESTIMATED";
 }
 
+function amazonSignalScore(product = {}) {
+  const k = product.keepa || product.amazon || null;
+  if (!k) return 0;
+  const parts = [];
+  if (Number.isFinite(Number(k.monthlySold))) {
+    const sold = Math.max(0, Number(k.monthlySold));
+    parts.push(Math.max(0, Math.min(100, Math.round(20 + Math.log10(sold + 1) * 28))));
+  }
+  if (Number.isFinite(Number(k.salesRank)) && Number(k.salesRank) > 0) {
+    const rank = Number(k.salesRank);
+    const rankScore = rank <= 5000 ? 90 : rank <= 20000 ? 75 : rank <= 50000 ? 60 : rank <= 100000 ? 45 : 30;
+    parts.push(rankScore);
+  }
+  if (Number.isFinite(Number(k.reviewCount))) {
+    const reviews = Math.max(0, Number(k.reviewCount));
+    parts.push(Math.max(20, Math.min(85, Math.round(20 + Math.log10(reviews + 1) * 18))));
+  }
+  return parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : 50;
+}
+
 /** Expand thin seed catalogs to at least `limit` unique SKUs */
 function expandSeedsToLimit(baseList, limit = 50) {
   const out = [];
@@ -210,7 +230,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
   });
   const rankedBase = await Promise.all(rankProducts(marketReady).map(async (p) => {
     const marketplaceSales = p.marketplaceSales;
-    const amazonVerified = Boolean(p.keepaMatched || p.keepa?.matched || p.amazon?.matched);
+    const amazonVerified = Boolean(p.keepaStatus?.matched || p.keepa?.match || p.keepaMatched || p.amazon?.matched);
     const free = opportunity.freeSignal || {};
     const demand = Number(opportunity.scores?.demand || 0);
     const marketing = Number(opportunity.marketingStrength || opportunity.scores?.marketing || 0);
@@ -219,10 +239,10 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     const tiktokEvidence = socialEvidence.tiktok || null;
     const metaEvidence = socialEvidence.meta || null;
     const signals = {
-      amazon: amazonVerified ? Number(p.amazon?.score || p.keepa?.score || demand) : 0,
+      amazon: amazonVerified ? amazonSignalScore(p) : 0,
       tiktok: Number(p.socialSignals?.tiktok || tiktokEvidence?.score || social || marketing * 0.7),
       meta: Number(p.socialSignals?.meta || metaEvidence?.score || social || marketing * 0.65),
-      google: Number(free.googleScore || free.google || demand),
+      google: Number.isFinite(Number(free.googleScore)) ? Number(free.googleScore) : Number(demand),
       crossPlatform: Math.round((demand + marketing) / 2),
       confidence: amazonVerified ? 78 : source === "seed" ? 30 : 48,
     };
@@ -230,7 +250,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       amazon: amazonVerified ? amazonEvidenceStatus(p) : "UNAVAILABLE",
       tiktok: p.socialSignals?.tiktok ? "RECENT" : (tiktokEvidence?.status || "ESTIMATED"),
       meta: p.socialSignals?.meta ? "RECENT" : (metaEvidence?.status || "ESTIMATED"),
-      google: free.googleScore || free.google ? "RECENT" : "ESTIMATED",
+      google: Number.isFinite(Number(free.googleScore)) ? "RECENT" : "ESTIMATED",
     };
     const baseIntelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
     let trackedHistory=[];

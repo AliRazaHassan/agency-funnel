@@ -247,7 +247,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       amazon: amazonVerified ? amazonSignalScore(p) : 0,
       tiktok: Number(p.socialSignals?.tiktok || tiktokEvidence?.score || social || marketing * 0.7),
       meta: Number(p.socialSignals?.meta || metaEvidence?.score || social || marketing * 0.65),
-      google: Number.isFinite(Number(free.googleScore)) ? Number(free.googleScore) : Number(demand),
+      google: Number.isFinite(Number(free.googleMomentumScore)) ? Number(free.googleMomentumScore) : Number(demand),
       crossPlatform: Math.round((demand + marketing) / 2),
       confidence: amazonVerified ? 78 : source === "seed" ? 30 : 48,
     };
@@ -255,13 +255,13 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       amazon: amazonVerified ? amazonEvidenceStatus(p) : "UNAVAILABLE",
       tiktok: p.socialSignals?.tiktok ? "ESTIMATED" : (tiktokEvidence?.status || "ESTIMATED"),
       meta: p.socialSignals?.meta ? "ESTIMATED" : (metaEvidence?.status || "ESTIMATED"),
-      google: Number.isFinite(Number(free.googleScore)) ? "RECENT" : "ESTIMATED",
+      google: Number.isFinite(Number(free.googleMomentumScore)) ? "RECENT" : "ESTIMATED",
     };
     const dataScope = {
       amazon: amazonVerified ? "PRODUCT" : "NONE",
       tiktok: tiktokEvidence ? "NICHE" : "MODELED",
       meta: metaEvidence ? "NICHE" : "MODELED",
-      google: Number.isFinite(Number(free.googleScore)) ? "NICHE" : "MODELED",
+      google: Number.isFinite(Number(free.googleMomentumScore)) ? "NICHE" : "MODELED",
     };
     const baseIntelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, dataScope, market: opportunity.sellWhere?.geos?.[0] || "Global" });
     let trackedHistory=[];

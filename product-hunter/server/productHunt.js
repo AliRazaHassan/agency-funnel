@@ -154,6 +154,27 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     source = "openai+seed";
   }
 
+  const uniqueRaw = [];
+  const uniqueTitles = new Set();
+  for (const p of raw) {
+    const title = String(p?.title || "").trim();
+    const key = title.toLowerCase();
+    if (!title || uniqueTitles.has(key)) continue;
+    uniqueTitles.add(key);
+    uniqueRaw.push(p);
+  }
+  raw = uniqueRaw;
+  if (raw.length < target) {
+    const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
+    for (const p of pad) {
+      if (raw.length >= target) break;
+      const key = String(p.title || "").trim().toLowerCase();
+      if (!key || uniqueTitles.has(key)) continue;
+      uniqueTitles.add(key);
+      raw.push(p);
+    }
+    if (source === "openai") source = "openai+seed";
+  }
   raw = raw.slice(0, target);
 
   const scored = raw.map((p) => scoreProduct(p, opportunity));

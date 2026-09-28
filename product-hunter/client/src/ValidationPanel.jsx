@@ -85,7 +85,7 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
       </div>
 
       <div className="validation-flow">
-        {STATUS_ORDER.map((s,i)=><button key={s} type="button" className={current===s?"on":""} onClick={()=>onStatusChange?.(s)}><span>{i+1}</span>{s.replaceAll("_"," ")}</button>)}
+        {STATUS_ORDER.map((s,i)=>{const locked=s==="VALIDATED"&&latestTest?.derived?.status!=="VALIDATED";return <button key={s} type="button" disabled={locked} title={locked?"Requires recorded ad-test evidence":""} className={current===s?"on":""} onClick={()=>onStatusChange?.(s)}><span>{i+1}</span>{s.replaceAll("_"," ")}</button>})}
       </div>
 
       {busy ? <div className="validation-loading"><b>Building validation plan…</b><p>Reviewing evidence, history and risks.</p></div> : null}

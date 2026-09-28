@@ -169,7 +169,7 @@ test("product marketplace planning scenarios conserve order times AOV", () => {
 
 
 test("product pillar weights sum to 1 and unknown supplier cost is rejected", () => {
-  assert.equal(Object.values(PRODUCT_PILLAR_WEIGHTS).reduce((a,b)=>a+b,0),1);
+  assert.ok(Math.abs(Object.values(PRODUCT_PILLAR_WEIGHTS).reduce((a,b)=>a+b,0)-1)<1e-9);
   const p=scoreProduct({title:"Unknown Cost",category:"QA",estCostUsd:0,estSellPriceUsd:40,estWeightKg:.3,shippingDifficulty:"low",demandType:"evergreen",problemSolved:"QA",hook:"hook",pdpBullets:["a","b","c"]},{niche:"QA",sellWhere:{geos:["US"]},marketing:{offer:"x"}});
   assert.equal(p.rejected,true);
   assert.ok(p.reasons.some(x=>x.includes("Supplier cost missing")));

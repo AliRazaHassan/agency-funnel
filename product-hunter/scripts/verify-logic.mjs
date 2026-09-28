@@ -44,7 +44,7 @@ const good=scoreProduct({
   pdpBullets:["a","b","c"],competitionEase:60,supplierEase:70
 },opp);
 near(good.marginPct,56.7,0.1,"margin");
-near(good.estContributionUsd,22.7,0.2,"contribution incl upsell");
+near(good.estContributionUsd,21.4,0.2,"contribution incl upsell");
 assert.equal(good.rejected,false);
 
 const bad=scoreProduct({

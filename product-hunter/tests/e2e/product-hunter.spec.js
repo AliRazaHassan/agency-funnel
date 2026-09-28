@@ -70,7 +70,13 @@ test("complete Product Hunter workflow", async ({ page }) => {
   await expect(page.getByText("TRACKED MOMENTUM")).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("MARKET FEEDBACK")).toBeVisible();
 
-  const fields = page.locator(".ad-test-form input");
+  await page.getByLabel("Supplier source").fill("CJ Dropshipping verified quote");
+  await page.getByLabel("Landed cost $").fill("10");
+  await page.getByLabel("Shipping days").fill("8");
+  await page.getByRole("button", { name: "Save verified supplier quote" }).click();
+  await expect(page.getByText("Verified", { exact: true })).toBeVisible();
+
+  const fields = page.locator(".ad-test-card:not(.supplier-verify-card) .ad-test-form input");
   await fields.nth(0).fill("20");
   await fields.nth(1).fill("5000");
   await fields.nth(2).fill("180");

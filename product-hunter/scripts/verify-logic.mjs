@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { trendScore, momentum, saturation, evidenceConfidence } from "../server/intelligence.js";
 import { scoreProduct } from "../server/scorer.js";
 import { buildWinnerDecision, selectFinalWinners } from "../server/winnerEngine.js";
-import { deriveAdTestMetrics } from "../server/researchStore.js";
+import { deriveAdTestMetrics, deriveSupplierEconomics } from "../server/researchStore.js";
 import { parseBoughtCount } from "../server/keepa.js";
 import { amazonEvidenceStatus } from "../server/productHunt.js";
 import { buildFallback as buildValidationFallback } from "../server/validation.js";
@@ -86,9 +86,19 @@ assert.equal(selected.winnerDecision.verdict,"VALIDATE");
 assert.equal(selected.isFinalWinner,false);
 
 // Ad test calculations independently verified.
+const supplierEconomics=deriveSupplierEconomics({estSellPriceUsd:30},{landedCostUsd:10,shippingDays:8});
+near(supplierEconomics.marginPct,66.7,0.1,"verified supplier margin");
+near(supplierEconomics.contributionUsd,20,0.01,"verified supplier contribution");
+assert.equal(supplierEconomics.economicsPass,true);
+
+const adProduct={
+  estContributionUsd:25,
+  supplierVerified:true,
+  supplierVerification:{verified:true,...supplierEconomics}
+};
 const ad=deriveAdTestMetrics({
   spendUsd:60,impressions:5000,clicks:180,addToCarts:24,purchases:3,revenueUsd:180
-},{estContributionUsd:25});
+},adProduct);
 near(ad.ctr,3.6,0.01,"CTR");
 near(ad.cpc,1/3,0.01,"CPC");
 near(ad.atcRate,13.333,0.02,"ATC rate");
@@ -96,8 +106,14 @@ near(ad.cvr,1.6667,0.02,"CVR");
 near(ad.cpa,20,0.01,"CPA");
 near(ad.roas,3,0.01,"ROAS");
 assert.equal(ad.status,"VALIDATED");
+assert.equal(ad.marketValidated,true);
+assert.equal(ad.economicsVerified,true);
 assert.ok(ad.proofScore>=80 && ad.proofScore<=100);
 assert.equal(ad.sampleConfidence,1);
+const marketOnly=deriveAdTestMetrics({spendUsd:60,impressions:5000,clicks:180,addToCarts:24,purchases:3,revenueUsd:180},{estContributionUsd:25});
+assert.equal(marketOnly.marketValidated,true);
+assert.equal(marketOnly.economicsVerified,false);
+assert.equal(marketOnly.status,"TESTING");
 
 assert.throws(()=>deriveAdTestMetrics({impressions:0,clicks:1}),/Clicks cannot exceed impressions/);
 assert.throws(()=>deriveAdTestMetrics({impressions:10,clicks:5,addToCarts:6}),/Add to carts cannot exceed clicks/);

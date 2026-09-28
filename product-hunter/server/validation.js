@@ -9,16 +9,17 @@ function buildFallback(product={}){
   const trend=Number(product.trendScore)||0;
   const confidence=String(product.dataConfidence||"LOW").toUpperCase();
   const verified=Number(product.winnerDecision?.verifiedSources)||0;
+  const productVerified=Number(product.winnerDecision?.productVerifiedSources)||0;
   const risks=[...(product.winnerDecision?.hardFails||[]),...(product.winning?.softWarnings||[]),...(product.riskFlags||[])];
   const missing=Object.entries(product.dataStatus||{}).filter(([,v])=>!["LIVE","RECENT","MANUAL"].includes(v)).map(([k])=>k);
   const suggestedPrice=price ? Math.round(price*100)/100 : Math.max(19.99,Math.round(cost*2.5*100)/100);
   const testBudget=Math.max(20,Math.min(100,Math.round((suggestedPrice*1.5)/5)*5));
   const blocked=(product.winnerDecision?.hardFails||[]).length>0 || product.saturation?.risk==="HIGH" || product.trendStatus==="DECLINING";
-  const status=(!blocked&&margin>=50&&trend>=55&&confidence!=="LOW"&&verified>=1)?"READY_TO_TEST":"NEEDS_DATA";
+  const status=(!blocked&&margin>=50&&trend>=55&&confidence!=="LOW"&&verified>=1&&productVerified>=1)?"READY_TO_TEST":"NEEDS_DATA";
   return {
     status,
     opportunity: product.whyTrending?.summary || `Trend score ${trend}/100 with ${margin}% estimated margin.`,
-    biggestRisk: risks[0] || (verified<2 ? "Evidence is still too estimated; verify demand before scaling." : "Creative-market fit is not yet proven with paid traffic."),
+    biggestRisk: risks[0] || (productVerified<1 ? "Product-specific verified evidence is missing; niche momentum alone is not enough." : verified<2 ? "Evidence is still thin; verify another independent source before scaling." : "Creative-market fit is not yet proven with paid traffic."),
     missingEvidence: missing.length ? missing.slice(0,4) : ["Paid traffic conversion", "Supplier quality / delivery consistency"],
     plan:{
       suggestedSellingPrice:suggestedPrice,
@@ -26,7 +27,7 @@ function buildFallback(product={}){
       testBudgetUsd:testBudget,
       creativeAngle:product.hook || product.problemSolved || "Lead with the clearest problem/solution transformation.",
       hook:product.offerLine || product.hook || `Show ${product.problemSolved || "the problem"} and the product solving it fast.`,
-      nextStep: verified<2 ? "Verify at least one more recent demand/ad source, then launch a small creative test." : "Launch 2–3 creatives with one audience and controlled spend.",
+      nextStep: productVerified<1 ? "Add product-specific proof (for example an ASIN/manual Amazon observation) before paid testing." : verified<2 ? "Verify at least one more independent recent source, then launch a small creative test." : "Launch 2–3 creatives with one audience and controlled spend.",
       stopCondition:`Stop if there is no meaningful add-to-cart/checkout intent after roughly $${testBudget}–$${testBudget*2} spend, or if CPA cannot support the margin.`,
       scaleCondition:"Scale only after repeatable purchases show acceptable CPA, conversion rate and contribution margin.",
     },
@@ -37,6 +38,7 @@ function buildFallback(product={}){
       {id:"competition",label:"Competition manageable",done:Number(product.competitionScore||product.winnerDecision?.components?.competition||0)>=45,kind:"auto"},
       {id:"margin",label:"Margin safety gate",done:margin>=50,kind:"auto"},
       {id:"creative",label:"Creative angle available",done:Boolean(product.hook||product.problemSolved),kind:"auto"},
+      {id:"productProof",label:"Product-specific evidence verified",done:productVerified>=1,kind:"auto"},
       {id:"confidence",label:"Evidence confidence sufficient",done:confidence!=="LOW"||verified>=2,kind:"auto"},
     ]
   };

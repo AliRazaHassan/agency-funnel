@@ -269,6 +269,7 @@ export function computeMarketplaceFromBenchmarks(opportunity = {}) {
       period: "monthly",
       currency: "USD",
       dataQuality: "low",
+      dataStatus: "ESTIMATED",
       disclaimer:
         "No live CRM/marketplace feed. Service numbers are planning proxies only.",
       method: "Heuristic service pool — replace with your outbound pipeline data",
@@ -325,6 +326,7 @@ export function computeMarketplaceFromBenchmarks(opportunity = {}) {
     period: "monthly",
     currency: "USD",
     dataQuality: bench.confidence,
+    dataStatus: "ESTIMATED",
     disclaimer:
       "Dollar figures are MODELLED from public industry totals × online share × category share. Verify with Keepa/Helium10/eRank before ads.",
     method: `monthly ≈ (annualTotal × onlineShare × categoryShare) / 12; then split by platform share table`,

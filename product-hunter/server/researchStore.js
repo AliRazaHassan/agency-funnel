@@ -125,9 +125,10 @@ export async function getHistory(productId,days=30){
   return db.snapshots.filter(x=>String(x.productId)===String(productId)&&x.capturedAt>=since).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
 }
 
-export async function updateValidationStatus(productId,status){
+export async function updateValidationStatus(productId,status,options={}){
   const allowed=["NEEDS_DATA","READY_TO_TEST","TESTING","VALIDATED"];
   if(!allowed.includes(status)) throw new Error("Invalid validation status");
+  if(status==="VALIDATED"&&!options.evidence) throw new Error("VALIDATED requires recorded test evidence");
   if(pgReady){
     await pgPool.query(`update tracked_products set validation_status=$2,updated_at=now() where id=$1`,[String(productId),status]);
     return {ok:true,status};

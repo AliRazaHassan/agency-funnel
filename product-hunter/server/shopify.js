@@ -26,7 +26,7 @@ export async function createShopifyDraft(product={}){
   };
   const query=`mutation ProductHunterCreate($product: ProductCreateInput!) {
     productCreate(product: $product) {
-      product { id title handle status }
+      product { id title handle status variants(first: 1) { nodes { id price } } }
       userErrors { field message }
     }
   }`;
@@ -41,5 +41,29 @@ export async function createShopifyDraft(product={}){
   if(errors.length) throw new Error(errors.map(x=>x.message).join("; "));
   const created=body?.data?.productCreate?.product;
   if(!created) throw new Error("Shopify did not return a created product");
-  return {ok:true,product:created,store:c.store,note:"Created as DRAFT. Review price, inventory, images and variants in Shopify before publishing."};
+
+  const variantId=created.variants?.nodes?.[0]?.id;
+  const price=Number(product.estSellPriceUsd)||0;
+  if(variantId&&price>0){
+    const updateQuery=`mutation ProductHunterPrice($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+        productVariants { id price compareAtPrice }
+        userErrors { field message }
+      }
+    }`;
+    const priceRes=await fetch(`https://${c.store}/admin/api/2026-07/graphql.json`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-Shopify-Access-Token":c.token},
+      body:JSON.stringify({query:updateQuery,variables:{productId:created.id,variants:[{
+        id:variantId,
+        price:Number(price.toFixed(2)),
+        compareAtPrice:Number((price*1.35).toFixed(2))
+      }]}})
+    });
+    const priceBody=await priceRes.json().catch(()=>({}));
+    const priceErrors=priceBody?.data?.productVariantsBulkUpdate?.userErrors||[];
+    if(!priceRes.ok||priceErrors.length) throw new Error(priceErrors.map(x=>x.message).join("; ")||`Shopify price update failed (${priceRes.status})`);
+    created.variants={nodes:priceBody?.data?.productVariantsBulkUpdate?.productVariants||created.variants.nodes};
+  }
+  return {ok:true,product:created,store:c.store,note:"Created as DRAFT with selling price set. Review inventory, images and variants before publishing."};
 }

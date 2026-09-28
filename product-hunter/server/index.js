@@ -10,7 +10,7 @@ import { productsToMatrixifyCsv } from "./exportShopify.js";
 import { createAuth } from "./auth.js";
 import { keepaStatus, saveManualAmazonEntries } from "./keepa.js";
 import { fetchSocialTrends, saveManualSocialTrends } from "./socialTrends.js";
-import { listProjects, getProject, saveProject, deleteProject } from "./projects.js";
+import { listProjects, getProject, saveProject, deleteProject, projectStoreMode } from "./projects.js";
 import { buildClientBrief } from "./clientBrief.js";
 import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
 import { answerConcierge } from "./concierge.js";
@@ -269,29 +269,34 @@ app.post("/api/products/export", (req, res) => {
   }
 });
 
-app.get("/api/projects", (_req, res) => {
-  res.json({ projects: listProjects() });
+app.get("/api/projects", async (_req, res) => {
+  try { res.json({ projects: await listProjects() }); }
+  catch (err) { res.status(500).json({ error: err.message || "Project list failed" }); }
 });
 
-app.get("/api/projects/:id", (req, res) => {
-  const p = getProject(req.params.id);
-  if (!p) return res.status(404).json({ error: "Project not found" });
-  res.json(p);
-});
-
-app.post("/api/projects", (req, res) => {
+app.get("/api/projects/:id", async (req, res) => {
   try {
-    const saved = saveProject(req.body || {});
+    const p = await getProject(req.params.id);
+    if (!p) return res.status(404).json({ error: "Project not found" });
+    res.json(p);
+  } catch (err) { res.status(500).json({ error: err.message || "Project load failed" }); }
+});
+
+app.post("/api/projects", async (req, res) => {
+  try {
+    const saved = await saveProject(req.body || {});
     res.json(saved);
   } catch (err) {
     res.status(400).json({ error: err.message || "Save failed" });
   }
 });
 
-app.delete("/api/projects/:id", (req, res) => {
-  const ok = deleteProject(req.params.id);
-  if (!ok) return res.status(404).json({ error: "Project not found" });
-  res.json({ ok: true });
+app.delete("/api/projects/:id", async (req, res) => {
+  try {
+    const ok = await deleteProject(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Project not found" });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message || "Project delete failed" }); }
 });
 
 app.post("/api/export/brief", (req, res) => {
@@ -321,7 +326,7 @@ app.post("/api/export/brief", (req, res) => {
   }
 });
 
-app.get("/api/workspace/status", (_req, res) => {
+app.get("/api/workspace/status", async (_req, res) => {
   const k = keepaStatus();
   res.json({
     label: "Signal Desk",
@@ -346,6 +351,7 @@ app.get("/api/workspace/status", (_req, res) => {
     openai: hasOpenAIKey,
     keepa: k,
     researchStore: researchStoreMode(),
+    projectStore: await projectStoreMode(),
     shopify: shopifyStatus(),
   });
 });

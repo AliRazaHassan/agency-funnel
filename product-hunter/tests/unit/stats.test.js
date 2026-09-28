@@ -6,7 +6,7 @@ import { scoreProduct } from "../../server/scorer.js";
 import { deriveAdTestMetrics } from "../../server/researchStore.js";
 import { productsToMatrixifyCsv } from "../../server/exportShopify.js";
 import { computeDemandResearch, PLATFORM_SHARES, computeMarketplaceFromBenchmarks } from "../../server/researchEngine.js";
-import { RANK_WEIGHTS, rankOpportunity } from "../../server/rankingAI.js";
+import { RANK_WEIGHTS, PRODUCT_PILLAR_WEIGHTS, rankOpportunity } from "../../server/rankingAI.js";
 import { WINNING_WEIGHTS, buildWinningScorecard } from "../../server/winningScorecard.js";
 import { buildProductMarketplaceSales } from "../../server/marketSales.js";
 

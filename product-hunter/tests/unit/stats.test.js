@@ -84,15 +84,24 @@ test("Top Pick ranking never rewrites the underlying winner verdict", () => {
   assert.match(out.find(x=>x.isTopPick).topPickReason,/shortlist rank/i);
 });
 
-test("ad test metrics calculate CTR CPC CPA ROAS and enforce economic validation", () => {
-  const d=deriveAdTestMetrics(
-    {spendUsd:30,impressions:5000,clicks:150,addToCarts:25,purchases:5,revenueUsd:300},
-    {estContributionUsd:15}
-  );
-  assert.equal(+d.ctr.toFixed(2),3);
-  assert.equal(+d.cpc.toFixed(2),.2);
-  assert.equal(+d.cpa.toFixed(2),6);
-  assert.equal(+d.roas.toFixed(2),10);
+test("ad test metrics calculate CTR CPC CPA ROAS and require verified economics", () => {
+  const metrics={spendUsd:30,impressions:5000,clicks:150,addToCarts:25,purchases:5,revenueUsd:300};
+  const marketOnly=deriveAdTestMetrics(metrics,{estContributionUsd:15});
+  assert.equal(+marketOnly.ctr.toFixed(2),3);
+  assert.equal(+marketOnly.cpc.toFixed(2),.2);
+  assert.equal(+marketOnly.cpa.toFixed(2),6);
+  assert.equal(+marketOnly.roas.toFixed(2),10);
+  assert.equal(marketOnly.marketValidated,true);
+  assert.equal(marketOnly.economicsVerified,false);
+  assert.equal(marketOnly.status,"TESTING");
+
+  const d=deriveAdTestMetrics(metrics,{
+    estContributionUsd:15,
+    supplierVerified:true,
+    supplierVerification:{verified:true,contributionUsd:20,marginPct:66.7}
+  });
+  assert.equal(d.marketValidated,true);
+  assert.equal(d.economicsVerified,true);
   assert.equal(d.status,"VALIDATED");
   assert.ok(d.proofScore>70);
   assert.throws(()=>deriveAdTestMetrics({impressions:10,clicks:11}),/Clicks cannot exceed impressions/);

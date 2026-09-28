@@ -176,7 +176,7 @@ export function deriveAdTestMetrics(metrics={},product={}){
   const proofScore=Math.round(Math.max(0,Math.min(100,baseScore*sampleConfidence)));
 
   const contribution=Number(product?.estContributionUsd)||0;
-  const cpaEconomicallySafe=cpa!=null && contribution>0 ? cpa<=contribution : cpa!=null;
+  const cpaEconomicallySafe=cpa!=null && contribution>0 ? cpa<=contribution : false;
   const enoughEvidence=purchases>=3&&clicks>=50&&spend>=20;
   const validated=enoughEvidence&&(roas??0)>=1.5&&cpaEconomicallySafe;
   const status=validated?"VALIDATED":spend>0?"TESTING":"READY_TO_TEST";
@@ -193,10 +193,11 @@ export function deriveAdTestMetrics(metrics={},product={}){
 
 export async function addAdTest(productId,metrics={}){
   const product=await getTrackedProduct(productId);
-  const derived=deriveAdTestMetrics(metrics,product||{});
+  if(!product) throw new Error("Product must be tracked before adding test results");
+  const derived=deriveAdTestMetrics(metrics,product);
   if(pgReady){
     const {rows}=await pgPool.query(`insert into ad_tests(product_id,metrics,derived) values($1,$2,$3) returning id,created_at as "createdAt"`,[String(productId),JSON.stringify(metrics),JSON.stringify(derived)]);
-    await updateValidationStatus(productId,derived.status);
+    await updateValidationStatus(productId,derived.status,{evidence:derived.status==="VALIDATED"});
     return {...rows[0],metrics,derived};
   }
   const db=readFileStore();

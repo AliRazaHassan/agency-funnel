@@ -15,9 +15,11 @@ function evidenceQuality(product){
 export function buildWinnerDecision(product={}){
   const trend=clamp(product.trendScore);
   const profit=clamp(product.winning?.pillars?.find?.(p=>p.id==="margin")?.score ?? product.marginPct);
-  const competition=clamp(pillar(product,"competition")||product.competitionScore||50);
+  const competitionPillar=product.winning?.pillars?.find?.(p=>p.id==="competition")?.score;
+  const competition=clamp(competitionPillar ?? product.competitionScore ?? 50);
   const supplier=clamp(product.pillars?.supplierEase ?? product.supplierEase ?? 50);
-  const creative=clamp(pillar(product,"creative")||50);
+  const creativePillar=product.winning?.pillars?.find?.(p=>p.id==="creative")?.score;
+  const creative=clamp(creativePillar ?? 50);
   const evidence=evidenceQuality(product);
   const confidence=round(Number.isFinite(Number(product.evidenceConfidence)) ? Number(product.evidenceConfidence) : evidence);
   const components={trend,profit,competition,confidence,supplier,creative};
@@ -29,8 +31,9 @@ export function buildWinnerDecision(product={}){
   if(product.trendStatus==="DECLINING")hardFails.push("Trend lifecycle is declining");
   if(product.saturation?.risk==="HIGH")hardFails.push("High saturation risk");
 
-  const verified=Object.values(product.dataStatus||{}).filter(x=>["LIVE","RECENT","MANUAL"].includes(x)).length;
-  const productVerified=Object.entries(product.dataStatus||{}).filter(([k,status])=>["LIVE","RECENT","MANUAL"].includes(status)&&product.dataScope?.[k]==="PRODUCT").length;
+  const isVerified=(x)=>["LIVE","RECENT","MANUAL"].includes(String(x||"").toUpperCase());
+  const verified=Object.values(product.dataStatus||{}).filter(isVerified).length;
+  const productVerified=Object.entries(product.dataStatus||{}).filter(([k,status])=>isVerified(status)&&String(product.dataScope?.[k]||"").toUpperCase()==="PRODUCT").length;
   let verdict="VALIDATE";
   let label="Validate before spend";
   if(hardFails.length){verdict="AVOID";label="Avoid for now";}

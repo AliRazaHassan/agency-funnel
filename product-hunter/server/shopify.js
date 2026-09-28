@@ -57,7 +57,7 @@ export async function createShopifyDraft(product={}){
       body:JSON.stringify({query:updateQuery,variables:{productId:created.id,variants:[{
         id:variantId,
         price:Number(price.toFixed(2)),
-        compareAtPrice:Number((price*1.35).toFixed(2))
+        ...(Number(product.compareAtPriceUsd)>price ? {compareAtPrice:Number(Number(product.compareAtPriceUsd).toFixed(2))} : {})
       }]}})
     });
     const priceBody=await priceRes.json().catch(()=>({}));

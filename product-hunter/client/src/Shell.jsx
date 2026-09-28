@@ -128,7 +128,7 @@ export function HomeView({ onOpenDesk, onOpenProject }) {
             </p>
             <p className="muted" style={{ fontSize: "0.82rem" }}>
               {p.opportunityCount || 0} niches · {p.productCount || 0} products
-              {p.winningPass != null ? ` · ${p.winningPass} PASS` : ""}
+              {p.ruleGatePass != null ? " · " + p.ruleGatePass + " rule-pass" : ""}{p.topPicks != null ? " · " + p.topPicks + " top picks" : ""}
             </p>
             <p className="muted" style={{ fontSize: "0.78rem" }}>
               Updated {p.updatedAt ? new Date(p.updatedAt).toLocaleString() : "—"}

@@ -59,7 +59,7 @@ export function selectFinalWinners(products=[], limit){
       const trend=Number(p.trendScore)||0;
       return d.verdict!=="AVOID" &&
         !(d.hardFails||[]).length &&
-        margin>=45 &&
+        margin>=50 &&
         trend>=45 &&
         p.trendStatus!=="DECLINING" &&
         p.saturation?.risk!=="HIGH";
@@ -91,16 +91,11 @@ export function selectFinalWinners(products=[], limit){
         isFinalWinner:true,
         isTopPick:true,
         winnerRank:rank,
-        winnerDecision:{
-          ...current,
-          verdict:"STRONG_CANDIDATE",
-          label:`Top pick #${rank}`,
-          reason:`Ranks in the top ${target} of ${products.length} eligible products on trend, economics, competition, supplier ease and creative potential, ${evidenceNote}. Validate live evidence before scaling.`
-        }
+        topPickReason:`Ranks #${rank} among eligible products using winner score, trend, evidence and margin; ${evidenceNote}. Top Pick is a shortlist rank and does not replace the underlying verdict.`
       };
     }
 
-    return {...p,isFinalWinner:false,isTopPick:false,winnerRank:null};
+    return {...p,isFinalWinner:false,isTopPick:false,winnerRank:null,topPickReason:null};
   });
 }
 

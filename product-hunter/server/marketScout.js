@@ -40,6 +40,41 @@ function applyBudgetHint(list, budget) {
   });
 }
 
+
+function socialEvidenceForOpportunity(opportunity = {}, trends = {}) {
+  const niche = String(opportunity.niche || "").toLowerCase();
+  const tokens = niche.split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !["and","the","with","gear","accessories"].includes(w));
+  const items = Array.isArray(trends.items) ? trends.items : [];
+
+  function best(platform) {
+    const matches = items.filter((item) => {
+      if (item.platform !== platform) return false;
+      const hay = `${item.title || ""} ${item.category || ""}`.toLowerCase();
+      return (niche && hay.includes(niche)) || tokens.some((t) => hay.includes(t));
+    });
+    if (!matches.length) return null;
+    matches.sort((a,b) => {
+      const quality = (x) => x.dataStatus === "RECENT" ? 3 : x.source === "manual-paste" ? 2 : 1;
+      return quality(b) - quality(a) || Number(a.rank || 999) - Number(b.rank || 999);
+    });
+    const item = matches[0];
+    const status = item.dataStatus === "RECENT" ? "RECENT" : item.source === "manual-paste" ? "MANUAL" : "ESTIMATED";
+    let score = item.trendSignal === "high" ? 72 : item.trendSignal === "medium" ? 58 : item.trendSignal === "low" ? 42 : 65;
+    if (status === "RECENT" && Number.isFinite(Number(item.rank))) score = Math.max(55, 78 - (Number(item.rank)-1)*2);
+    return {
+      score: Math.max(0, Math.min(100, Math.round(score))),
+      status,
+      source: item.source || "social-board",
+      title: item.title || null,
+      capturedAt: item.capturedAt || null,
+      researchUrl: item.researchUrl || null,
+      note: "Niche-level creative evidence; not product-specific sold units."
+    };
+  }
+
+  return { tiktok: best("tiktok"), meta: best("meta") };
+}
+
 async function aiOpportunities({ regionFocus, nicheHint, budget }) {
   const ai = await chatJson(
     `You are a market research analyst for a turnkey Shopify + automation agency.
@@ -130,12 +165,16 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
     );
   }
 
-  const ranked = rankOpportunities(list).map((o) => ({
+  const rankedBase = rankOpportunities(list).map((o) => ({
     ...o,
     tradeRoutes: opportunityTradeRoutes(o),
   }));
-  const freeOk = ranked.filter((o) => o.freeSignal?.ok).length;
+  const freeOk = rankedBase.filter((o) => o.freeSignal?.ok).length;
   const socialTrends = await fetchSocialTrends({ regionFocus, nicheHint });
+  const ranked = rankedBase.map((o) => ({
+    ...o,
+    socialEvidence: socialEvidenceForOpportunity(o, socialTrends),
+  }));
   return {
     source,
     researchLabel:

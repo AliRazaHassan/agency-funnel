@@ -33,6 +33,8 @@ export function buildProductMarketplaceSales(product = {}, opportunity = {}) {
 
   const captureRate = 0.015;
   const yourBase = Math.max(5, Math.round(overallOrders * captureRate));
+  const yourConservative = Math.max(3, Math.round(yourBase * 0.5));
+  const yourAggressive = Math.round(yourBase * 2);
 
   return {
     whoseStats: `Modeled “${product.title}”-type sales across Amazon/Etsy/eBay/DTC — derived from niche benchmark × SKU share (${skuShareOfNiche * 100}% of niche). NOT live BSR.`,
@@ -46,20 +48,29 @@ export function buildProductMarketplaceSales(product = {}, opportunity = {}) {
     math: {
       ...(nicheSales.math || {}),
       skuShareOfNiche,
+      assumedListingCaptureRate: captureRate,
       productTypeMonthlyRevenueUsd: overallRevenue,
       productTypeMonthlyOrders: overallOrders,
     },
+    assumptions: {
+      skuShareOfNiche,
+      listingCaptureRate: captureRate,
+      observed: false,
+      note: "Planning assumptions only; replace with tracked store results or verified marketplace data."
+    },
     yourStoreProjection: {
       orders: {
-        conservative: Math.max(3, Math.round(yourBase * 0.5)),
+        conservative: yourConservative,
         base: yourBase,
-        aggressive: Math.round(yourBase * 2),
+        aggressive: yourAggressive,
       },
       revenue: {
+        conservative: Math.round(yourConservative * aov),
         base: Math.round(yourBase * aov),
+        aggressive: Math.round(yourAggressive * aov),
       },
       channel: product.soldOn?.yourChannel || "Shopify turnkey store",
-      note: "Your listing capture of this product-type pool (planning only)",
+      note: `Planning projection using a ${(captureRate*100).toFixed(2)}% listing-capture assumption; not observed store performance.`,
     },
     overall: {
       orders: overallOrders,

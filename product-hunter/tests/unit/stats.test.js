@@ -41,7 +41,7 @@ test("product margin and contribution math match independent calculation", () =>
 test("winner v2 weights, evidence confidence and verdict are internally consistent", () => {
   assert.equal(Object.values(WINNER_WEIGHTS).reduce((a,b)=>a+b,0),1);
   const d=buildWinnerDecision({
-    trendScore:80,marginPct:60,trendStatus:"EMERGING",supplierEase:80,
+    trendScore:80,marginPct:60,trendStatus:"EMERGING",supplierEase:80,pillars:{supplierEase:80},
     saturation:{risk:"MEDIUM"},dataConfidence:"HIGH",
     trendComponents:{amazon:80,tiktok:70,meta:60,google:50},
     dataStatus:{amazon:"RECENT",tiktok:"RECENT",meta:"ESTIMATED",google:"RECENT"},

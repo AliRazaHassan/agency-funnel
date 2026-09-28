@@ -71,12 +71,12 @@ test("complete Product Hunter workflow", async ({ page }) => {
   await expect(page.getByText("MARKET FEEDBACK")).toBeVisible();
 
   const fields = page.locator(".ad-test-form input");
-  await fields.nth(0).fill("60");
+  await fields.nth(0).fill("20");
   await fields.nth(1).fill("5000");
   await fields.nth(2).fill("180");
-  await fields.nth(3).fill("24");
-  await fields.nth(4).fill("3");
-  await fields.nth(5).fill("180");
+  await fields.nth(3).fill("30");
+  await fields.nth(4).fill("5");
+  await fields.nth(5).fill("250");
   await page.getByRole("button", { name: "Save test & re-score" }).click();
 
   await expect(page.locator(".proof-pill")).toBeVisible();

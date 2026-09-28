@@ -1264,3 +1264,9 @@ tr.row-active td {
 .source-status.manual{color:#245a9b}
 .source-status.estimated{color:#8a5a10}
 .source-status.unavailable{color:#8a949b}
+
+.proof-pill.pending{background:#fff4e8;color:#8a5a10;border-color:#ead7b8}
+.supplier-verify-card .ad-test-form{margin-top:.65rem}
+.validation-checklist.compact{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.55rem}
+.validation-checklist.compact>div{padding:.42rem .5rem}
+@media(max-width:700px){.validation-checklist.compact{grid-template-columns:1fr}}

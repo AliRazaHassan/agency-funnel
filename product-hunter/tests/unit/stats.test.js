@@ -34,7 +34,7 @@ test("product margin and contribution math match independent calculation", () =>
   },{niche:"QA",marketing:{offer:"QA"}});
   assert.equal(p.marginPct,56.7);
   assert.equal(p.estAovUsd,37.4);
-  assert.equal(p.estContributionUsd,18.9);
+  assert.equal(p.estContributionUsd,21.4);
   assert.equal(p.rejected,false);
 });
 

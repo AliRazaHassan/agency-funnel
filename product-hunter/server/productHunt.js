@@ -69,13 +69,13 @@ const VARIANTS = [
 export function amazonEvidenceStatus(product = {}) {
   const k = product.keepa || product.amazon || null;
   if (!k) return "UNAVAILABLE";
-  if (k.source === "manual-amazon-paste") return "MANUAL";
   const captured = k.capturedAt ? new Date(k.capturedAt).getTime() : NaN;
   if (Number.isFinite(captured)) {
     const ageDays = (Date.now() - captured) / 86400000;
-    return ageDays <= 30 ? "RECENT" : "ESTIMATED";
+    if (ageDays > 30) return "ESTIMATED";
   }
-  return "ESTIMATED";
+  if (k.source === "manual-amazon-paste") return "MANUAL";
+  return Number.isFinite(captured) ? "RECENT" : "ESTIMATED";
 }
 
 export function amazonSignalScore(product = {}) {
@@ -236,6 +236,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
   const rankedBase = await Promise.all(rankProducts(marketReady).map(async (p) => {
     const marketplaceSales = p.marketplaceSales;
     const amazonVerified = Boolean(p.keepaStatus?.matched || p.keepa?.match || p.keepaMatched || p.amazon?.matched);
+    const amazonProductScoped = Boolean(p.keepa?.match === "asin" || p.amazon?.match === "asin");
     const free = opportunity.freeSignal || {};
     const demand = Number(opportunity.scores?.demand || 0);
     const marketing = Number(opportunity.marketingStrength || opportunity.scores?.marketing || 0);
@@ -258,7 +259,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       google: Number.isFinite(Number(free.googleMomentumScore)) ? "RECENT" : "ESTIMATED",
     };
     const dataScope = {
-      amazon: amazonVerified ? "PRODUCT" : "NONE",
+      amazon: amazonProductScoped ? "PRODUCT" : amazonVerified ? "NICHE" : "NONE",
       tiktok: tiktokEvidence ? "NICHE" : "MODELED",
       meta: metaEvidence ? "NICHE" : "MODELED",
       google: Number.isFinite(Number(free.googleMomentumScore)) ? "NICHE" : "MODELED",

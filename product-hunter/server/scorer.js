@@ -104,7 +104,7 @@ export function scoreProduct(raw, opportunity = {}) {
   });
 
   const base = {
-    id: raw.id || slugify(raw.title),
+    id: slugify(`${opportunity.niche || raw.category || "general"}-${opportunity.sellWhere?.geos?.[0] || "global"}-${raw.title || raw.id || "product"}`),
     title: raw.title,
     category: raw.category || opportunity.niche || "General",
     problemSolved: raw.problemSolved || "",
@@ -166,5 +166,5 @@ function slugify(s) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
-    .slice(0, 60);
+    .slice(0, 120);
 }

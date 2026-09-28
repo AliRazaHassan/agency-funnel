@@ -61,6 +61,7 @@ test("winner v2 weights, evidence confidence and verdict are internally consiste
     saturation:{risk:"MEDIUM"},dataConfidence:"HIGH",
     trendComponents:{amazon:80,tiktok:70,meta:60,google:50},
     dataStatus:{amazon:"RECENT",tiktok:"RECENT",meta:"ESTIMATED",google:"RECENT"},
+    dataScope:{amazon:"PRODUCT",tiktok:"NICHE",meta:"NICHE",google:"NICHE"},
     winning:{pillars:[
       {id:"margin",score:70},{id:"competition",score:60},{id:"shipping",score:80},{id:"creative",score:75}
     ],hardFails:[]}
@@ -69,6 +70,7 @@ test("winner v2 weights, evidence confidence and verdict are internally consiste
   assert.equal(d.score,73);
   assert.equal(d.verdict,"STRONG_CANDIDATE");
   assert.equal(d.verifiedSources,3);
+  assert.equal(d.productVerifiedSources,1);
 });
 
 test("Top Pick ranking never rewrites the underlying winner verdict", () => {
@@ -217,4 +219,20 @@ test("modeled order volume cannot inflate order-value score", () => {
   const observedLow=scoreOrderValueBlock({...base,projectedMonthlyOrders:{base:10},volumeEvidenceStatus:"RECENT"});
   const observedHigh=scoreOrderValueBlock({...base,projectedMonthlyOrders:{base:100},volumeEvidenceStatus:"RECENT"});
   assert.ok(observedHigh>observedLow);
+});
+
+
+test("niche-only recent signals cannot create a strong product verdict", () => {
+  const d=buildWinnerDecision({
+    trendScore:90,marginPct:65,trendStatus:"EMERGING",pillars:{supplierEase:85},
+    saturation:{risk:"UNKNOWN"},dataConfidence:"HIGH",evidenceConfidence:85,
+    dataStatus:{amazon:"UNAVAILABLE",tiktok:"RECENT",meta:"RECENT",google:"RECENT"},
+    dataScope:{amazon:"NONE",tiktok:"NICHE",meta:"NICHE",google:"NICHE"},
+    winning:{pillars:[
+      {id:"margin",score:85},{id:"competition",score:80},{id:"shipping",score:90},{id:"creative",score:90}
+    ],hardFails:[]}
+  });
+  assert.equal(d.productVerifiedSources,0);
+  assert.notEqual(d.verdict,"STRONG_CANDIDATE");
+  assert.match(d.reason,/product-specific/i);
 });

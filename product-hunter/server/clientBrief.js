@@ -11,8 +11,9 @@ export function buildClientBrief({ scout, selectedOpp, hunt, selectedProducts } 
   const opp = selectedOpp || scout?.opportunities?.[0] || null;
   const products = selectedProducts?.length
     ? selectedProducts
-    : (hunt?.products || []).filter((p) => p.winning?.verdict === "PASS").slice(0, 10);
-  const win = hunt?.winningSummary;
+    : (hunt?.products || []).filter((p) => p.isTopPick).slice(0, 10);
+  const ruleGate = hunt?.winningSummary;
+  const winner = hunt?.winnerSummary;
 
   const lines = [];
   lines.push(`# Signal Desk · Client Research Brief`);
@@ -48,16 +49,20 @@ export function buildClientBrief({ scout, selectedOpp, hunt, selectedProducts } 
   }
 
   lines.push(`## Product shortlist`);
-  if (win) {
-    lines.push(`Winning scorecard: **${win.pass} PASS** · ${win.watch} WATCH · ${win.fail} FAIL (of ${win.total})`);
+  if (winner) {
+    lines.push(`Evidence shortlist: **${winner.topPicks ?? 0} Top Picks** · ${winner.strong ?? 0} strong · ${winner.validate ?? 0} validate · ${winner.avoid ?? 0} avoid (of ${winner.total ?? 0})`);
+    lines.push("");
+  }
+  if (ruleGate) {
+    lines.push(`Deterministic rule gate: ${ruleGate.pass} pass · ${ruleGate.watch} watch · ${ruleGate.fail} fail. Rule gate is not a proven-winner claim.`);
     lines.push("");
   }
   if (products?.length) {
-    lines.push(`| # | Verdict | Product | Buy | Sell | Margin | Problem |`);
+    lines.push(`| # | Evidence verdict | Product | Buy | Sell | Margin | Problem |`);
     lines.push(`|---|---------|---------|-----|------|--------|---------|`);
     products.forEach((p, i) => {
       lines.push(
-        `| ${p.rank || i + 1} | ${p.winning?.verdict || "—"} | ${String(p.title || "").replace(/\|/g, "/")} | ${money(p.estCostUsd)} | ${money(p.estSellPriceUsd)} | ${p.marginPct ?? "—"}% | ${String(p.problemSolved || "").replace(/\|/g, "/")} |`
+        `| ${p.rank || i + 1} | ${p.isTopPick ? `Top Pick #${p.winnerRank} · ` : ""}${p.winnerDecision?.verdict || "VALIDATE"} | ${String(p.title || "").replace(/\|/g, "/")} | ${money(p.estCostUsd)} | ${money(p.estSellPriceUsd)} | ${p.marginPct ?? "—"}% | ${String(p.problemSolved || "").replace(/\|/g, "/")} |`
       );
     });
     lines.push("");
@@ -67,7 +72,7 @@ export function buildClientBrief({ scout, selectedOpp, hunt, selectedProducts } 
   }
 
   lines.push(`## Data honesty`);
-  lines.push(`- Demand / interest: Wikimedia + cited industry models (free)`);
+  lines.push(`- Demand / interest: public-interest signals + ESTIMATED industry planning models; not live marketplace GMV`);
   lines.push(`- TikTok / Meta: trending creatives board + research links (not shop GMV)`);
   lines.push(`- Amazon units: only if manual paste / Keepa snapshot matched`);
   lines.push(`- Supplier costs: catalog estimates until verified on AutoDS/CJ/AliExpress`);

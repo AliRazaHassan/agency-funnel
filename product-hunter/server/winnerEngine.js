@@ -30,13 +30,14 @@ export function buildWinnerDecision(product={}){
   if(product.saturation?.risk==="HIGH")hardFails.push("High saturation risk");
 
   const verified=Object.values(product.dataStatus||{}).filter(x=>["LIVE","RECENT","MANUAL"].includes(x)).length;
+  const productVerified=Object.entries(product.dataStatus||{}).filter(([k,status])=>["LIVE","RECENT","MANUAL"].includes(status)&&product.dataScope?.[k]==="PRODUCT").length;
   let verdict="VALIDATE";
   let label="Validate before spend";
   if(hardFails.length){verdict="AVOID";label="Avoid for now";}
-  else if(score>=72&&trend>=60&&profit>=55&&confidence>=55&&verified>=2){verdict="STRONG_CANDIDATE";label="Strong candidate";}
+  else if(score>=72&&trend>=60&&profit>=55&&confidence>=55&&verified>=2&&productVerified>=1){verdict="STRONG_CANDIDATE";label="Strong candidate";}
   else if(score<52||trend<40){verdict="AVOID";label="Weak evidence";}
 
-  return {version:"winner/v2",score,verdict,label,components,weights:WINNER_WEIGHTS,verifiedSources:verified,hardFails:[...new Set(hardFails)],reason:verdict==="STRONG_CANDIDATE"?"Cross-platform momentum, economics and evidence quality clear the winner gates.":verdict==="VALIDATE"?"Promising signals exist, but more verified evidence is required before ad spend.":"One or more demand, economics or saturation gates failed."};
+  return {version:"winner/v2",score,verdict,label,components,weights:WINNER_WEIGHTS,verifiedSources:verified,productVerifiedSources:productVerified,hardFails:[...new Set(hardFails)],reason:verdict==="STRONG_CANDIDATE"?"Cross-platform momentum, economics and evidence quality clear the winner gates.":verdict==="VALIDATE"?(productVerified<1?"Promising signals exist, but product-specific verified evidence is still missing.":"Promising signals exist, but more verified evidence is required before ad spend."):"One or more demand, economics or saturation gates failed."};
 }
 
 export function summarizeWinnerDecisions(products=[]){

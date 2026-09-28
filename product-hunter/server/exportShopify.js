@@ -45,12 +45,15 @@ export function productsToMatrixifyCsv(products, { vendor = "AgencyFunnel", nich
     const handle = p.id || handleFromTitle(title);
     const price = Number(p.estSellPriceUsd) || 0;
     const cost = Number(p.estCostUsd) || 0;
-    const compare = (price * 1.35).toFixed(2);
+    const compare = Number.isFinite(Number(p.compareAtPriceUsd)) && Number(p.compareAtPriceUsd) > price
+      ? Number(p.compareAtPriceUsd).toFixed(2)
+      : "";
     const bullets = (p.pdpBullets || p.reasons || []).slice(0, 5);
     const body = `<p>${p.problemSolved || p.hook || title}</p><ul>${bullets
       .map((b) => `<li>${String(b).replace(/</g, "")}</li>`)
       .join("")}</ul><p>${p.evidence || ""}</p>`;
-    const weightLb = ((Number(p.estWeightKg) || 0.5) * 2.20462).toFixed(2);
+    const weightKg = Number(p.estWeightKg);
+    const weightLb = Number.isFinite(weightKg) && weightKg > 0 ? (weightKg * 2.20462).toFixed(2) : "";
     const row = [
       handle,
       title,
@@ -64,8 +67,8 @@ export function productsToMatrixifyCsv(products, { vendor = "AgencyFunnel", nich
       price.toFixed(2),
       compare,
       cost.toFixed(2),
-      25,
-      "shopify",
+      0,
+      "",
       weightLb,
       "lb",
       `${title} | ${niche}`,

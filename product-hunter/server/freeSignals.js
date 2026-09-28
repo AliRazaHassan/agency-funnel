@@ -187,14 +187,26 @@ async function fetchGoogleTrendsSoft(keyword, geo = "US") {
       .filter((n) => Number.isFinite(n));
     if (!values.length) return null;
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const half = Math.max(1, Math.floor(values.length / 2));
+    const older = values.slice(0, half);
+    const newer = values.slice(half);
+    const avgOf = (xs) => xs.length ? xs.reduce((a,b)=>a+b,0) / xs.length : 0;
+    const olderAvg = avgOf(older);
+    const newerAvg = avgOf(newer);
+    const momentumDelta = newerAvg - olderAvg;
+    const momentumScore = clamp(Math.round(50 + momentumDelta * 2));
     return {
       provider: "Google Trends",
       free: true,
       trusted: true,
       cost: "$0 — no API key (unofficial; may fail on cloud IPs)",
       interestScore: clamp(Math.round(avg)),
+      momentumScore,
+      momentumDelta: +momentumDelta.toFixed(1),
+      olderAvg: +olderAvg.toFixed(1),
+      newerAvg: +newerAvg.toFixed(1),
       points: values.length,
-      note: "Relative search interest 0–100 for the term (not absolute volume, not Amazon units).",
+      note: "Interest = 3-month average; momentum = recent-half vs older-half movement. Both are relative Trends indices, not absolute search volume.",
       url: "https://trends.google.com/",
     };
   } catch {
@@ -249,6 +261,8 @@ export async function fetchFreeDemandSignal(niche, geo = "US") {
     interestScore: clamp(interestScore),
     wikipediaScore: wiki ? clamp(wiki.interestScore) : null,
     googleScore: trends ? clamp(trends.interestScore) : null,
+    googleMomentumScore: trends ? clamp(trends.momentumScore) : null,
+    googleMomentumDelta: trends?.momentumDelta ?? null,
     providers: parts,
     honesty:
       `Free trusted signals: Wikimedia Pageviews + Google Trends for ${trendsGeo} when reachable. These measure public interest — NOT Keepa/Amazon sold units.`,

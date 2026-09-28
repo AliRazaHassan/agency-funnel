@@ -35,7 +35,7 @@ function buildFallback(product={}){
       {id:"shipping",label:"Shipping risk acceptable",done:["low","med","medium"].includes(String(product.shippingDifficulty||"").toLowerCase()),kind:"auto"},
       {id:"trend",label:"Trend evidence strong enough",done:trend>=55,kind:"auto"},
       {id:"competition",label:"Competition manageable",done:Number(product.competitionScore||product.winnerDecision?.components?.competition||0)>=45,kind:"auto"},
-      {id:"margin",label:"Margin safety gate",done:margin>=45,kind:"auto"},
+      {id:"margin",label:"Margin safety gate",done:margin>=50,kind:"auto"},
       {id:"creative",label:"Creative angle available",done:Boolean(product.hook||product.problemSolved),kind:"auto"},
       {id:"confidence",label:"Evidence confidence sufficient",done:confidence!=="LOW"||verified>=2,kind:"auto"},
     ]
@@ -74,11 +74,24 @@ Keep test budget modest and validation-focused. Do not invent live evidence.`,
     })
   );
   if(!ai) return {...fallback,mode:"rules"};
+  const aiStatus = ai.status === "NEEDS_DATA" ? "NEEDS_DATA" : fallback.status;
+  const aiPlan = ai.plan || {};
+  const safeNumber = (value, fallbackValue, min, max) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallbackValue;
+  };
   return {
     ...fallback,
     ...ai,
+    status: aiStatus,
     checklist:fallback.checklist,
-    plan:{...fallback.plan,...(ai.plan||{})},
+    plan:{
+      ...fallback.plan,
+      ...aiPlan,
+      suggestedSellingPrice:safeNumber(aiPlan.suggestedSellingPrice,fallback.plan.suggestedSellingPrice,5,5000),
+      targetMarginPct:safeNumber(aiPlan.targetMarginPct,fallback.plan.targetMarginPct,0,95),
+      testBudgetUsd:safeNumber(aiPlan.testBudgetUsd,fallback.plan.testBudgetUsd,10,500)
+    },
     mode:"ai"
   };
 }

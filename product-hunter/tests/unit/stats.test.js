@@ -7,6 +7,8 @@ import { deriveAdTestMetrics } from "../../server/researchStore.js";
 import { productsToMatrixifyCsv } from "../../server/exportShopify.js";
 import { computeDemandResearch, PLATFORM_SHARES, computeMarketplaceFromBenchmarks } from "../../server/researchEngine.js";
 import { RANK_WEIGHTS, rankOpportunity } from "../../server/rankingAI.js";
+import { WINNING_WEIGHTS, buildWinningScorecard } from "../../server/winningScorecard.js";
+import { buildProductMarketplaceSales } from "../../server/marketSales.js";
 
 test("trend score uses documented weights exactly", () => {
   const r=trendScore({amazon:80,tiktok:70,meta:60,google:50,crossPlatform:40,confidence:30});
@@ -138,4 +140,29 @@ test("tracked product ids are market-context safe", () => {
   const us=scoreProduct(raw,{niche:"QA Niche",sellWhere:{geos:["US"]},marketing:{offer:"x"}});
   const uk=scoreProduct(raw,{niche:"QA Niche",sellWhere:{geos:["UK"]},marketing:{offer:"x"}});
   assert.notEqual(us.id,uk.id);
+});
+
+
+test("rule gate weights sum to 1 and a sub-50 margin hard-fails", () => {
+  assert.equal(Object.values(WINNING_WEIGHTS).reduce((a,b)=>a+b,0),1);
+  const w=buildWinningScorecard({
+    estCostUsd:15,estSellPriceUsd:25,marginPct:28,estWeightKg:.3,
+    shippingDifficulty:"low",demandType:"evergreen",
+    pillars:{margin:28,competitionEase:60,logistics:80},
+    hook:"hook",problemSolved:"problem",pdpBullets:["a","b","c"],riskFlags:[]
+  },{scores:{demand:70}});
+  assert.equal(w.verdict,"FAIL");
+  assert.ok(w.hardFails.some(x=>x.includes("below 50%")));
+});
+
+test("product marketplace planning scenarios conserve order times AOV", () => {
+  const product={title:"QA Product",estAovUsd:40,soldOn:{yourChannel:"Shopify"}};
+  const opportunity={niche:"Pet Supplies",estAovUsd:50,sellWhere:{geos:["US"]}};
+  const m=buildProductMarketplaceSales(product,opportunity);
+  assert.equal(m.assumptions.observed,false);
+  assert.equal(m.math.skuShareOfNiche,0.004);
+  assert.equal(m.math.assumedListingCaptureRate,0.015);
+  for(const k of ["conservative","base","aggressive"]){
+    assert.equal(m.yourStoreProjection.revenue[k],Math.round(m.yourStoreProjection.orders[k]*40));
+  }
 });

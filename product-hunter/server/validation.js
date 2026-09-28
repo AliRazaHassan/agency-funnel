@@ -2,7 +2,7 @@ import { chatJson } from "./openai.js";
 
 function clamp(n,min=0,max=100){return Math.max(min,Math.min(max,Number(n)||0));}
 
-function buildFallback(product={}){
+export function buildFallback(product={}){
   const price=Number(product.estSellPriceUsd)||0;
   const cost=Number(product.estCostUsd)||0;
   const margin=Number(product.marginPct)||0;

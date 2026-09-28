@@ -97,6 +97,10 @@ test("Shopify CSV exports drafts with transparent price and cost", () => {
   assert.match(lines[1],/10\.00/);
   assert.match(lines[1],/,FALSE,/);
   assert.match(lines[1],/,draft$/);
+  const cells=lines[1].split(",");
+  assert.equal(cells[10],"");
+  assert.equal(cells[12],"0");
+  assert.equal(cells[13],"");
 });
 
 

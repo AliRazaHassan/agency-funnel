@@ -6,6 +6,9 @@ const __dirname=dirname(fileURLToPath(import.meta.url));
 const FILE=join(__dirname,"data","research-store.json");
 let pgPool=null;
 let pgReady=false;
+let kvClient=null;
+let kvReady=false;
+const KV_KEY="product-hunter:research-store:v1";
 
 function ensureFile(){
   const dir=dirname(FILE);
@@ -15,49 +18,72 @@ function ensureFile(){
 function readFileStore(){ensureFile();return JSON.parse(readFileSync(FILE,"utf8"));}
 function writeFileStore(data){ensureFile();writeFileSync(FILE,JSON.stringify(data,null,2),"utf8");}
 
-export async function initResearchStore(){
-  if(!process.env.DATABASE_URL) return {mode:"file"};
-  try{
-    const {Pool}=await import("pg");
-    pgPool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.PGSSL==="disable"?false:{rejectUnauthorized:false}});
-    await pgPool.query(`
-      create table if not exists tracked_products(
-        id text primary key,
-        title text not null,
-        product jsonb not null,
-        validation_status text default 'NEEDS_DATA',
-        created_at timestamptz default now(),
-        updated_at timestamptz default now()
-      );
-      create table if not exists product_snapshots(
-        id bigserial primary key,
-        product_id text not null,
-        captured_at timestamptz default now(),
-        trend_score numeric,
-        winner_score numeric,
-        margin_pct numeric,
-        confidence text,
-        lifecycle text,
-        payload jsonb not null
-      );
-      create index if not exists idx_snapshots_product_time on product_snapshots(product_id,captured_at desc);
-      create table if not exists ad_tests(
-        id bigserial primary key,
-        product_id text not null,
-        created_at timestamptz default now(),
-        metrics jsonb not null,
-        derived jsonb not null
-      );
-    `);
-    pgReady=true;
-    return {mode:"postgres"};
-  }catch(err){
-    console.warn("Research store Postgres unavailable, using file fallback:",err.message);
-    pgPool=null;pgReady=false;
-    return {mode:"file"};
-  }
+async function readKvStore(){
+  const raw=await kvClient.get(KV_KEY);
+  if(!raw) return {products:{},snapshots:[],tests:[]};
+  try{return JSON.parse(raw)}catch{return {products:{},snapshots:[],tests:[]}}
 }
-export function researchStoreMode(){return pgReady?"postgres":"file";}
+async function writeKvStore(data){await kvClient.set(KV_KEY,JSON.stringify(data));}
+
+export async function initResearchStore(){
+  if(process.env.DATABASE_URL){
+    try{
+      const {Pool}=await import("pg");
+      pgPool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.PGSSL==="disable"?false:{rejectUnauthorized:false}});
+      await pgPool.query(`
+        create table if not exists tracked_products(
+          id text primary key,
+          title text not null,
+          product jsonb not null,
+          validation_status text default 'NEEDS_DATA',
+          created_at timestamptz default now(),
+          updated_at timestamptz default now()
+        );
+        create table if not exists product_snapshots(
+          id bigserial primary key,
+          product_id text not null,
+          captured_at timestamptz default now(),
+          trend_score numeric,
+          winner_score numeric,
+          margin_pct numeric,
+          confidence text,
+          lifecycle text,
+          payload jsonb not null
+        );
+        create index if not exists idx_snapshots_product_time on product_snapshots(product_id,captured_at desc);
+        create table if not exists ad_tests(
+          id bigserial primary key,
+          product_id text not null,
+          created_at timestamptz default now(),
+          metrics jsonb not null,
+          derived jsonb not null
+        );
+      `);
+      pgReady=true;
+      return {mode:"postgres"};
+    }catch(err){
+      console.warn("Research store Postgres unavailable:",err.message);
+      pgPool=null;pgReady=false;
+    }
+  }
+  if(process.env.REDIS_URL){
+    try{
+      const mod=await import("ioredis");
+      const Redis=mod.default;
+      kvClient=new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:1,enableReadyCheck:true,lazyConnect:true});
+      await kvClient.connect();
+      await kvClient.ping();
+      kvReady=true;
+      return {mode:"keyvalue"};
+    }catch(err){
+      console.warn("Research store Key Value unavailable:",err.message);
+      try{kvClient?.disconnect()}catch{}
+      kvClient=null;kvReady=false;
+    }
+  }
+  return {mode:"file"};
+}
+export function researchStoreMode(){return pgReady?"postgres":kvReady?"keyvalue":"file";}
 
 function normalizeProduct(p={}){
   return {

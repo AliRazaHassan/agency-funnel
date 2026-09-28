@@ -66,7 +66,7 @@ const VARIANTS = [
 ];
 
 
-function amazonEvidenceStatus(product = {}) {
+export function amazonEvidenceStatus(product = {}) {
   const k = product.keepa || product.amazon || null;
   if (!k) return "UNAVAILABLE";
   if (k.source === "manual-amazon-paste") return "MANUAL";
@@ -78,7 +78,7 @@ function amazonEvidenceStatus(product = {}) {
   return "ESTIMATED";
 }
 
-function amazonSignalScore(product = {}) {
+export function amazonSignalScore(product = {}) {
   const k = product.keepa || product.amazon || null;
   if (!k) return 0;
   const parts = [];

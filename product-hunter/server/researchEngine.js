@@ -237,6 +237,11 @@ export function computeDemandResearch(opportunity = {}) {
     }
   }
 
+  const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0) || 1;
+  if (Math.abs(totalWeight - 1) > 0.0001) {
+    for (const f of factors) f.weight = f.weight / totalWeight;
+  }
+
   const demand = round1(
     factors.reduce((sum, f) => sum + f.score * f.weight, 0)
   );
@@ -352,7 +357,7 @@ export function computeMarketplaceFromBenchmarks(opportunity = {}) {
         aggressive: round1(yourOrders.aggressive * aov),
       },
       channel: opportunity.sellWhere?.primary || "Shopify turnkey store",
-      note: `Assumes ~${(captureRate * 100).toFixed(2)}% capture of modeled online niche — optimistic for a new store; treat as ceiling planning`,
+      note: `Assumes ~${(captureRate * 100).toFixed(4)}% capture of modeled online niche — planning assumption, not observed share`,
     },
     overall: {
       orders: monthlyOrders,

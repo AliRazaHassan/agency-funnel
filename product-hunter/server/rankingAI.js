@@ -6,7 +6,7 @@ export const RANK_WEIGHTS = {
   demand: 0.3,
   marketing: 0.25,
   orderValue: 0.25,
-  sellability: 0.15,
+  sellability: 0.2,
   riskPenalty: 0.15,
 };
 
@@ -35,7 +35,9 @@ export function rankOpportunity(input) {
   const demand = clamp(input.demand ?? input.scores?.demand ?? 50);
   const marketing = clamp(input.marketingStrength ?? scoreMarketingPack(input.marketing));
   const orderValue = clamp(input.orderValueScore ?? scoreOrderValueBlock(input));
-  const sellability = clamp(input.sellability ?? scoreSellability(input));
+  const rawSellability = clamp(input.sellability ?? scoreSellability(input));
+  const budgetFit = input.budgetFit == null ? 100 : clamp(input.budgetFit);
+  const sellability = round1(rawSellability * 0.75 + budgetFit * 0.25);
   const riskPenalty = clamp(input.riskPenalty ?? scoreRiskPenalty(input.riskFlags));
 
   const rankScore = round1(

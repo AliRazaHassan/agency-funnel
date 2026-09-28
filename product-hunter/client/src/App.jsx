@@ -7,7 +7,7 @@ import { ValidationPanel } from "./ValidationPanel.jsx";
 
 function actionLabel(url = "") {
   if (url.includes("/market/scout")) return "Researching markets";
-  if (url.includes("/products/hunt")) return "Hunting winning products";
+  if (url.includes("/products/hunt")) return "Researching product candidates";
   if (url.includes("/projects") && url.includes("/api/projects")) return "Saving or loading project";
   if (url.includes("/products/export")) return "Preparing Shopify export";
   if (url.includes("/shopify/products")) return "Creating Shopify draft";
@@ -502,7 +502,7 @@ export default function App() {
               <div className="radar-grid">
                 {radarProducts.filter(p=>trendFilter==="ALL"||p.trendStatus===trendFilter).map(p=>(
                   <article className="radar-card" key={p.id} data-ai-product-id={p.id}>
-                    <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.isTopPick ? `Top pick #${p.winnerRank}` : (p.winnerDecision?.label||"Validate")}</span><span className="confidence">{p.dataConfidence||"LOW"} confidence</span></div>
+                    <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.isTopPick ? `Top pick #${p.winnerRank}` : (p.winnerDecision?.label||"Validate")}</span><span className="confidence">{p.dataConfidence||"LOW"} trend confidence</span></div>
                     <div className="lifecycle-line"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><strong>{p.winnerDecision?.score??"—"}/100 winner score</strong></div>
                     <h3>{p.title}</h3><p className="muted">{p.category}</p>
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
@@ -685,7 +685,7 @@ export default function App() {
                         </div>
                         <div className="metric">
                           <b>{opp.projectedMonthlyOrders?.base ?? "—"}</b>
-                          <span>Orders / mo</span>
+                          <span>Plan orders / mo</span>
                         </div>
                         <div className="metric">
                           <b>${opp.estAovUsd}</b>
@@ -693,7 +693,7 @@ export default function App() {
                         </div>
                         <div className="metric">
                           <b>${Math.round(opp.projectedMonthlyRevenue?.base || 0).toLocaleString()}</b>
-                          <span>Rev / mo</span>
+                          <span>Plan rev / mo</span>
                         </div>
                       </div>
 
@@ -814,7 +814,7 @@ export default function App() {
                     Products · {hunt.niche || selectedOpp?.niche} · {hunt.count || hunt.products?.length || 0} SKUs
                   </h2>
                   <p className="muted" style={{ margin: "0.2rem 0 0" }}>
-                    Winning scorecard + Trend Intelligence V2. Trend score is separate from profitability.{" "}
+                    Rule scorecard + Trend Intelligence V2. Trend score is separate from profitability and Top Pick is a shortlist rank.{" "}
                     {hunt.note || `${hunt.source} catalog`}
                   </p>
                   <div className="win-summary" style={{ marginTop: "0.5rem" }}>
@@ -912,7 +912,7 @@ export default function App() {
                       <tr>
                         <th></th>
                         <th>#</th>
-                        <th>Win</th>
+                        <th>Rule gate</th>
                         <th>Trend</th>
                         <th>Product</th>
                         <th>Buy cost</th>

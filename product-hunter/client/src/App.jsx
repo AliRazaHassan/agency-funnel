@@ -527,14 +527,18 @@ export default function App() {
         onStatusChange={async (status, alreadySaved=false)=>{
           if (!validationProduct) return;
           const id=validationProduct.id;
+          if (!alreadySaved) {
+            try {
+              await api(`/api/tracking/${encodeURIComponent(id)}/status`, { method: "POST", body: { status } });
+            } catch (e) {
+              setError(e.message || "Could not persist validation status");
+              return;
+            }
+          }
           const next={...validationProduct,validationStatus:status};
           setValidationProduct(next);
           setSelectedProduct((p)=>p?.id===id?{...p,validationStatus:status}:p);
           setHunt((h)=>h?{...h,products:(h.products||[]).map(p=>p.id===id?{...p,validationStatus:status}:p)}:h);
-          if (!alreadySaved) {
-            try { await api(`/api/tracking/${encodeURIComponent(id)}/status`, { method: "POST", body: { status } }); }
-            catch (e) { setError(e.message || "Could not persist validation status"); }
-          }
         }}
       />
 

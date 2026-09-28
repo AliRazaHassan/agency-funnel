@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { trendScore, momentum, saturation } from "../../server/intelligence.js";
+import { trendScore, momentum, saturation, evidenceConfidence, buildIntelligence } from "../../server/intelligence.js";
 import { buildWinnerDecision, selectFinalWinners, WINNER_WEIGHTS } from "../../server/winnerEngine.js";
 import { scoreProduct } from "../../server/scorer.js";
 import { deriveAdTestMetrics } from "../../server/researchStore.js";
@@ -174,4 +174,19 @@ test("product pillar weights sum to 1 and unknown supplier cost is rejected", ()
   assert.equal(p.rejected,true);
   assert.ok(p.reasons.some(x=>x.includes("Supplier cost missing")));
   for(const score of Object.values(p.pillars)) assert.ok(score>=0&&score<=100);
+});
+
+
+test("evidence confidence is source-status weighted and missing ad data keeps saturation unknown", () => {
+  assert.equal(evidenceConfidence({amazon:"RECENT",tiktok:"RECENT",meta:"ESTIMATED",google:"UNAVAILABLE"}),51);
+  assert.equal(saturation({demandGrowth:40}).risk,"UNKNOWN");
+  const p=buildIntelligence({
+    id:"evidence-test",
+    signals:{amazon:0,tiktok:75,meta:70,google:65,crossPlatform:70,confidence:99},
+    dataStatus:{amazon:"UNAVAILABLE",tiktok:"ESTIMATED",meta:"ESTIMATED",google:"ESTIMATED"},
+    history:[]
+  });
+  assert.equal(p.evidenceConfidence,26);
+  assert.equal(p.dataConfidence,"LOW");
+  assert.match(p.whyTrending.summary,/modeled signals/i);
 });

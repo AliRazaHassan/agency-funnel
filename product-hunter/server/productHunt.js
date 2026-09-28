@@ -6,6 +6,7 @@ import { summarizeWinningDeck, buildWinningScorecard } from "./winningScorecard.
 import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
 import { buildIntelligence } from "./intelligence.js";
 import { buildWinnerDecision, summarizeWinnerDecisions, selectFinalWinners, summarizeFinalWinners } from "./winnerEngine.js";
+import { getHistory } from "./researchStore.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -160,7 +161,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     ...p,
     winning: buildWinningScorecard(p, opportunity),
   }));
-  const rankedBase = rankProducts(withKeepa).map((p) => {
+  const rankedBase = await Promise.all(rankProducts(withKeepa).map(async (p) => {
     const marketplaceSales = buildProductMarketplaceSales(p, opportunity);
     const amazonVerified = Boolean(p.keepaMatched || p.keepa?.matched || p.amazon?.matched);
     const free = opportunity.freeSignal || {};
@@ -181,9 +182,16 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       meta: p.socialSignals?.meta ? "RECENT" : "ESTIMATED",
       google: free.googleScore || free.google ? "RECENT" : "ESTIMATED",
     };
-    const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+    const baseIntelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, market: opportunity.sellWhere?.geos?.[0] || "Global" });
+    let trackedHistory=[];
+    try{
+      const previous=await getHistory(p.id,30);
+      trackedHistory=(previous||[]).map(x=>({date:x.capturedAt,value:Number(x.trendScore)||0}));
+    }catch{}
+    const history=[...trackedHistory,{date:new Date().toISOString(),value:baseIntelligence.trendScore}];
+    const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, history, market: opportunity.sellWhere?.geos?.[0] || "Global" });
     return { ...intelligence, winnerDecision: buildWinnerDecision(intelligence) };
-  });
+  }));
 
   const ranked = selectFinalWinners(rankedBase);
 

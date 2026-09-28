@@ -630,7 +630,7 @@ export function ProductDetailPanel({ product, onClose }) {
                   <b>{money(sell)}</b>
                 </div>
                 <div>
-                  <span>Margin @ this source</span>
+                  <span>Margin after shipping buffer</span>
                   <b>{margin}%</b>
                 </div>
               </div>

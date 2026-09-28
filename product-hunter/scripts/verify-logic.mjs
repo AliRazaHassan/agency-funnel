@@ -5,6 +5,7 @@ import { buildWinnerDecision, selectFinalWinners } from "../server/winnerEngine.
 import { deriveAdTestMetrics } from "../server/researchStore.js";
 import { parseBoughtCount } from "../server/keepa.js";
 import { amazonEvidenceStatus } from "../server/productHunt.js";
+import { buildFallback as buildValidationFallback } from "../server/validation.js";
 
 function near(actual, expected, epsilon=0.15, label="value"){
   assert.ok(Math.abs(Number(actual)-Number(expected))<=epsilon, `${label}: expected ${expected}, got ${actual}`);
@@ -102,5 +103,14 @@ assert.throws(()=>deriveAdTestMetrics({impressions:0,clicks:1}),/Clicks cannot e
 assert.throws(()=>deriveAdTestMetrics({impressions:10,clicks:5,addToCarts:6}),/Add to carts cannot exceed clicks/);
 assert.throws(()=>deriveAdTestMetrics({impressions:10,clicks:5,addToCarts:2,purchases:3}),/Purchases cannot exceed add to carts/);
 assert.throws(()=>deriveAdTestMetrics({impressions:10,clicks:5,addToCarts:0,purchases:0,revenueUsd:10}),/Revenue requires at least one purchase/);
+// Validation readiness must require product-specific evidence, not only niche-level recency.
+const validationBase={
+  title:"Validation Product",estCostUsd:10,estSellPriceUsd:30,marginPct:60,trendScore:65,
+  trendStatus:"EMERGING",dataConfidence:"MEDIUM",saturation:{risk:"LOW"},dataStatus:{amazon:"UNAVAILABLE",tiktok:"RECENT",meta:"RECENT",google:"RECENT"},
+  winnerDecision:{hardFails:[],verifiedSources:3,productVerifiedSources:0},winning:{softWarnings:[]},riskFlags:[],hook:"Hook",problemSolved:"Problem"
+};
+assert.equal(buildValidationFallback(validationBase).status,"NEEDS_DATA");
+assert.equal(buildValidationFallback({...validationBase,winnerDecision:{...validationBase.winnerDecision,productVerifiedSources:1}}).status,"READY_TO_TEST");
+
 
 console.log("Product Hunter logic verification: PASS");

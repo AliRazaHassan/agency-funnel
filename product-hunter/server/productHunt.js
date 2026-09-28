@@ -244,10 +244,18 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     const socialEvidence = opportunity.socialEvidence || {};
     const tiktokEvidence = socialEvidence.tiktok || null;
     const metaEvidence = socialEvidence.meta || null;
+    const firstFinite = (...values) => {
+      for (const value of values) {
+        if (value === null || value === undefined || value === "") continue;
+        const n = Number(value);
+        if (Number.isFinite(n)) return n;
+      }
+      return 0;
+    };
     const signals = {
       amazon: amazonVerified ? amazonSignalScore(p) : 0,
-      tiktok: Number(p.socialSignals?.tiktok || tiktokEvidence?.score || social || marketing * 0.7),
-      meta: Number(p.socialSignals?.meta || metaEvidence?.score || social || marketing * 0.65),
+      tiktok: firstFinite(p.socialSignals?.tiktok, tiktokEvidence?.score, social, marketing * 0.7),
+      meta: firstFinite(p.socialSignals?.meta, metaEvidence?.score, social, marketing * 0.65),
       google: Number.isFinite(Number(free.googleMomentumScore)) ? Number(free.googleMomentumScore) : Number(demand),
       crossPlatform: Math.round((demand + marketing) / 2),
       confidence: amazonVerified ? 78 : source === "seed" ? 30 : 48,

@@ -18,18 +18,31 @@ export function trendScore(signals={}){
 }
 
 export function momentum(history=[]){
-  const sorted=[...history].filter(x=>x&&Number.isFinite(Number(x.value))).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  if(!sorted.length)return {d7:null,d14:null,d30:null,acceleration:null,status:"DISCOVERED"};
+  const sorted=[...history].filter(x=>x&&Number.isFinite(Number(x.value))&&!Number.isNaN(new Date(x.date).getTime())).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(sorted.length<2)return {d7:null,d14:null,d30:null,acceleration:null,status:"DISCOVERED"};
   const latest=sorted.at(-1);
+  const latestMs=new Date(latest.date).getTime();
+  const oldestMs=new Date(sorted[0].date).getTime();
+  const spanDays=(latestMs-oldestMs)/86400000;
   const nearest=(days)=>{
-    const target=new Date(latest.date).getTime()-days*86400000;
-    return sorted.reduce((best,x)=>Math.abs(new Date(x.date)-target)<Math.abs(new Date(best.date)-target)?x:best,sorted[0]);
+    const target=latestMs-days*86400000;
+    return sorted.reduce((best,x)=>Math.abs(new Date(x.date).getTime()-target)<Math.abs(new Date(best.date).getTime()-target)?x:best,sorted[0]);
   };
-  const d7=pct(latest.value,nearest(7).value),d14=pct(latest.value,nearest(14).value),d30=pct(latest.value,nearest(30).value);
-  const acceleration=d7-(d14/2);
-  let status="STABLE";
-  if(d30<-15)status="DECLINING"; else if(d7>20&&acceleration>5)status="ACCELERATING"; else if(d30>15)status="EMERGING";
-  return {d7:+d7.toFixed(1),d14:+d14.toFixed(1),d30:+d30.toFixed(1),acceleration:+acceleration.toFixed(1),status};
+  const calc=(days,minSpan)=>spanDays>=minSpan?pct(latest.value,nearest(days).value):null;
+  const d7=calc(7,5), d14=calc(14,10), d30=calc(30,21);
+  const acceleration=d7!=null&&d14!=null?d7-(d14/2):null;
+  let status="DISCOVERED";
+  if(d30!=null&&d30<-15)status="DECLINING";
+  else if(d7!=null&&acceleration!=null&&d7>20&&acceleration>5)status="ACCELERATING";
+  else if(d30!=null&&d30>15)status="EMERGING";
+  else if(d7!=null||d14!=null||d30!=null)status="STABLE";
+  return {
+    d7:d7==null?null:+d7.toFixed(1),
+    d14:d14==null?null:+d14.toFixed(1),
+    d30:d30==null?null:+d30.toFixed(1),
+    acceleration:acceleration==null?null:+acceleration.toFixed(1),
+    status
+  };
 }
 
 export function saturation({demandGrowth=0,advertiserGrowth=0}={}){

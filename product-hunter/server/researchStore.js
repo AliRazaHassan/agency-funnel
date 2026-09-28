@@ -157,8 +157,10 @@ export function deriveAdTestMetrics(metrics={},product={}){
     vals[key]=n;
   }
   const {spendUsd:spend,impressions,clicks,addToCarts:atc,purchases,revenueUsd:revenue}=vals;
-  if(clicks>impressions&&impressions>0) throw new Error("Clicks cannot exceed impressions");
-  if(atc>clicks&&clicks>0) throw new Error("Add to carts cannot exceed clicks");
+  if(clicks>impressions) throw new Error("Clicks cannot exceed impressions");
+  if(atc>clicks) throw new Error("Add to carts cannot exceed clicks");
+  if(purchases>atc) throw new Error("Purchases cannot exceed add to carts");
+  if(revenue>0&&purchases===0) throw new Error("Revenue requires at least one purchase");
 
   const ctr=impressions?clicks/impressions*100:0;
   const cpc=clicks?spend/clicks:null;

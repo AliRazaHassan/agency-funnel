@@ -231,7 +231,9 @@ async function fetchMetaAdLibrary(query, country = "US") {
         trendSignal: "ads-active",
         metric: `Active ads · page ${ad.page_name || "—"}`,
         source: "meta-ad-library-api",
-        researchUrl: ad.ad_snapshot_url || researchLinks(query, "US").metaAdLibrary,
+        researchUrl: ad.ad_snapshot_url || researchLinks(query, country === "GB" ? "UK" : country === "AE" ? "Gulf" : ["US","CA","AU","DE","FR"].includes(country) ? country : "Global").metaAdLibrary,
+        dataStatus: "RECENT",
+        capturedAt: new Date().toISOString(),
         note: "Ad creatives (not product sales volume)",
       };
     });

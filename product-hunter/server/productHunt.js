@@ -98,6 +98,19 @@ export function amazonSignalScore(product = {}) {
   return parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : 50;
 }
 
+export function dedupeProductCandidates(list=[]) {
+  const unique=[];
+  const seen=new Set();
+  for(const p of Array.isArray(list)?list:[]) {
+    const title=String(p?.title||"").trim();
+    const key=title.toLowerCase();
+    if(!title||seen.has(key)) continue;
+    seen.add(key);
+    unique.push({...p,title});
+  }
+  return unique;
+}
+
 /** Expand thin seed catalogs to at least `limit` unique SKUs */
 function expandSeedsToLimit(baseList, limit = 50) {
   const out = [];
@@ -187,16 +200,8 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     source = "openai+seed";
   }
 
-  const uniqueRaw = [];
-  const uniqueTitles = new Set();
-  for (const p of raw) {
-    const title = String(p?.title || "").trim();
-    const key = title.toLowerCase();
-    if (!title || uniqueTitles.has(key)) continue;
-    uniqueTitles.add(key);
-    uniqueRaw.push(p);
-  }
-  raw = uniqueRaw;
+  raw = dedupeProductCandidates(raw);
+  const uniqueTitles = new Set(raw.map(p=>String(p.title).toLowerCase()));
   if (raw.length < target) {
     const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
     for (const p of pad) {

@@ -140,18 +140,59 @@ export async function updateValidationStatus(productId,status){
   return {ok:true,status};
 }
 
-function deriveTest(metrics={}){
-  const spend=Number(metrics.spendUsd)||0, impressions=Number(metrics.impressions)||0, clicks=Number(metrics.clicks)||0;
-  const atc=Number(metrics.addToCarts)||0, purchases=Number(metrics.purchases)||0, revenue=Number(metrics.revenueUsd)||0;
-  const ctr=impressions?clicks/impressions*100:0, cpc=clicks?spend/clicks:0, atcRate=clicks?atc/clicks*100:0;
-  const cvr=clicks?purchases/clicks*100:0, cpa=purchases?spend/purchases:0, roas=spend?revenue/spend:0;
-  const proofScore=Math.round(Math.max(0,Math.min(100,(Math.min(ctr,3)/3)*20+(Math.min(atcRate,10)/10)*20+(Math.min(cvr,4)/4)*25+(Math.min(roas,3)/3)*35)));
-  const status=purchases>=3&&roas>=1.5?"VALIDATED":spend>0?"TESTING":"READY_TO_TEST";
-  const recommendation=purchases===0&&spend>=50?"Pause and review creative, offer and landing-page friction before more spend.":status==="VALIDATED"?"Evidence is promising; increase spend gradually while watching CPA and contribution margin.":"Keep the test controlled until purchases are repeatable.";
-  return {ctr,cpc,atcRate,cvr,cpa,roas,proofScore,status,recommendation};
+async function getTrackedProduct(productId){
+  if(pgReady){
+    const {rows}=await pgPool.query(`select product from tracked_products where id=$1 limit 1`,[String(productId)]);
+    return rows[0]?.product||null;
+  }
+  return readFileStore().products?.[productId]?.product||null;
 }
+
+export function deriveAdTestMetrics(metrics={},product={}){
+  const vals={};
+  for(const key of ["spendUsd","impressions","clicks","addToCarts","purchases","revenueUsd"]){
+    const n=Number(metrics[key]??0);
+    if(!Number.isFinite(n)||n<0) throw new Error(`${key} must be a non-negative number`);
+    vals[key]=n;
+  }
+  const {spendUsd:spend,impressions,clicks,addToCarts:atc,purchases,revenueUsd:revenue}=vals;
+  if(clicks>impressions&&impressions>0) throw new Error("Clicks cannot exceed impressions");
+  if(atc>clicks&&clicks>0) throw new Error("Add to carts cannot exceed clicks");
+
+  const ctr=impressions?clicks/impressions*100:0;
+  const cpc=clicks?spend/clicks:null;
+  const atcRate=clicks?atc/clicks*100:0;
+  const cvr=clicks?purchases/clicks*100:0;
+  const cpa=purchases?spend/purchases:null;
+  const roas=spend?revenue/spend:null;
+
+  const baseScore=
+    (Math.min(ctr,3)/3)*20+
+    (Math.min(atcRate,10)/10)*20+
+    (Math.min(cvr,4)/4)*25+
+    (Math.min(roas??0,3)/3)*35;
+  const sampleConfidence=Math.min(1,clicks/100)*0.5+Math.min(1,purchases/3)*0.5;
+  const proofScore=Math.round(Math.max(0,Math.min(100,baseScore*sampleConfidence)));
+
+  const contribution=Number(product?.estContributionUsd)||0;
+  const cpaEconomicallySafe=cpa!=null && contribution>0 ? cpa<=contribution : cpa!=null;
+  const enoughEvidence=purchases>=3&&clicks>=50&&spend>=20;
+  const validated=enoughEvidence&&(roas??0)>=1.5&&cpaEconomicallySafe;
+  const status=validated?"VALIDATED":spend>0?"TESTING":"READY_TO_TEST";
+  const recommendation=purchases===0&&spend>=50
+    ?"Pause and review creative, offer and landing-page friction before more spend."
+    :validated
+      ?"Evidence is promising; increase spend gradually while watching CPA and contribution margin."
+      :purchases>=3&&!cpaEconomicallySafe
+        ?"Sales are coming in, but CPA is above estimated contribution margin. Improve economics before scaling."
+        :"Keep the test controlled until purchases are repeatable and CPA fits unit economics.";
+
+  return {ctr,cpc,atcRate,cvr,cpa,roas,proofScore,status,recommendation,breakEvenCpa:contribution||null,sampleConfidence:+sampleConfidence.toFixed(2)};
+}
+
 export async function addAdTest(productId,metrics={}){
-  const derived=deriveTest(metrics);
+  const product=await getTrackedProduct(productId);
+  const derived=deriveAdTestMetrics(metrics,product||{});
   if(pgReady){
     const {rows}=await pgPool.query(`insert into ad_tests(product_id,metrics,derived) values($1,$2,$3) returning id,created_at as "createdAt"`,[String(productId),JSON.stringify(metrics),JSON.stringify(derived)]);
     await updateValidationStatus(productId,derived.status);

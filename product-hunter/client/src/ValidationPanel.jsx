@@ -126,8 +126,8 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
           <div className="history-head"><div><small>MARKET FEEDBACK</small><b>Ad test results</b></div>{latestTest?.derived ? <span className="proof-pill">{latestTest.derived.proofScore}/100 proof</span>:null}</div>
           {latestTest?.derived ? <div className="history-grid">
             <div><b>{Number(latestTest.derived.ctr||0).toFixed(1)}%</b><span>CTR</span></div>
-            <div><b>{"$"+Number(latestTest.derived.cpa||0).toFixed(2)}</b><span>CPA</span></div>
-            <div><b>{Number(latestTest.derived.roas||0).toFixed(2)}x</b><span>ROAS</span></div>
+            <div><b>{latestTest.derived.cpa==null?"—":"$"+Number(latestTest.derived.cpa).toFixed(2)}</b><span>CPA</span></div>
+            <div><b>{latestTest.derived.roas==null?"—":Number(latestTest.derived.roas).toFixed(2)+"x"}</b><span>ROAS</span></div>
             <div><b>{latestTest.derived.status?.replaceAll("_"," ")}</b><span>Status</span></div>
           </div>:null}
           <form className="ad-test-form" onSubmit={saveTest}>

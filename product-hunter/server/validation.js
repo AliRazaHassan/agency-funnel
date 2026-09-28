@@ -13,7 +13,8 @@ function buildFallback(product={}){
   const missing=Object.entries(product.dataStatus||{}).filter(([,v])=>!["LIVE","RECENT","MANUAL"].includes(v)).map(([k])=>k);
   const suggestedPrice=price ? Math.round(price*100)/100 : Math.max(19.99,Math.round(cost*2.5*100)/100);
   const testBudget=Math.max(20,Math.min(100,Math.round((suggestedPrice*1.5)/5)*5));
-  const status=(margin>=50&&trend>=55&&confidence!=="LOW")?"READY_TO_TEST":"NEEDS_DATA";
+  const blocked=(product.winnerDecision?.hardFails||[]).length>0 || product.saturation?.risk==="HIGH" || product.trendStatus==="DECLINING";
+  const status=(!blocked&&margin>=50&&trend>=55&&confidence!=="LOW"&&verified>=1)?"READY_TO_TEST":"NEEDS_DATA";
   return {
     status,
     opportunity: product.whyTrending?.summary || `Trend score ${trend}/100 with ${margin}% estimated margin.`,
@@ -30,8 +31,8 @@ function buildFallback(product={}){
       scaleCondition:"Scale only after repeatable purchases show acceptable CPA, conversion rate and contribution margin.",
     },
     checklist:[
-      {id:"supplier",label:"Supplier cost & availability verified",done:Boolean(product.keepaMatched||product.sourceFrom?.primary),kind:"manual"},
-      {id:"shipping",label:"Shipping risk acceptable",done:String(product.shippingDifficulty||"low").toLowerCase()!=="high",kind:"auto"},
+      {id:"supplier",label:"Supplier cost & availability verified",done:Boolean(product.supplierVerified===true || ["LIVE","RECENT","MANUAL"].includes(product.sourceFrom?.status)),kind:"manual"},
+      {id:"shipping",label:"Shipping risk acceptable",done:["low","med","medium"].includes(String(product.shippingDifficulty||"").toLowerCase()),kind:"auto"},
       {id:"trend",label:"Trend evidence strong enough",done:trend>=55,kind:"auto"},
       {id:"competition",label:"Competition manageable",done:Number(product.competitionScore||product.winnerDecision?.components?.competition||0)>=45,kind:"auto"},
       {id:"margin",label:"Margin safety gate",done:margin>=45,kind:"auto"},

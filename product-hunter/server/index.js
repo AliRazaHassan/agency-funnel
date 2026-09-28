@@ -15,7 +15,7 @@ import { buildClientBrief } from "./clientBrief.js";
 import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
 import { answerConcierge } from "./concierge.js";
 import { buildValidationPlan } from "./validation.js";
-import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests } from "./researchStore.js";
+import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests, saveSupplierVerification, getSupplierVerification } from "./researchStore.js";
 import { shopifyStatus, createShopifyDraft } from "./shopify.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -237,6 +237,15 @@ app.post("/api/tracking/:id/tests", async (req,res)=>{
   try{res.json(await addAdTest(req.params.id,req.body||{}));}
   catch(err){res.status(400).json({error:err.message||"Ad test save failed"});}
 });
+app.post("/api/tracking/:id/supplier", async (req,res)=>{
+  try{res.json(await saveSupplierVerification(req.params.id,req.body||{}));}
+  catch(err){res.status(400).json({error:err.message||"Supplier verification failed"});}
+});
+app.get("/api/tracking/:id/supplier", async (req,res)=>{
+  try{res.json({verification:await getSupplierVerification(req.params.id)});}
+  catch(err){res.status(500).json({error:err.message||"Supplier verification load failed"});}
+});
+
 app.get("/api/tracking/:id/tests", async (req,res)=>{
   try{res.json({tests:await getAdTests(req.params.id)});}
   catch(err){res.status(500).json({error:err.message||"Ad tests failed"});}

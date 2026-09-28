@@ -235,8 +235,13 @@ export function saveManualAmazonEntries(entries = []) {
         .slice(0, 10);
       let monthlySold = e.monthlySold;
       if (monthlySold == null && e.boughtText) {
-        const m = String(e.boughtText).replace(/,/g, "").match(/(\d+)\s*\+?/);
-        monthlySold = m ? Number(m[1]) : null;
+        const text = String(e.boughtText).replace(/,/g, "").trim().toUpperCase();
+        const m = text.match(/(\d+(?:\.\d+)?)\s*([KM])?\s*\+?/);
+        if (m) {
+          const base = Number(m[1]);
+          const mult = m[2] === "M" ? 1000000 : m[2] === "K" ? 1000 : 1;
+          monthlySold = Number.isFinite(base) ? Math.round(base * mult) : null;
+        } else monthlySold = null;
       }
       return normalizeEntry({
         asin: asin.length === 10 ? asin : null,

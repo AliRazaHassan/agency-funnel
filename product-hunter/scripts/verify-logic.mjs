@@ -3,6 +3,8 @@ import { trendScore, momentum, saturation, evidenceConfidence } from "../server/
 import { scoreProduct } from "../server/scorer.js";
 import { buildWinnerDecision, selectFinalWinners } from "../server/winnerEngine.js";
 import { deriveAdTestMetrics } from "../server/researchStore.js";
+import { parseBoughtCount } from "../server/keepa.js";
+import { amazonEvidenceStatus } from "../server/productHunt.js";
 
 function near(actual, expected, epsilon=0.15, label="value"){
   assert.ok(Math.abs(Number(actual)-Number(expected))<=epsilon, `${label}: expected ${expected}, got ${actual}`);
@@ -16,6 +18,14 @@ assert.equal(trendScore({amazon:-10,tiktok:120,meta:0,google:0,crossPlatform:0,c
 // Evidence confidence provenance mapping.
 assert.equal(evidenceConfidence({amazon:"LIVE",tiktok:"RECENT",meta:"MANUAL",google:"ESTIMATED"}),73);
 assert.equal(evidenceConfidence({}),0);
+
+// Amazon manual parsing/freshness must be trustworthy.
+assert.equal(parseBoughtCount("1K+"),1000);
+assert.equal(parseBoughtCount("2.5K+"),2500);
+assert.equal(parseBoughtCount("1M+"),1000000);
+assert.equal(parseBoughtCount("1,200+"),1200);
+assert.equal(amazonEvidenceStatus({keepa:{source:"manual-amazon-paste",capturedAt:new Date().toISOString()}}),"MANUAL");
+assert.equal(amazonEvidenceStatus({keepa:{source:"manual-amazon-paste",capturedAt:new Date(Date.now()-31*86400000).toISOString()}}),"ESTIMATED");
 
 // Momentum uses observed history only.
 const now=Date.now();

@@ -414,7 +414,8 @@ export async function enrichOpportunityResearch(opportunity = {}) {
   const projectedMonthlyRevenue =
     marketplaceSales.yourStoreProjection?.revenue || opportunity.projectedMonthlyRevenue;
 
-  const competition = Number(opportunity.scores?.competition) || 55;
+  const competitionRaw = Number(opportunity.scores?.competition);
+  const competition = Number.isFinite(competitionRaw) ? competitionRaw : 55;
   const gap = clamp(Math.round(demandResearch.demandScore * 0.6 + (100 - competition) * 0.4));
 
   return {

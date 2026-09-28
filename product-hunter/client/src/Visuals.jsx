@@ -23,10 +23,18 @@ function resolveUnitEconomics(item = {}) {
       cost = 0;
     }
   }
+  const contributionRaw = Number(item.estContributionUsd);
+  const shippingBuffer = Number(item.shippingBufferUsd) || 3;
+  const contribution = Number.isFinite(contributionRaw)
+    ? contributionRaw
+    : sell > 0 && cost > 0
+      ? Math.max(0, sell - cost - shippingBuffer)
+      : null;
   return {
     aov: aov || sell,
     sell: sell || aov,
     cost,
+    contribution,
     hasRealProductCost: Number(item.estCostUsd) > 0 || Number(item.supplierOptions?.[0]?.unitCostUsd) > 0,
   };
 }
@@ -310,7 +318,7 @@ export function WinningScorecardPanel({ product }) {
 }
 
 export function buildSalesFunnel(item) {
-  const { aov, sell, cost, hasRealProductCost } = resolveUnitEconomics(item);
+  const { aov, sell, cost, contribution, hasRealProductCost } = resolveUnitEconomics(item);
   const orders = item?.projectedMonthlyOrders || {};
   const base = Number(orders.base) || 40;
   const conservative = Number(orders.conservative) || Math.round(base * 0.5);
@@ -349,9 +357,9 @@ export function buildSalesFunnel(item) {
       },
       {
         id: "gross",
-        label: "Est. gross profit / mo",
-        value: base * (sell - cost),
-        note: "Before ads, apps, returns",
+        label: "Est. contribution / mo",
+        value: base * Math.max(0, Number(contribution) || 0),
+        note: "After modeled product + upsell costs and shipping buffers; before ads, apps, returns",
         isMoney: true,
       }
     );
@@ -366,8 +374,8 @@ export function buildSalesFunnel(item) {
     unitEconomics: {
       cost,
       sell,
-      marginPct: sell > 0 && cost > 0 ? Math.round(((sell - cost) / sell) * 1000) / 10 : null,
-      profitPerOrder: cost > 0 ? Math.round((sell - cost) * 100) / 100 : null,
+      marginPct: aov > 0 && contribution != null ? Math.round((contribution / aov) * 1000) / 10 : null,
+      profitPerOrder: contribution != null ? Math.round(contribution * 100) / 100 : null,
     },
     stages,
   };
@@ -461,11 +469,11 @@ export function FunnelViz({ item, title }) {
             <b>{money(ue.sell)}</b>
           </div>
           <div>
-            <span>Margin</span>
+            <span>Contribution margin</span>
             <b>{ue.marginPct != null ? `${ue.marginPct}%` : "—"}</b>
           </div>
           <div>
-            <span>Profit / order</span>
+            <span>Contribution / order</span>
             <b>{ue.profitPerOrder != null ? money(ue.profitPerOrder) : "—"}</b>
           </div>
         </div>
@@ -539,9 +547,13 @@ export function ProductDetailPanel({ product, onClose }) {
   const sell = Number(product.estSellPriceUsd) || 0;
   const buy = Number(selected?.unitCostUsd ?? product.estCostUsd) || 0;
   const margin = sell > 0 ? Math.round(((sell - buy - 3) / sell) * 1000) / 10 : 0;
+  const originalBaseContribution = sell - (Number(product.estCostUsd) || 0) - (Number(product.shippingBufferUsd) || 3);
+  const extraContribution = Number(product.estContributionUsd) - originalBaseContribution;
+  const selectedContribution = sell - buy - (Number(product.shippingBufferUsd) || 3) + (Number.isFinite(extraContribution) ? extraContribution : 0);
   const funnelProduct = {
     ...product,
     estCostUsd: buy,
+    estContributionUsd: Math.max(0, Math.round(selectedContribution * 100) / 100),
   };
 
   return (

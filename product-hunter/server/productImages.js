@@ -71,7 +71,7 @@ async function commonsImage(query) {
   }
 }
 
-export async function enrichProductImages(products = [], { concurrency = 8 } = {}) {
+export async function enrichProductImages(products = [], { concurrency = 8, liveLookupLimit = 16 } = {}) {
   const list = Array.isArray(products) ? products : [];
   const out = new Array(list.length);
   let cursor = 0;
@@ -84,6 +84,17 @@ export async function enrichProductImages(products = [], { concurrency = 8 } = {
         continue;
       }
       const query = [cleanTitle(product.title), product.category].filter(Boolean).join(" ");
+      if (i >= liveLookupLimit) {
+        out[i] = {
+          ...product,
+          imageUrl: fallbackSvg(cleanTitle(product.title) || "Product"),
+          imageSourceUrl: null,
+          imageSource: "Generated fallback",
+          imageAttribution: null,
+          imageStatus: "FALLBACK",
+        };
+        continue;
+      }
       const image = await commonsImage(query || "ecommerce product");
       out[i] = { ...product, ...image };
     }

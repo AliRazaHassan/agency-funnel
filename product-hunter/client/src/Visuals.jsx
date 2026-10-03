@@ -642,6 +642,14 @@ export function ProductDetailPanel({ product, onClose }) {
                   </b>
                 </div>
                 <div>
+                  <span>Est. landed cost</span>
+                  <b>{money(selected.landedCostUsd ?? selected.unitCostUsd)}</b>
+                </div>
+                <div>
+                  <span>MOQ</span>
+                  <b>{selected.moq ?? "—"}</b>
+                </div>
+                <div>
                   <span>Your sell price</span>
                   <b>{money(sell)}</b>
                 </div>
@@ -650,9 +658,13 @@ export function ProductDetailPanel({ product, onClose }) {
                   <b>{margin}%</b>
                 </div>
               </div>
-              <p>
-                <strong>Warehouse:</strong> {selected.warehouse}
-              </p>
+              <div className="supplier-facts">
+                <p><strong>Warehouse:</strong> {selected.warehouse}</p>
+                <p><strong>Rating:</strong> {selected.rating ?? "Verify live"}</p>
+                <p><strong>Orders:</strong> {selected.orderCount ?? "Verify live"}</p>
+                <p><strong>Supplier age:</strong> {selected.supplierAgeYears != null ? `${selected.supplierAgeYears}y` : "Verify live"}</p>
+                <p><strong>Variants:</strong> {selected.variants ?? "Verify live"}</p>
+              </div>
               <p className="muted">{selected.includes}</p>
               <p className="muted">Search: “{selected.searchHint || src.searchQuery}”</p>
               <div className="card-actions">
@@ -661,8 +673,8 @@ export function ProductDetailPanel({ product, onClose }) {
                 </a>
               </div>
               <p className="viz-disclaimer">
-                Costs and shipping windows are catalog estimates ({selected.dataQuality}). Live quotes
-                appear inside AutoDS / Zendrop / CJ / AliExpress after you search the SKU.
+                Cost, MOQ, rating, supplier age, variants and shipping are marked estimated/unverified until checked on the supplier listing.
+                Use the verification workflow before treating landed cost as proof.
               </p>
             </div>
           ) : null}
@@ -695,6 +707,18 @@ export function ProductDetailPanel({ product, onClose }) {
           <div className="link-row">
             {(product.competitorIntel?.searches || []).map((s) => <a key={s.id} className="ext-link" href={s.url} target="_blank" rel="noreferrer">{s.label}</a>)}
           </div>
+          {(product.competitorIntel?.observed?.metaAdvertisers || []).length ? (
+            <div className="observed-competitors">
+              <strong>Observed Meta advertisers</strong>
+              {(product.competitorIntel.observed.metaAdvertisers || []).map((x,i)=><div key={i}><span>{x.seller}</span><small>{x.status}</small>{x.url?<a href={x.url} target="_blank" rel="noreferrer">creative</a>:null}</div>)}
+            </div>
+          ) : null}
+          {(product.competitorIntel?.observed?.tiktokCreatives || []).length ? (
+            <div className="observed-competitors">
+              <strong>Observed TikTok creatives</strong>
+              {(product.competitorIntel.observed.tiktokCreatives || []).map((x,i)=><div key={i}><span>{x.creative}</span><small>{x.status}</small>{x.url?<a href={x.url} target="_blank" rel="noreferrer">source</a>:null}</div>)}
+            </div>
+          ) : null}
           <div className="hook-box" style={{ marginTop: "0.75rem" }}>
             <strong>Positioning</strong>
             <p>Avoid: {product.competitorIntel?.positioning?.avoid || "price-only competition"}</p>
@@ -714,6 +738,11 @@ export function ProductDetailPanel({ product, onClose }) {
         <div className="creative-angle-list">
           {(product.creativeIntel?.angles || []).map((a) => <div key={a.id}><strong>{a.label}</strong><p className="muted">{a.script}</p></div>)}
         </div>
+        {product.creativeIntel?.landingPage ? <div className="hook-box" style={{marginTop:"0.75rem"}}>
+          <strong>Landing-page angle</strong>
+          <p>{product.creativeIntel.landingPage.headline}</p>
+          <p className="muted">{(product.creativeIntel.landingPage.sections||[]).join(" → ")}</p>
+        </div> : null}
       </div>
 
       <div className="viz-card" style={{ marginTop: "0.75rem" }}>

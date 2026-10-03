@@ -1405,3 +1405,30 @@ tr.row-active td {
 @media (max-width: 520px) {
   .event-grid { grid-template-columns: 1fr; }
 }
+
+
+.toolkit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  margin-bottom: .75rem;
+}
+
+.scenario-mini {
+  display: grid;
+  gap: .35rem;
+  margin-top: .7rem;
+}
+
+.scenario-mini span {
+  font-size: .78rem;
+  color: var(--ink-soft);
+  padding: .35rem .45rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+@media (max-width: 800px) {
+  .toolkit-grid { grid-template-columns: 1fr; }
+}

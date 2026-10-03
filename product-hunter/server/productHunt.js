@@ -9,6 +9,7 @@ import { buildWinnerDecision, summarizeWinnerDecisions, selectFinalWinners, summ
 import { getHistory } from "./researchStore.js";
 import { attachProductImages } from "./imageResolver.js";
 import { scoreSeasonalFit } from "./seasonal.js";
+import { buildLaunchIntelligence } from "./launchIntelligence.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -292,6 +293,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     ranked = ranked.map((p, i) => ({ ...p, seasonalRank: i + 1 }));
   }
   ranked = await attachProductImages(ranked);
+  ranked = ranked.map((p) => ({ ...p, ...buildLaunchIntelligence(p, opportunity) }));
 
   return {
     source,

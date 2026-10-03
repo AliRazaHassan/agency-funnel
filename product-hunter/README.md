@@ -12,8 +12,8 @@ Complete research workspace for turnkey Shopify stores + agency offers.
 | **Amazon paste** | Free one-time Amazon ASIN / bought-in-past-month notes |
 | **Projects** | Save / resume scout+hunt packages |
 | **Client brief** | Download HTML research brief for clients |
-| **Shopify export** | Matrixify CSV |
-| **Settings** | Module + data-mode status |
+| **Shopify export** | Matrixify CSV + direct Shopify draft when connected |
+| **Seasonal Radar** | Upcoming commerce events (Christmas, Black Friday, Valentine’s, etc.) + event-fit research |\n| **Product imagery** | Wikimedia Commons lookup with attribution + safe fallback |\n| **Growth toolkit** | Competitor searches, creative hooks, break-even CPA economics + Shopify launch kit |\n| **Settings** | Module + data-mode status |
 
 ## Run locally
 

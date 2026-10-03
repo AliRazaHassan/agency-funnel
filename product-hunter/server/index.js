@@ -162,6 +162,27 @@ app.post("/api/discovery/live", async (req,res)=>{
   }
 });
 
+app.post("/api/discovery/full", async (req,res)=>{
+  try{
+    const { regionFocus="Global", budget, query, limit=50 } = req.body || {};
+    const scout = await scoutMarket({regionFocus,budget,nicheHint:query});
+    lastScout = scout;
+    const selectedOpp = scout.opportunities?.[0];
+    if(!selectedOpp) return res.status(404).json({error:"No opportunity found for this request"});
+    const hunt = await huntProducts(selectedOpp,{limit});
+    lastHuntProducts = hunt.products || [];
+    await trackProducts(lastHuntProducts,{opportunityId:selectedOpp.id,niche:selectedOpp.niche,market:selectedOpp.sellWhere?.geos?.[0]||regionFocus,query});
+    res.json({scout,selectedOpp,hunt,summary:{
+      detected:lastHuntProducts.length,
+      accelerating:lastHuntProducts.filter(p=>p.trendStatus==="ACCELERATING").length,
+      winners:lastHuntProducts.filter(p=>p.winning?.verdict==="PASS"||p.winnerDecision?.verdict==="STRONG_CANDIDATE").length
+    }});
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:err.message||"Full discovery failed"});
+  }
+});
+
 app.post("/api/market/scout", async (req, res) => {
   try {
     const { regionFocus, budget, nicheHint } = req.body || {};

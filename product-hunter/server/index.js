@@ -18,6 +18,9 @@ import { buildValidationPlan } from "./validation.js";
 import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests, saveSupplierVerification, getSupplierVerification } from "./researchStore.js";
 import { shopifyStatus, createShopifyDraft } from "./shopify.js";
 import { getUpcomingEvents } from "./seasonal.js";
+import { discoverProductsLive } from "./liveDiscovery.js";
+import { buildLaunchKit } from "./launchKit.js";
+import { buildWatchAlerts } from "./watchAlerts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -149,6 +152,16 @@ app.post("/api/auth/logout", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/api/discovery/live", async (req,res)=>{
+  try{
+    const { opportunity, regionFocus, query, constraints, limit } = req.body || {};
+    res.json(await discoverProductsLive({opportunity,regionFocus,query,constraints,limit:limit||50}));
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:err.message||"Live discovery failed"});
+  }
+});
+
 app.post("/api/market/scout", async (req, res) => {
   try {
     const { regionFocus, budget, nicheHint } = req.body || {};
@@ -258,6 +271,16 @@ app.get("/api/tracking/:id/tests", async (req,res)=>{
   try{res.json({tests:await getAdTests(req.params.id)});}
   catch(err){res.status(500).json({error:err.message||"Ad tests failed"});}
 });
+app.post("/api/watch/alerts", async (req,res)=>{
+  try{res.json({alerts:await buildWatchAlerts(req.body||{})});}
+  catch(err){res.status(500).json({error:err.message||"Alert check failed"});}
+});
+
+app.post("/api/launch-kit", async (req,res)=>{
+  try{res.json(await buildLaunchKit(req.body?.product||req.body||{}));}
+  catch(err){res.status(400).json({error:err.message||"Launch kit failed"});}
+});
+
 app.get("/api/shopify/status", (_req,res)=>res.json(shopifyStatus()));
 app.post("/api/shopify/products", async (req,res)=>{
   try{res.json(await createShopifyDraft(req.body?.product||req.body||{}));}
@@ -347,7 +370,7 @@ app.get("/api/workspace/status", async (_req, res) => {
   const k = keepaStatus();
   res.json({
     label: "Signal Desk",
-    version: "2.1",
+    version: "4.0",
     modules: {
       scout: true,
       socialTrends: true,
@@ -366,6 +389,14 @@ app.get("/api/workspace/status", async (_req, res) => {
       directShopify: shopifyStatus().configured,
       seasonalRadar: true,
       productImages: true,
+      liveDiscovery: true,
+      evidenceLedger: true,
+      winnerBoard: true,
+      opportunityFinder: true,
+      watchAlerts: true,
+      launchKit: true,
+      economicsSimulator: true,
+      historicalCharts: true,
     },
     openai: hasOpenAIKey,
     keepa: k,

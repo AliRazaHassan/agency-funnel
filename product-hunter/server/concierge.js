@@ -19,6 +19,26 @@ function operatorAction(question = "", context = {}) {
   }
   if (q.includes("watchlist") || q.includes("watch list")) return { type: "show_watchlist" };
   if ((q.includes("winner") || q.includes("top pick") || q.includes("strong")) && /(show|filter|find|only)/.test(q)) return { type: "show_winners" };
+
+  const filters = {};
+  const maxCost = q.match(/(?:under|below|max(?:imum)?|less than)\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:landed\s*)?(?:cost|cogs|price)?/);
+  if (maxCost) filters.maxCost = Number(maxCost[1]);
+  const margin = q.match(/(\d+(?:\.\d+)?)\s*%\s*(?:\+|or more|minimum|min)?\s*margin|margin\s*(?:over|above|at least|min(?:imum)?)?\s*(\d+(?:\.\d+)?)\s*%/);
+  if (margin) filters.minMargin = Number(margin[1] || margin[2]);
+  if (/low\s+(?:meta|facebook)\s+(?:competition|ads?|advertiser)/.test(q)) filters.minCompetitionEase = 65;
+  if (/not saturated|haven'?t saturated|low saturation/.test(q)) filters.excludeLifecycle = ["SATURATING","DECLINING"];
+  const excludeRisk = [];
+  if (/remove|exclude|without|no\b/.test(q) && /fragile/.test(q)) excludeRisk.push("fragile");
+  if (/remove|exclude|without|no\b/.test(q) && /battery|batteries/.test(q)) excludeRisk.push("battery");
+  if (/remove|exclude|without|no\b/.test(q) && /liquid/.test(q)) excludeRisk.push("liquid");
+  if (excludeRisk.length) filters.excludeRisk = excludeRisk;
+  const limitMatch = q.match(/(?:find|show|give me|shortlist)\s+(\d{1,2})\s+(?:products?|items?)/);
+  if (limitMatch) filters.limit = Math.min(50, Math.max(1, Number(limitMatch[1])));
+
+  if (Object.keys(filters).length) return { type: "apply_filters", filters, label: "Applied AI product filters" };
+  if (/(find|search|discover|research)\b/.test(q) && /products?|items?|opportunit/.test(q)) {
+    return { type: "discover", hint: String(question).trim(), label: "Run product discovery" };
+  }
   return null;
 }
 

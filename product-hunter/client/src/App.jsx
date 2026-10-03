@@ -125,6 +125,7 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [watchIds, setWatchIds] = useState(() => new Set(JSON.parse(localStorage.getItem("ph_watchlist") || "[]")));
   const [watchOnly, setWatchOnly] = useState(false);
+  const [aiFilters, setAiFilters] = useState({});
   const [loading, setLoading] = useState("");
   const [trendFilter, setTrendFilter] = useState("ALL");
   const [radarQuery, setRadarQuery] = useState("");
@@ -160,9 +161,17 @@ export default function App() {
       const winOk = winFilter === "ALL" || p.winning?.verdict === winFilter;
       const trendOk = trendFilter === "ALL" || p.trendStatus === trendFilter;
       const watchOk = !watchOnly || watchIds.has(p.id);
-      return winOk && trendOk && watchOk;
+      const cost = Number(p.supplierVerification?.landedCostUsd ?? p.supplierOptions?.[0]?.landedCostUsd ?? p.estCostUsd);
+      const costOk = aiFilters.maxCost == null || cost <= Number(aiFilters.maxCost);
+      const marginOk = aiFilters.minMargin == null || Number(p.marginPct) >= Number(aiFilters.minMargin);
+      const comp = Number(p.winnerDecision?.components?.competition ?? p.pillars?.competitionEase ?? 0);
+      const compOk = aiFilters.minCompetitionEase == null || comp >= Number(aiFilters.minCompetitionEase);
+      const lifecycleOk = !(aiFilters.excludeLifecycle || []).includes(p.trendStatus);
+      const riskText = (p.riskFlags || []).join(" ").toLowerCase();
+      const riskOk = !(aiFilters.excludeRisk || []).some((x) => riskText.includes(String(x).toLowerCase()));
+      return winOk && trendOk && watchOk && costOk && marginOk && compOk && lifecycleOk && riskOk;
     });
-  }, [hunt, winFilter, trendFilter, watchOnly, watchIds]);
+  }, [hunt, winFilter, trendFilter, watchOnly, watchIds, aiFilters]);
 
   async function refreshAuth() {
     try {
@@ -443,7 +452,14 @@ export default function App() {
     if (action.type === "show_winners") {
       setWatchOnly(false);
       setWinFilter("PASS");
-      setView(hunt?.products?.length ? "desk" : "radar");
+      setView("winners");
+      return;
+    }
+    if (action.type === "apply_filters") {
+      setAiFilters(action.filters || {});
+      setWatchOnly(false);
+      setView("winners");
+      return;
     }
   }
 
@@ -1074,6 +1090,7 @@ export default function App() {
       {view === "winners" ? (
         <WinnerBoard
           products={hunt?.products || []}
+          externalFilters={aiFilters}
           watchIds={watchIds}
           onWatch={toggleWatch}
           onOpen={(p)=>{setSelectedProduct(p);setView("validate")}}

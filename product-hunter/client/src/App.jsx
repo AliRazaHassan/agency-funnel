@@ -115,6 +115,8 @@ export default function App() {
   const [regionFocus, setRegionFocus] = useState("Global");
   const [budget, setBudget] = useState("500");
   const [nicheHint, setNicheHint] = useState("");
+  const [eventFocus, setEventFocus] = useState("auto");
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [scout, setScout] = useState(null);
   const [selectedOpp, setSelectedOpp] = useState(null);
   const [hunt, setHunt] = useState(null);
@@ -126,6 +128,11 @@ export default function App() {
   const [trendFilter, setTrendFilter] = useState("ALL");
   const [radarQuery, setRadarQuery] = useState("");
   const [radarMarket, setRadarMarket] = useState("ALL");
+  const [watchOnly, setWatchOnly] = useState(false);
+  const [watchIds, setWatchIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("ph_watchlist") || "[]")); }
+    catch { return new Set(); }
+  });
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
   const [view, setView] = useState("home"); // home | desk | settings
@@ -147,9 +154,10 @@ export default function App() {
     return products.filter((p) => {
       const marketOk = radarMarket === "ALL" || String(p.market || regionFocus).toUpperCase().includes(radarMarket);
       const queryOk = !q || [p.title,p.category,p.problemSolved,p.trendStatus,p.whyTrending?.summary].filter(Boolean).join(" ").toLowerCase().includes(q);
-      return marketOk && queryOk;
+      const watchOk = !watchOnly || watchIds.has(p.id);
+      return marketOk && queryOk && watchOk;
     }).sort((a,b) => Number(b.trendScore || 0) - Number(a.trendScore || 0));
-  }, [hunt, radarQuery, radarMarket, regionFocus]);
+  }, [hunt, radarQuery, radarMarket, regionFocus, watchOnly, watchIds]);
 
   const filteredHuntProducts = useMemo(() => {
     const list = hunt?.products || [];
@@ -230,6 +238,19 @@ export default function App() {
     refreshAuth();
   }, []);
 
+  useEffect(() => {
+    if (auth.required && !auth.authenticated) return;
+    let cancelled = false;
+    api(`/api/events/upcoming?regionFocus=${encodeURIComponent(regionFocus)}`)
+      .then((data) => {
+        if (!cancelled) setUpcomingEvents(data.events || []);
+      })
+      .catch(() => {
+        if (!cancelled) setUpcomingEvents([]);
+      });
+    return () => { cancelled = true; };
+  }, [regionFocus, auth.required, auth.authenticated]);
+
   async function runScout() {
     setError("");
     setLoading("scout");
@@ -244,6 +265,7 @@ export default function App() {
           regionFocus,
           budget: budget ? Number(budget) : undefined,
           nicheHint: nicheHint || undefined,
+          eventFocus,
         },
       });
       setScout(data);
@@ -282,6 +304,15 @@ export default function App() {
     } finally {
       setLoading("");
     }
+  }
+
+  function toggleWatch(id) {
+    setWatchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem("ph_watchlist", JSON.stringify([...next]));
+      return next;
+    });
   }
 
   function toggleProduct(id) {
@@ -353,6 +384,7 @@ export default function App() {
           regionFocus,
           budget,
           nicheHint,
+          eventFocus,
           scout,
           selectedOpp,
           hunt,
@@ -377,6 +409,8 @@ export default function App() {
       setRegionFocus(p.regionFocus || "Global");
       setBudget(p.budget != null ? String(p.budget) : "500");
       setNicheHint(p.nicheHint || "");
+      setEventFocus(p.eventFocus || p.scout?.eventFocus || "auto");
+      setUpcomingEvents(p.scout?.upcomingEvents || []);
       setScout(p.scout || null);
       setSelectedOpp(p.selectedOpp || null);
       setHunt(p.hunt || null);
@@ -487,6 +521,7 @@ export default function App() {
             <select value={radarMarket} onChange={(e)=>setRadarMarket(e.target.value)}>
               {["ALL","US","UK","CA","AU","DE","FR"].map(x=><option key={x}>{x}</option>)}
             </select>
+            <button type="button" className={`watch-toggle ${watchOnly ? "on" : ""}`} onClick={()=>setWatchOnly(v=>!v)}>★ Watchlist {watchIds.size}</button>
           </div>
           {!hunt?.products?.length ? <div className="radar-empty"><h3>Your radar is ready.</h3><p>Run Discover once to populate evidence-based product intelligence.</p><button className="btn" style={{width:"auto"}} onClick={()=>setView("desk")}>Start discovery</button></div> : (
             <>
@@ -504,11 +539,15 @@ export default function App() {
                   <article className="radar-card" key={p.id} data-ai-product-id={p.id}>
                     <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.isTopPick ? `Top pick #${p.winnerRank}` : (p.winnerDecision?.label||"Validate")}</span><span className="confidence">Trend {p.dataConfidence||"LOW"} · Evidence {p.winnerDecision?.components?.confidence??"—"}/100</span></div>
                     <div className="lifecycle-line"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><strong>{p.winnerDecision?.score??"—"}/100 winner score</strong></div>
+                    <div className="product-card-media">
+                      <img src={p.imageUrl} alt={p.title} loading="lazy" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                      {p.eventFit ? <span className="event-badge">{p.eventFit.eventName} · {p.eventFit.score}/100</span> : null}
+                    </div>
                     <h3>{p.title}</h3><p className="muted">{p.category}</p>
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).filter(([k])=>["amazon","tiktok","meta","google"].includes(k)).map(([k,v])=><span key={k}><em>{k}<small className={`source-status ${String(p.dataStatus?.[k]||"UNAVAILABLE").toLowerCase()}`}>{p.dataStatus?.[k]||"UNAVAILABLE"}</small></em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Top Pick #${p.winnerRank} · ${p.winnerDecision?.label||"Validate"}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.isTopPick ? p.topPickReason : p.winnerDecision?.reason}</p></div>
-                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
+                    <div className="radar-actions"><button className={`ghost watch-btn ${watchIds.has(p.id)?"on":""}`} onClick={()=>toggleWatch(p.id)}>{watchIds.has(p.id)?"★ Watching":"☆ Watch"}</button><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
                   </article>
                 ))}
               </div>
@@ -519,7 +558,44 @@ export default function App() {
 
       {view === "settings" ? <SettingsView /> : null}
 
-      <Concierge product={selectedProduct} products={hunt?.products || []} />
+      <Concierge
+        product={selectedProduct}
+        products={hunt?.products || []}
+        onAction={(action, currentProduct) => {
+          if (!action?.type) return;
+          if (action.type === "SHOW_WATCHLIST") {
+            setWatchOnly(true);
+            setView("radar");
+            return;
+          }
+          if (action.type === "SHOW_TOP_PICKS") {
+            setWatchOnly(false);
+            setTrendFilter("ALL");
+            setRadarQuery("");
+            setView("radar");
+            return;
+          }
+          if (action.type === "FILTER_LIFECYCLE") {
+            setWatchOnly(false);
+            setTrendFilter(action.value || "ALL");
+            setView("radar");
+            return;
+          }
+          if (action.type === "VALIDATE_PRODUCT" && currentProduct) {
+            setValidationProduct(currentProduct);
+            setValidationOpen(true);
+            return;
+          }
+          if (action.type === "SHOPIFY_PRODUCT" && currentProduct) {
+            addToShopify(currentProduct);
+            return;
+          }
+          if (action.type === "OPEN_EVENT_DISCOVERY") {
+            setEventFocus("auto");
+            setView("desk");
+          }
+        }}
+      />
       <ValidationPanel
         product={validationProduct}
         open={validationOpen}
@@ -588,6 +664,17 @@ export default function App() {
             <input value={budget} onChange={(e) => setBudget(e.target.value)} />
           </label>
           <label className="field">
+            <span>Upcoming event</span>
+            <select value={eventFocus} onChange={(e) => setEventFocus(e.target.value)}>
+              <option value="auto">Auto · nearest opportunity</option>
+              {upcomingEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.emoji} {event.name} · {event.daysUntil}d · {event.phase}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             <span>Niche hint</span>
             <input
               value={nicheHint}
@@ -640,6 +727,40 @@ export default function App() {
                   selectedOpp={selectedOpp}
                   keepa={hunt?.keepa || scout.keepa}
                 />
+{(scout.upcomingEvents || upcomingEvents).length ? (
+                  <div className="event-opportunity-strip">
+                    <div className="section-head">
+                      <div>
+                        <h2>Upcoming commerce events</h2>
+                        <p>Product Hunter automatically searches seasonal demand windows before they peak.</p>
+                      </div>
+                    </div>
+                    <div className="event-grid">
+                      {(scout.upcomingEvents || upcomingEvents).slice(0,6).map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          className={`event-card ${eventFocus === event.id || scout.activeEvent?.id === event.id ? "active" : ""}`}
+                          onClick={() => {
+                            setEventFocus(event.id);
+                            setNicheHint(event.searchHint || event.name);
+                          }}
+                        >
+                          <span className="event-emoji">{event.emoji}</span>
+                          <strong>{event.name}</strong>
+                          <small>{event.daysUntil} days · {event.phase}</small>
+                          <b>{event.opportunityScore}/100 window</b>
+                        </button>
+                      ))}
+                    </div>
+                    {scout.activeEvent ? (
+                      <div className="active-event-note">
+                        <strong>{scout.activeEvent.emoji} Research focus: {scout.activeEvent.name}</strong>
+                        <span>{scout.activeEvent.daysUntil} days away · sourcing and delivery timing included in product generation.</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {scout.socialTrends ? (
                   <SocialTrendsBoard
                     trends={scout.socialTrends}
@@ -914,6 +1035,7 @@ export default function App() {
                         <th>#</th>
                         <th>Rule gate</th>
                         <th>Trend</th>
+                        <th>Image</th>
                         <th>Product</th>
                         <th>Buy cost</th>
                         <th>Sell</th>
@@ -948,8 +1070,14 @@ export default function App() {
                             <strong>{p.trendScore ?? "—"}</strong>
                             <div className="prod-cat">{p.trendStatus || "DISCOVERED"} · {p.dataConfidence || "LOW"} confidence</div>
                           </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <div className="table-product-image">
+                              <img src={p.imageUrl} alt="" loading="lazy" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                            </div>
+                          </td>
                           <td>
                             <div className="prod-title">{p.title}</div>
+                            {p.eventFit ? <div className="prod-event">{p.eventFit.eventName} fit {p.eventFit.score}/100 · {p.eventFit.daysUntil}d</div> : null}
                             <div className="prod-cat">{p.category}</div>
                             {p.problemSolved ? (
                               <div className="prod-problem">Solves: {p.problemSolved}</div>

@@ -8,6 +8,7 @@ import { opportunityTradeRoutes } from "./sourcing.js";
 import { enrichOpportunityResearch } from "./researchEngine.js";
 import { keepaStatus } from "./keepa.js";
 import { fetchSocialTrends } from "./socialTrends.js";
+import { getUpcomingCommerceEvents, resolveEventFocus, buildEventResearchContext } from "./eventCalendar.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const seeds = JSON.parse(readFileSync(join(__dirname, "data", "market-seeds.json"), "utf8"));
@@ -75,7 +76,7 @@ function socialEvidenceForOpportunity(opportunity = {}, trends = {}) {
   return { tiktok: best("tiktok"), meta: best("meta") };
 }
 
-async function aiOpportunities({ regionFocus, nicheHint, budget }) {
+async function aiOpportunities({ regionFocus, nicheHint, budget, activeEvent }) {
   const ai = await chatJson(
     `You are a market research analyst for a turnkey Shopify + automation agency.
 Return JSON: { "opportunities": [ ... ] } with EXACTLY 10 items.
@@ -86,7 +87,7 @@ marketing {persona, hook, adAngles[3], offer, landingPromise, objections[{q,a}]}
 riskFlags[], isServiceOffer (bool — almost always false).
 All 10 must be PHYSICAL product niches suitable for Shopify turnkey stores (light ship, evergreen).
 Do NOT include local-service / WhatsApp automation / DFY agency packages in this list.
-No trademarked brand replicas. Prefer evergreen. Be concrete.`,
+No trademarked brand replicas. Prefer evergreen, but when an event focus is supplied prioritize products with credible seasonal demand and delivery timing. Be concrete.`,
     `Region focus: ${regionFocus || "Global"}
 Budget USD (ads/setup): ${budget || "unspecified"}
 Niche hint: ${nicheHint || "none — pick best gaps"}
@@ -105,8 +106,10 @@ Agency sells: ready Shopify stores ($300-800) and WhatsApp/WordPress automation 
 /**
  * Market scout: demand + where to sell + marketing + AOV, then Ranking AI.
  */
-export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } = {}) {
-  let list = await aiOpportunities({ regionFocus, nicheHint, budget });
+export async function scoutMarket({ regionFocus = "Global", budget, nicheHint, eventFocus = "auto" } = {}) {
+  const upcomingEvents = getUpcomingCommerceEvents({ regionFocus });
+  const activeEvent = resolveEventFocus(eventFocus, { regionFocus });
+  let list = await aiOpportunities({ regionFocus, nicheHint, budget, activeEvent });
   let source = "openai";
 
   if (!list) {
@@ -184,7 +187,10 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
     freeSignalsAttached: freeOk,
     keepa: keepaStatus(),
     socialTrends,
-    opportunities: ranked,
+    upcomingEvents,
+    activeEvent,
+    eventFocus: eventFocus || "auto",
+    opportunities: ranked.map((o) => ({ ...o, eventFocus: activeEvent ? { id: activeEvent.id, name: activeEvent.name, date: activeEvent.date, daysUntil: activeEvent.daysUntil, phase: activeEvent.phase } : null })),
     serviceOffers: serviceOffers.map((o) => ({
       ...o,
       marketing: normalizeMarketingPack(o.marketing, o.niche),
@@ -193,6 +199,6 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
       note: "Model 2 — sell a lead automation system (WordPress/WhatsApp). Not physical SKUs; Hunt products will be empty.",
     })),
     engineNote:
-      "Shows 10 ranked Shopify product niches. Agency service offers listed separately (not product imports).",
+      `Shows 10 ranked Shopify product niches${activeEvent ? ` with ${activeEvent.name} opportunity context` : ""}. Agency service offers listed separately (not product imports).`,
   };
 }

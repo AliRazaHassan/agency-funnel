@@ -1,5 +1,18 @@
 import { chatJson } from "./openai.js";
 
+function detectAction(question, context = {}) {
+  const q = String(question || "").toLowerCase();
+  if (/(show|open|go to).*watchlist|watchlist/.test(q)) return { type:"SHOW_WATCHLIST" };
+  if (/(show|filter|open).*(top pick|best candidate|winner)/.test(q)) return { type:"SHOW_TOP_PICKS" };
+  if (/(show|filter).*(emerging|early opportun)/.test(q)) return { type:"FILTER_LIFECYCLE", value:"EMERGING" };
+  if (/(show|filter).*(accelerating|fast growing)/.test(q)) return { type:"FILTER_LIFECYCLE", value:"ACCELERATING" };
+  if (/(show|filter).*(saturat|crowded)/.test(q)) return { type:"FILTER_LIFECYCLE", value:"SATURATING" };
+  if (/(validate|validation).*(this|product)|^(validate|open validation)/.test(q) && context.product?.id) return { type:"VALIDATE_PRODUCT", productId:context.product.id };
+  if (/(shopify|push|draft).*(this|product)|^(shopify draft)/.test(q) && context.product?.id) return { type:"SHOPIFY_PRODUCT", productId:context.product.id };
+  if (/(discover|research|find).*(christmas|black friday|valentine|halloween|event|season)/.test(q)) return { type:"OPEN_EVENT_DISCOVERY" };
+  return null;
+}
+
 function fallbackAnswer(question, context = {}) {
   const p = context.product || {};
   const selectedStat = String(context.selectedStat || "").trim();
@@ -43,6 +56,7 @@ function fallbackAnswer(question, context = {}) {
 
 export async function answerConcierge({ question, context = {} } = {}) {
   const product = context.product || {};
+  const action = detectAction(question, context);
   const compact = {
     product: product.title,
     category: product.category,
@@ -64,10 +78,10 @@ export async function answerConcierge({ question, context = {} } = {}) {
     `You are Product Hunter AI Concierge. Explain ecommerce product research stats in plain language.
 Never claim guaranteed winners or guaranteed profit. Distinguish VERIFIED/RECENT/MANUAL from ESTIMATED/UNAVAILABLE.
 Answer in 2-5 short sentences. Mention the strongest evidence and the biggest risk. If asked what to do, suggest validation steps, not certainty.
-Return JSON: {"answer":"...", "chips":["...","...","..."]}.`,
+Return JSON: {"answer":"...", "chips":["...","...","..."]}. The app may separately execute safe UI actions from the user request.`,
     `Question: ${question || "Explain this product"}\nSelected stat: ${context.selectedStat || "none"}\nContext: ${JSON.stringify(compact)}`
   );
 
-  if (ai?.answer) return { ...ai, mode: "ai" };
-  return fallbackAnswer(question, context);
+  if (ai?.answer) return { ...ai, mode: "ai", action };
+  return { ...fallbackAnswer(question, context), action };
 }

@@ -7,6 +7,9 @@ import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
 import { buildIntelligence } from "./intelligence.js";
 import { buildWinnerDecision, summarizeWinnerDecisions, selectFinalWinners, summarizeFinalWinners } from "./winnerEngine.js";
 import { getHistory } from "./researchStore.js";
+import { enrichProductImages } from "./productImages.js";
+import { resolveEventFocus, buildEventResearchContext, eventFitForProduct } from "./eventCalendar.js";
+import { buildProductToolkit } from "./growthToolkit.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -151,7 +154,7 @@ function expandSeedsToLimit(baseList, limit = 50) {
   return out.slice(0, limit);
 }
 
-async function aiProducts(opportunity, limit) {
+async function aiProducts(opportunity, limit, activeEvent = null) {
   const ai = await chatJson(
     `You are an ecommerce product researcher. Return JSON: { "products": [ ... ] }.
 Each product: title, category, problemSolved, estCostUsd, estSellPriceUsd, estWeightKg,
@@ -164,7 +167,7 @@ soldOn { yourChannel, geos (string[]), whereCompetitorsSell (string[]), demandSi
 sourceFrom = where YOU buy/source the product (AutoDS, Zendrop, CJ, AliExpress, etc).
 soldOn = where this type of product is already selling + where YOU should sell.
 No fad unless necessary. No trademarked brands. Prefer light shipping. Aim margin >50%.
-Return EXACTLY ${limit} unique products (different titles).`,
+Return EXACTLY ${limit} unique products (different titles).\nWhen seasonal/event context is supplied, include a strong mix of event-specific products and evergreen products with a credible event angle. Avoid items that are unlikely to source/ship before the event.`,
     `Opportunity niche: ${opportunity.niche}
 Audience: ${opportunity.audience}
 Geo: ${(opportunity.sellWhere?.geos || []).join(", ")}
@@ -190,7 +193,9 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     };
   }
 
-  let raw = await aiProducts(opportunity, target);
+  const regionFocus = opportunity.sellWhere?.geos?.[0] || "Global";
+  const activeEvent = opportunity.eventFocus?.id ? resolveEventFocus(opportunity.eventFocus.id, { regionFocus }) : null;
+  let raw = await aiProducts(opportunity, target, activeEvent);
   let source = "openai";
   if (!raw?.length) {
     source = "seed";
@@ -281,10 +286,15 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     }catch{}
     const history=[...trackedHistory,{date:new Date().toISOString(),value:baseIntelligence.trendScore}];
     const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, dataScope, history, market: opportunity.sellWhere?.geos?.[0] || "Global" });
-    return { ...intelligence, winnerDecision: buildWinnerDecision(intelligence) };
+    const eventFit = eventFitForProduct(intelligence, activeEvent);
+    const winnerDecision = buildWinnerDecision(intelligence);
+    const eventOpportunityScore = eventFit ? Math.round((Number(winnerDecision.score || 0) * 0.8) + (Number(eventFit.score || 0) * 0.2)) : winnerDecision.score;
+    const toolkit = buildProductToolkit({ ...intelligence, eventFit, winnerDecision }, activeEvent);
+    return { ...intelligence, eventFit, eventOpportunityScore, winnerDecision, toolkit };
   }));
 
   const ranked = selectFinalWinners(rankedBase);
+  const withImages = await enrichProductImages(ranked);
 
   return {
     source,
@@ -292,10 +302,11 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       "Free signals + rules scorecard. Amazon units only if one-time Keepa snapshot matched.",
     opportunityId: opportunity.id,
     niche: opportunity.niche,
-    count: ranked.length,
+    activeEvent,
+    count: withImages.length,
     winningSummary: summarizeWinningDeck(ranked),
     winnerSummary: summarizeFinalWinners(ranked),
     keepa: keepaStatus(),
-    products: ranked,
+    products: withImages,
   };
 }

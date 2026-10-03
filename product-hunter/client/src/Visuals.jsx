@@ -559,7 +559,9 @@ export function ProductDetailPanel({ product, onClose }) {
   return (
     <div className="product-detail">
       <div className="product-detail-head">
-        <div>
+        <div className="product-detail-media">
+          {product.imageUrl ? <img src={product.imageUrl} alt={product.title} loading="lazy" onError={(e)=>{e.currentTarget.style.display="none"}} /> : null}
+          <div>
           <h2>{product.title}</h2>
           <p className="muted">
             #{product.rank} · {product.category} · score {product.rankScore}
@@ -595,11 +597,58 @@ export function ProductDetailPanel({ product, onClose }) {
             {product.productLinks?.note ||
               "Links open marketplace search for this title (no locked ASIN without Keepa/supplier API)."}
           </p>
+          {product.eventFit ? (
+            <div className="active-event-note compact">
+              <strong>{product.eventFit.eventName} fit · {product.eventFit.score}/100</strong>
+              <span>{product.eventFit.daysUntil} days away · {product.eventFit.reason}</span>
+            </div>
+          ) : null}
+          {product.imageSource ? (
+            <p className="image-credit">
+              Image: {product.imageSource}{product.imageAttribution ? ` · ${product.imageAttribution}` : ""}
+            </p>
+          ) : null}
+          </div>
         </div>
         <button type="button" className="ghost" onClick={onClose}>
           Close
         </button>
       </div>
+
+      {product.toolkit ? (
+        <div className="toolkit-grid">
+          <div className="viz-card">
+            <div className="viz-head"><h3>Unit economics</h3><p className="muted">Know the CPA ceiling before spending.</p></div>
+            <div className="unit-strip">
+              <div><span>Landed cost</span><b>$${product.toolkit.economics.landedCostUsd}</b></div>
+              <div><span>Contribution</span><b>$${product.toolkit.economics.contributionUsd}</b></div>
+              <div><span>Break-even CPA</span><b>$${product.toolkit.economics.breakEvenCpaUsd}</b></div>
+              <div><span>Target CPA</span><b>$${product.toolkit.economics.targetCpaUsd}</b></div>
+            </div>
+            <div className="scenario-mini">
+              {(product.toolkit.economics.scenarios || []).map((x)=><span key={x.ordersPerDay}><b>{x.ordersPerDay}/day</b> · $${Math.round(x.monthlyRevenue).toLocaleString()}/mo revenue</span>)}
+            </div>
+          </div>
+          <div className="viz-card">
+            <div className="viz-head"><h3>Competitor intelligence</h3><p className="muted">{product.toolkit.competitorIntelligence.opportunity}</p></div>
+            <div className="link-row">
+              {(product.toolkit.competitorIntelligence.searchLinks || []).map((l)=><a key={l.id} className="ext-link" href={l.url} target="_blank" rel="noreferrer">{l.label}</a>)}
+            </div>
+            <p className="muted">Saturation: <strong>{product.toolkit.competitorIntelligence.saturationRisk}</strong> · competition {product.toolkit.competitorIntelligence.competitionScore ?? "—"}/100</p>
+          </div>
+          <div className="viz-card">
+            <div className="viz-head"><h3>Creative intelligence</h3><p className="muted">Hooks + UGC structure ready for testing.</p></div>
+            <ul className="angles">{(product.toolkit.creativeKit.hooks || []).slice(0,4).map((hook)=><li key={hook}>{hook}</li>)}</ul>
+            {product.toolkit.creativeKit.eventAngle ? <div className="hook-box"><strong>Event angle</strong><p>{product.toolkit.creativeKit.eventAngle}</p></div> : null}
+          </div>
+          <div className="viz-card">
+            <div className="viz-head"><h3>Shopify launch kit</h3><p className="muted">Listing structure generated from product research.</p></div>
+            <p><strong>{product.toolkit.launchKit.title}</strong></p>
+            <p className="muted">Suggested $${product.toolkit.launchKit.suggestedPriceUsd} · compare-at $${product.toolkit.launchKit.compareAtPriceUsd}</p>
+            <ul className="angles">{(product.toolkit.launchKit.bullets || []).map((bullet)=><li key={bullet}>{bullet}</li>)}</ul>
+          </div>
+        </div>
+      ) : null}
 
       <div className="viz-grid two">
         <div className="viz-card">

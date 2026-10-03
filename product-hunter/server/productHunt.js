@@ -9,6 +9,7 @@ import { buildWinnerDecision, summarizeWinnerDecisions, selectFinalWinners, summ
 import { getHistory } from "./researchStore.js";
 import { enrichProductImages } from "./productImages.js";
 import { resolveEventFocus, buildEventResearchContext, eventFitForProduct } from "./eventCalendar.js";
+import { buildProductToolkit } from "./growthToolkit.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -288,7 +289,8 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     const eventFit = eventFitForProduct(intelligence, activeEvent);
     const winnerDecision = buildWinnerDecision(intelligence);
     const eventOpportunityScore = eventFit ? Math.round((Number(winnerDecision.score || 0) * 0.8) + (Number(eventFit.score || 0) * 0.2)) : winnerDecision.score;
-    return { ...intelligence, eventFit, eventOpportunityScore, winnerDecision };
+    const toolkit = buildProductToolkit({ ...intelligence, eventFit, winnerDecision }, activeEvent);
+    return { ...intelligence, eventFit, eventOpportunityScore, winnerDecision, toolkit };
   }));
 
   const ranked = selectFinalWinners(rankedBase);

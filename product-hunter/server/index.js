@@ -17,6 +17,7 @@ import { answerConcierge } from "./concierge.js";
 import { buildValidationPlan } from "./validation.js";
 import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests, saveSupplierVerification, getSupplierVerification } from "./researchStore.js";
 import { shopifyStatus, createShopifyDraft } from "./shopify.js";
+import { getUpcomingCommerceEvents } from "./eventCalendar.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -75,6 +76,11 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/keepa/status", (_req, res) => {
   res.json(keepaStatus());
+});
+
+app.get("/api/events/upcoming", (req, res) => {
+  const regionFocus = req.query?.regionFocus || "Global";
+  res.json({ regionFocus, events: getUpcomingCommerceEvents({ regionFocus }) });
 });
 
 app.post("/api/amazon/manual", (req, res) => {
@@ -143,8 +149,8 @@ app.post("/api/auth/logout", (_req, res) => {
 
 app.post("/api/market/scout", async (req, res) => {
   try {
-    const { regionFocus, budget, nicheHint } = req.body || {};
-    const result = await scoutMarket({ regionFocus, budget, nicheHint });
+    const { regionFocus, budget, nicheHint, eventFocus } = req.body || {};
+    const result = await scoutMarket({ regionFocus, budget, nicheHint, eventFocus });
     lastScout = result;
     res.json(result);
   } catch (err) {
@@ -353,6 +359,8 @@ app.get("/api/workspace/status", async (_req, res) => {
       keepaSnapshot: k.snapshot?.ok || false,
       aiConcierge: true,
       productValidation: true,
+      eventAwareDiscovery: true,
+      productImages: true,
       historicalTracking: true,
       adTestFeedback: true,
       directShopify: shopifyStatus().configured,

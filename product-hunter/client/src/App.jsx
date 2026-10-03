@@ -122,6 +122,8 @@ export default function App() {
   const [validationProduct, setValidationProduct] = useState(null);
   const [validationOpen, setValidationOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [watchIds, setWatchIds] = useState(() => new Set(JSON.parse(localStorage.getItem("ph_watchlist") || "[]")));
+  const [watchOnly, setWatchOnly] = useState(false);
   const [loading, setLoading] = useState("");
   const [trendFilter, setTrendFilter] = useState("ALL");
   const [radarQuery, setRadarQuery] = useState("");
@@ -156,9 +158,10 @@ export default function App() {
     return list.filter((p) => {
       const winOk = winFilter === "ALL" || p.winning?.verdict === winFilter;
       const trendOk = trendFilter === "ALL" || p.trendStatus === trendFilter;
-      return winOk && trendOk;
+      const watchOk = !watchOnly || watchIds.has(p.id);
+      return winOk && trendOk && watchOk;
     });
-  }, [hunt, winFilter, trendFilter]);
+  }, [hunt, winFilter, trendFilter, watchOnly, watchIds]);
 
   async function refreshAuth() {
     try {
@@ -294,6 +297,15 @@ export default function App() {
     } finally {
       setLoading("");
     }
+  }
+
+  function toggleWatch(id) {
+    setWatchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem("ph_watchlist", JSON.stringify([...next]));
+      return next;
+    });
   }
 
   function toggleProduct(id) {
@@ -525,7 +537,7 @@ export default function App() {
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).filter(([k])=>["amazon","tiktok","meta","google"].includes(k)).map(([k,v])=><span key={k}><em>{k}<small className={`source-status ${String(p.dataStatus?.[k]||"UNAVAILABLE").toLowerCase()}`}>{p.dataStatus?.[k]||"UNAVAILABLE"}</small></em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Top Pick #${p.winnerRank} · ${p.winnerDecision?.label||"Validate"}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.isTopPick ? p.topPickReason : p.winnerDecision?.reason}</p></div>
-                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
+                    <div className="radar-actions"><button className={watchIds.has(p.id) ? "watch-btn on" : "watch-btn"} onClick={()=>toggleWatch(p.id)}>{watchIds.has(p.id) ? "★ Watching" : "☆ Watch"}</button><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
                   </article>
                 ))}
               </div>
@@ -835,6 +847,7 @@ export default function App() {
                     {hunt.note || `${hunt.source} catalog`}
                   </p>
                   <div className="win-summary" style={{ marginTop: "0.5rem" }}>
+                    <button type="button" className={`win-chip ${watchOnly ? "on" : ""}`} onClick={() => setWatchOnly((v) => !v)}>★ Watchlist {watchIds.size}</button>
                     {["ALL","ACCELERATING","EMERGING","STABLE","DECLINING","SATURATING"].map((status) => (
                       <button key={status} type="button" className={`win-chip ${trendFilter === status ? "on" : ""}`} onClick={() => setTrendFilter(status)}>
                         {status === "ALL" ? "All trends" : status}
@@ -949,9 +962,8 @@ export default function App() {
                           onClick={() => setSelectedProduct(p)}
                           style={{ cursor: "pointer" }}
                         >
-                          <td
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <button type="button" className={watchIds.has(p.id) ? "table-watch on" : "table-watch"} onClick={() => toggleWatch(p.id)} title="Watch product">{watchIds.has(p.id) ? "★" : "☆"}</button>
                             <input
                               type="checkbox"
                               checked={selectedIds.has(p.id)}

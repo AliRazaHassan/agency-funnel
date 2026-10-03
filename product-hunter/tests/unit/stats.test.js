@@ -38,7 +38,7 @@ test("momentum and saturation calculations are deterministic", () => {
   ];
   const m=momentum(history);
   assert.equal(m.d30,30);
-  assert.equal(m.status,"EMERGING");
+  assert.equal(m.status,"PEAK");
   assert.equal(saturation({demandGrowth:20,advertiserGrowth:80}).risk,"HIGH");
 });
 

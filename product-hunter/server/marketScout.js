@@ -8,6 +8,7 @@ import { opportunityTradeRoutes } from "./sourcing.js";
 import { enrichOpportunityResearch } from "./researchEngine.js";
 import { keepaStatus } from "./keepa.js";
 import { fetchSocialTrends } from "./socialTrends.js";
+import { buildSeasonalContext, seasonalOpportunitySeeds } from "./seasonal.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const seeds = JSON.parse(readFileSync(join(__dirname, "data", "market-seeds.json"), "utf8"));
@@ -75,7 +76,7 @@ function socialEvidenceForOpportunity(opportunity = {}, trends = {}) {
   return { tiktok: best("tiktok"), meta: best("meta") };
 }
 
-async function aiOpportunities({ regionFocus, nicheHint, budget }) {
+async function aiOpportunities({ regionFocus, nicheHint, budget, seasonalContext }) {
   const ai = await chatJson(
     `You are a market research analyst for a turnkey Shopify + automation agency.
 Return JSON: { "opportunities": [ ... ] } with EXACTLY 10 items.
@@ -86,11 +87,11 @@ marketing {persona, hook, adAngles[3], offer, landingPromise, objections[{q,a}]}
 riskFlags[], isServiceOffer (bool — almost always false).
 All 10 must be PHYSICAL product niches suitable for Shopify turnkey stores (light ship, evergreen).
 Do NOT include local-service / WhatsApp automation / DFY agency packages in this list.
-No trademarked brand replicas. Prefer evergreen. Be concrete.`,
+No trademarked brand replicas. Prefer evergreen, BUT deliberately include 2-4 timely seasonal/event niches when the supplied event calendar makes commercial sense. Never invent an event date. Be concrete.`,
     `Region focus: ${regionFocus || "Global"}
 Budget USD (ads/setup): ${budget || "unspecified"}
 Niche hint: ${nicheHint || "none — pick best gaps"}
-Agency sells: ready Shopify stores ($300-800) and WhatsApp/WordPress automation ($1000+).`
+Agency sells: ready Shopify stores ($300-800) and WhatsApp/WordPress automation ($1000+).\nUpcoming event calendar (use only when relevant):\n${seasonalContext?.prompt || "none"}`
   );
 
   if (!ai?.opportunities?.length) return null;
@@ -106,7 +107,8 @@ Agency sells: ready Shopify stores ($300-800) and WhatsApp/WordPress automation 
  * Market scout: demand + where to sell + marketing + AOV, then Ranking AI.
  */
 export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } = {}) {
-  let list = await aiOpportunities({ regionFocus, nicheHint, budget });
+  const seasonal = buildSeasonalContext(regionFocus);
+  let list = await aiOpportunities({ regionFocus, nicheHint, budget, seasonalContext: seasonal });
   let source = "openai";
 
   if (!list) {
@@ -119,6 +121,18 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
       const hint = nicheHint.toLowerCase();
       const matched = list.filter((o) => o.niche.toLowerCase().includes(hint));
       if (matched.length) list = matched;
+    }
+  }
+
+  // Always blend timely event opportunities into the candidate pool so the desk can
+  // surface Christmas/Black-Friday/Valentine/etc. before the market is already late.
+  const seasonalSeeds = seasonalOpportunitySeeds(regionFocus);
+  const seasonalSeen = new Set(list.map((o) => String(o.niche || "").toLowerCase()));
+  for (const eventOpp of seasonalSeeds) {
+    const key = String(eventOpp.niche || "").toLowerCase();
+    if (!seasonalSeen.has(key)) {
+      seasonalSeen.add(key);
+      list.unshift(eventOpp);
     }
   }
 
@@ -184,6 +198,7 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
     freeSignalsAttached: freeOk,
     keepa: keepaStatus(),
     socialTrends,
+    seasonal,
     opportunities: ranked,
     serviceOffers: serviceOffers.map((o) => ({
       ...o,
@@ -193,6 +208,6 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
       note: "Model 2 — sell a lead automation system (WordPress/WhatsApp). Not physical SKUs; Hunt products will be empty.",
     })),
     engineNote:
-      "Shows 10 ranked Shopify product niches. Agency service offers listed separately (not product imports).",
+      "Shows 10 ranked Shopify product niches and blends upcoming commercial events into discovery. Agency service offers listed separately (not product imports).",
   };
 }

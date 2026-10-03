@@ -1,5 +1,28 @@
 import { chatJson } from "./openai.js";
 
+function operatorAction(question = "", context = {}) {
+  const q = String(question).toLowerCase();
+  const events = [
+    ["christmas", "Christmas gifts · stocking stuffers · pet gifts · home gifts"],
+    ["black friday", "Black Friday products · giftable gadgets · home upgrades"],
+    ["cyber monday", "Cyber Monday products · giftable gadgets · tech accessories"],
+    ["valentine", "Valentine's Day gifts · couples gifts · self-care gifts"],
+    ["halloween", "Halloween products · decor · pet costumes · party accessories"],
+    ["mother", "Mother's Day gifts · self-care · home gifts"],
+    ["father", "Father's Day gifts · outdoor gear · car accessories"],
+    ["ramadan", "Ramadan Eid products · home decor · gift sets · kitchen serving"],
+    ["eid", "Eid gifts · home decor · gift sets"]
+  ];
+  const match = events.find(([key]) => q.includes(key));
+  if (match && /(find|search|discover|show|research|product)/.test(q)) {
+    return { type: "discover", hint: match[1], label: `Research ${match[0]}` };
+  }
+  if (q.includes("watchlist") || q.includes("watch list")) return { type: "show_watchlist" };
+  if ((q.includes("winner") || q.includes("top pick") || q.includes("strong")) && /(show|filter|find|only)/.test(q)) return { type: "show_winners" };
+  return null;
+}
+
+
 function fallbackAnswer(question, context = {}) {
   const p = context.product || {};
   const selectedStat = String(context.selectedStat || "").trim();
@@ -42,6 +65,7 @@ function fallbackAnswer(question, context = {}) {
 }
 
 export async function answerConcierge({ question, context = {} } = {}) {
+  const action = operatorAction(question, context);
   const product = context.product || {};
   const compact = {
     product: product.title,
@@ -68,6 +92,6 @@ Return JSON: {"answer":"...", "chips":["...","...","..."]}.`,
     `Question: ${question || "Explain this product"}\nSelected stat: ${context.selectedStat || "none"}\nContext: ${JSON.stringify(compact)}`
   );
 
-  if (ai?.answer) return { ...ai, mode: "ai" };
-  return fallbackAnswer(question, context);
+  if (ai?.answer) return { ...ai, mode: "ai", action };
+  return { ...fallbackAnswer(question, context), action };
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import { SeasonalRadar } from "./SeasonalRadar.jsx";
 
 export function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
@@ -61,7 +62,7 @@ export function Onboarding({ onDone }) {
   );
 }
 
-export function HomeView({ onOpenDesk, onOpenProject }) {
+export function HomeView({ onOpenDesk, onOpenProject, onSeasonalSearch, region = "Global" }) {
   const [projects, setProjects] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,8 @@ export function HomeView({ onOpenDesk, onOpenProject }) {
           Launch Product Hunter
         </button>
       </div>
+
+      <SeasonalRadar region={region} onSearch={onSeasonalSearch} />
 
       <div className="section-head">
         <div>

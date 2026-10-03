@@ -25,7 +25,7 @@ function cleanStatText(el) {
     .slice(0, 240);
 }
 
-export function Concierge({ product, products = [] }) {
+export function Concierge({ product, products = [], onAction }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -112,6 +112,7 @@ export function Concierge({ product, products = [] }) {
         mode: data.mode,
         chips: data.chips || [],
       }]);
+      if (data.action) onAction?.(data.action);
     } catch (e) {
       setMessages((m) => [...m, {
         role: "assistant",
@@ -137,7 +138,7 @@ export function Concierge({ product, products = [] }) {
 
   const starters = activeProduct
     ? ["Why is this product strong?", "What is the biggest risk?", "What should I validate next?"]
-    : ["Explain winner score", "How should I read confidence?", "What should I validate first?"];
+    : ["Find Christmas products", "Show my watchlist", "Show top winners"];
 
   return (
     <>

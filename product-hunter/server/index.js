@@ -17,6 +17,7 @@ import { answerConcierge } from "./concierge.js";
 import { buildValidationPlan } from "./validation.js";
 import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests, saveSupplierVerification, getSupplierVerification } from "./researchStore.js";
 import { shopifyStatus, createShopifyDraft } from "./shopify.js";
+import { getUpcomingEvents } from "./seasonal.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, "..", ".env") });
@@ -75,6 +76,13 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/keepa/status", (_req, res) => {
   res.json(keepaStatus());
+});
+
+app.get("/api/events/upcoming", (req, res) => {
+  const region = String(req.query.region || "Global");
+  const days = Math.max(30, Math.min(365, Number(req.query.days) || 210));
+  const events = getUpcomingEvents({ region, days });
+  res.json({ region, days, generatedAt: new Date().toISOString(), events });
 });
 
 app.post("/api/amazon/manual", (req, res) => {
@@ -356,6 +364,8 @@ app.get("/api/workspace/status", async (_req, res) => {
       historicalTracking: true,
       adTestFeedback: true,
       directShopify: shopifyStatus().configured,
+      seasonalRadar: true,
+      productImages: true,
     },
     openai: hasOpenAIKey,
     keepa: k,

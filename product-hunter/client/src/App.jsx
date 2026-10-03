@@ -426,6 +426,26 @@ export default function App() {
     }
   }
 
+  async function handleConciergeAction(action) {
+    if (!action?.type) return;
+    if (action.type === "discover" && action.hint) {
+      setNicheHint(action.hint);
+      setView("desk");
+      await runScoutForHint(action.hint);
+      return;
+    }
+    if (action.type === "show_watchlist") {
+      setWatchOnly(true);
+      setView(hunt?.products?.length ? "desk" : "radar");
+      return;
+    }
+    if (action.type === "show_winners") {
+      setWatchOnly(false);
+      setWinFilter("PASS");
+      setView(hunt?.products?.length ? "desk" : "radar");
+    }
+  }
+
   async function logout() {
     await api("/api/auth/logout", { method: "POST", body: {} });
     setScout(null);
@@ -548,7 +568,7 @@ export default function App() {
 
       {view === "settings" ? <SettingsView /> : null}
 
-      <Concierge product={selectedProduct} products={hunt?.products || []} />
+      <Concierge product={selectedProduct} products={hunt?.products || []} onAction={handleConciergeAction} />
       <ValidationPanel
         product={validationProduct}
         open={validationOpen}

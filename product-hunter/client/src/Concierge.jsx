@@ -25,7 +25,7 @@ function cleanStatText(el) {
     .slice(0, 240);
 }
 
-export function Concierge({ product, products = [] }) {
+export function Concierge({ product, products = [], onAction }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -112,6 +112,7 @@ export function Concierge({ product, products = [] }) {
         mode: data.mode,
         chips: data.chips || [],
       }]);
+      if (data.action) onAction?.(data.action, currentProduct);
     } catch (e) {
       setMessages((m) => [...m, {
         role: "assistant",
@@ -136,8 +137,8 @@ export function Concierge({ product, products = [] }) {
   }
 
   const starters = activeProduct
-    ? ["Why is this product strong?", "What is the biggest risk?", "What should I validate next?"]
-    : ["Explain winner score", "How should I read confidence?", "What should I validate first?"];
+    ? ["Why is this product strong?", "Validate this product", "Show top picks"]
+    : ["Show top picks", "Show my watchlist", "Find upcoming event products"];
 
   return (
     <>
@@ -194,8 +195,8 @@ export function Concierge({ product, products = [] }) {
           <div className="concierge-messages">
             {!messages.length ? (
               <div className="concierge-empty">
-                <strong>Ask the data, not a generic chatbot.</strong>
-                <p>Right-click any score, margin, confidence, trend signal or KPI and choose “Ask about this”.</p>
+                <strong>Ask the data — or tell Product Hunter what to do.</strong>
+                <p>Try “show top picks”, “show my watchlist”, “validate this product”, or “find upcoming event products”.</p>
               </div>
             ) : null}
             {messages.slice(-10).map((m, i) => (

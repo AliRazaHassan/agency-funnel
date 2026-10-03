@@ -24,6 +24,14 @@ export async function buildWatchAlerts({ ids = [], days = 30 } = {}) {
     if (trendDelta != null && Math.abs(trendDelta) >= 15) {
       alerts.push({productId:row.id,title,type:"TREND",severity:trendDelta>0?"high":"medium",message:`${title} trend changed ${trendDelta>0?"+":""}${Math.round(trendDelta)}%`,capturedAt:curr.capturedAt});
     }
+    const metaDelta = pct(Number(curr.metaSignal),Number(prev.metaSignal));
+    if (metaDelta != null && Math.abs(metaDelta) >= 20) {
+      alerts.push({productId:row.id,title,type:"META_COMPETITION",severity:metaDelta>0?"medium":"high",message:`${title} Meta advertiser signal changed ${metaDelta>0?"+":""}${Math.round(metaDelta)}%`,capturedAt:curr.capturedAt});
+    }
+    const marginDelta = Number(curr.marginPct)-Number(prev.marginPct);
+    if (Number.isFinite(marginDelta) && Math.abs(marginDelta) >= 5) {
+      alerts.push({productId:row.id,title,type:"MARGIN",severity:marginDelta<0?"medium":"high",message:`${title} modeled margin changed ${marginDelta>0?"+":""}${marginDelta.toFixed(1)} pts`,capturedAt:curr.capturedAt});
+    }
   }
   return alerts.sort((a,b)=>String(b.capturedAt).localeCompare(String(a.capturedAt))).slice(0,100);
 }

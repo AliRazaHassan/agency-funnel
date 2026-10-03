@@ -10,6 +10,7 @@ import { getHistory } from "./researchStore.js";
 import { attachProductImages } from "./imageResolver.js";
 import { scoreSeasonalFit } from "./seasonal.js";
 import { buildLaunchIntelligence } from "./launchIntelligence.js";
+import { discoverProductsLive } from "./liveDiscovery.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -193,10 +194,17 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     };
   }
 
-  let raw = await aiProducts(opportunity, target);
-  let source = "openai";
+  let discovery = await discoverProductsLive({
+    opportunity,
+    regionFocus: opportunity.sellWhere?.geos?.[0] || "Global",
+    query: opportunity.niche,
+    limit: target
+  });
+  let raw = discovery.products || [];
+  let source = raw.length ? "live-evidence" : "openai";
+  if (!raw?.length) raw = await aiProducts(opportunity, target);
   if (!raw?.length) {
-    source = "seed";
+    source = "seed-emergency-fallback";
     raw = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
   } else if (raw.length < target) {
     // Pad AI shortfalls with expanded seeds
@@ -224,6 +232,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       raw.push(p);
     }
     if (source === "openai") source = "openai+seed";
+    else if (source === "live-evidence") source = "live-evidence+seed";
   }
   raw = raw.slice(0, target);
 
@@ -306,6 +315,12 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     winnerSummary: summarizeFinalWinners(ranked),
     keepa: keepaStatus(),
     seasonalEvent: opportunity.seasonalEvent || null,
+    discovery: {
+      engine: discovery?.engine || "fallback",
+      generatedAt: discovery?.generatedAt || new Date().toISOString(),
+      observed: discovery?.observed || null,
+      honesty: discovery?.honesty || "Fallback generation was used."
+    },
     products: ranked,
   };
 }

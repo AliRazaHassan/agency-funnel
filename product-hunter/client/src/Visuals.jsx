@@ -559,7 +559,9 @@ export function ProductDetailPanel({ product, onClose }) {
   return (
     <div className="product-detail">
       <div className="product-detail-head">
-        <div>
+        <div className="product-detail-media">
+          {product.imageUrl ? <img src={product.imageUrl} alt={product.title} loading="lazy" onError={(e)=>{e.currentTarget.style.display="none"}} /> : null}
+          <div>
           <h2>{product.title}</h2>
           <p className="muted">
             #{product.rank} · {product.category} · score {product.rankScore}
@@ -595,6 +597,18 @@ export function ProductDetailPanel({ product, onClose }) {
             {product.productLinks?.note ||
               "Links open marketplace search for this title (no locked ASIN without Keepa/supplier API)."}
           </p>
+          {product.eventFit ? (
+            <div className="active-event-note compact">
+              <strong>{product.eventFit.eventName} fit · {product.eventFit.score}/100</strong>
+              <span>{product.eventFit.daysUntil} days away · {product.eventFit.reason}</span>
+            </div>
+          ) : null}
+          {product.imageSource ? (
+            <p className="image-credit">
+              Image: {product.imageSource}{product.imageAttribution ? ` · ${product.imageAttribution}` : ""}
+            </p>
+          ) : null}
+          </div>
         </div>
         <button type="button" className="ghost" onClick={onClose}>
           Close

@@ -559,7 +559,9 @@ export function ProductDetailPanel({ product, onClose }) {
   return (
     <div className="product-detail">
       <div className="product-detail-head">
-        <div>
+        <div className="product-detail-title">
+          {product.image?.url ? <a href={product.image.sourceUrl || product.image.url} target="_blank" rel="noreferrer"><img className="product-detail-image" src={product.image.url} alt={product.title} /></a> : null}
+          <div>
           <h2>{product.title}</h2>
           <p className="muted">
             #{product.rank} · {product.category} · score {product.rankScore}
@@ -595,6 +597,8 @@ export function ProductDetailPanel({ product, onClose }) {
             {product.productLinks?.note ||
               "Links open marketplace search for this title (no locked ASIN without Keepa/supplier API)."}
           </p>
+          {product.seasonalFit ? <div className="seasonal-fit">🎯 {product.seasonalFit.eventName} · fit {product.seasonalFit.score}/100 · {product.seasonalFit.daysAway} days away</div> : null}
+          </div>
         </div>
         <button type="button" className="ghost" onClick={onClose}>
           Close
@@ -664,6 +668,52 @@ export function ProductDetailPanel({ product, onClose }) {
           ) : null}
         </div>
         <FunnelViz item={funnelProduct} title={`Funnel · ${product.title}`} />
+      </div>
+
+      <div className="viz-grid two" style={{ marginTop: "0.75rem" }}>
+        <div className="viz-card">
+          <div className="viz-head">
+            <h3>Unit economics</h3>
+            <p className="muted">Replace estimated supplier inputs with a verified quote before scaling.</p>
+          </div>
+          <div className="unit-strip">
+            <div><span>Contribution before ads</span><b>{money(product.unitEconomics?.contributionBeforeAdsUsd)}</b></div>
+            <div><span>Break-even CPA</span><b>{money(product.unitEconomics?.breakEvenCpaUsd)}</b></div>
+            <div><span>Target CPA</span><b>{money(product.unitEconomics?.targetCpaUsd)}</b></div>
+            <div><span>Target ROAS</span><b>{product.unitEconomics?.targetRoas ? `${product.unitEconomics.targetRoas}x` : "—"}</b></div>
+          </div>
+          <div className="history-grid" style={{ marginTop: "0.75rem" }}>
+            {(product.unitEconomics?.scenarios || []).map((s) => <div key={s.ordersPerDay}><b>{money(s.monthlyProfitUsd)}</b><span>{s.ordersPerDay} orders/day · modeled monthly profit</span></div>)}
+          </div>
+        </div>
+
+        <div className="viz-card">
+          <div className="viz-head">
+            <h3>Competitor intelligence</h3>
+            <p className="muted">{product.competitorIntel?.note}</p>
+          </div>
+          <div className="link-row">
+            {(product.competitorIntel?.searches || []).map((s) => <a key={s.id} className="ext-link" href={s.url} target="_blank" rel="noreferrer">{s.label}</a>)}
+          </div>
+          <div className="hook-box" style={{ marginTop: "0.75rem" }}>
+            <strong>Positioning</strong>
+            <p>Avoid: {product.competitorIntel?.positioning?.avoid || "price-only competition"}</p>
+            <p className="muted">Prefer: {(product.competitorIntel?.positioning?.prefer || []).join(" · ")}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="viz-card" style={{ marginTop: "0.75rem" }}>
+        <div className="viz-head">
+          <h3>Creative intelligence</h3>
+          <p className="muted">Hooks and ad structures generated from the product problem, offer and event context.</p>
+        </div>
+        <div className="creative-grid">
+          {(product.creativeIntel?.hooks || []).map((hook, i) => <div className="creative-hook" key={i}><span>Hook {i+1}</span><strong>{hook}</strong></div>)}
+        </div>
+        <div className="creative-angle-list">
+          {(product.creativeIntel?.angles || []).map((a) => <div key={a.id}><strong>{a.label}</strong><p className="muted">{a.script}</p></div>)}
+        </div>
       </div>
 
       <div className="viz-card" style={{ marginTop: "0.75rem" }}>

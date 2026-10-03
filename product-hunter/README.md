@@ -13,7 +13,7 @@ Complete research workspace for turnkey Shopify stores + agency offers.
 | **Projects** | Save / resume scout+hunt packages |
 | **Client brief** | Download HTML research brief for clients |
 | **Shopify export** | Matrixify CSV + direct Shopify draft when connected |
-| **Seasonal Radar** | Upcoming commerce events (Christmas, Black Friday, Valentine’s, etc.) + event-fit research |\n| **Product imagery** | Wikimedia Commons lookup with attribution + safe fallback |\n| **Growth toolkit** | Competitor searches, creative hooks, break-even CPA economics + Shopify launch kit |\n| **Settings** | Module + data-mode status |
+| **Seasonal Radar** | Upcoming commerce events (Christmas, Black Friday, Valentine’s, etc.) + event-fit research |\n| **Product imagery** | Wikimedia Commons lookup with attribution + safe fallback |\n| **Growth toolkit** | Competitor searches, creative hooks, break-even CPA economics + Shopify launch kit |\n| **AI operator** | Concierge can open watchlist/top picks, lifecycle filters, validation, event discovery and Shopify draft actions |\n| **Settings** | Module + data-mode status |
 
 ## Run locally
 

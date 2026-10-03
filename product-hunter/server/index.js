@@ -345,7 +345,7 @@ app.get("/api/workspace/status", async (_req, res) => {
   const k = keepaStatus();
   res.json({
     label: "Signal Desk",
-    version: "2.1",
+    version: "2.2",
     modules: {
       scout: true,
       socialTrends: true,

@@ -12,16 +12,25 @@ export async function createShopifyDraft(product={}){
   const c=config();
   if(!c.configured) throw new Error("Shopify is not connected. Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN.");
   if(!product.title) throw new Error("Product title required");
+  const kit=product.launchKit||{};
+  const descriptionText=String(kit.description||product.problemSolved||product.pdpBullets?.join(". ")||"Product candidate from Product Hunter AI").replace(/[<>]/g,"");
+  const benefits=Array.isArray(kit.benefits)?kit.benefits:[];
+  const faq=Array.isArray(kit.faqs)?kit.faqs:[];
+  const descriptionHtml=[
+    `<p>${descriptionText}</p>`,
+    benefits.length?`<h3>Benefits</h3><ul>${benefits.map(x=>`<li>${String(x).replace(/[<>]/g,"")}</li>`).join("")}</ul>`:"",
+    faq.length?`<h3>FAQ</h3>${faq.map(x=>`<h4>${String(x.q||"").replace(/[<>]/g,"")}</h4><p>${String(x.a||"").replace(/[<>]/g,"")}</p>`).join("")}`:""
+  ].join("");
   const input={
-    title:String(product.title),
-    descriptionHtml:`<p>${String(product.problemSolved||product.pdpBullets?.join(". ")||"Product candidate from Product Hunter AI").replace(/[<>]/g,"")}</p>`,
+    title:String(kit.title||product.title),
+    descriptionHtml,
     productType:String(product.category||""),
     vendor:"Product Hunter AI",
     status:"DRAFT",
     tags:["product-hunter",product.trendStatus,product.dataConfidence&&`confidence-${String(product.dataConfidence).toLowerCase()}`].filter(Boolean),
     seo:{
-      title:String(product.title).slice(0,70),
-      description:String(product.hook||product.problemSolved||"").slice(0,320)
+      title:String(kit.seoTitle||kit.title||product.title).slice(0,70),
+      description:String(kit.metaDescription||product.hook||product.problemSolved||"").slice(0,320)
     }
   };
   const query=`mutation ProductHunterCreate($product: ProductCreateInput!) {
@@ -43,7 +52,8 @@ export async function createShopifyDraft(product={}){
   if(!created) throw new Error("Shopify did not return a created product");
 
   const variantId=created.variants?.nodes?.[0]?.id;
-  const price=Number(product.estSellPriceUsd)||0;
+  const price=Number(kit.pricing?.recommended ?? product.estSellPriceUsd)||0;
+  const compareAt=Number(kit.pricing?.compareAt ?? product.compareAtPriceUsd)||0;
   if(variantId&&price>0){
     const updateQuery=`mutation ProductHunterPrice($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
       productVariantsBulkUpdate(productId: $productId, variants: $variants) {
@@ -57,7 +67,7 @@ export async function createShopifyDraft(product={}){
       body:JSON.stringify({query:updateQuery,variables:{productId:created.id,variants:[{
         id:variantId,
         price:Number(price.toFixed(2)),
-        ...(Number(product.compareAtPriceUsd)>price ? {compareAtPrice:Number(Number(product.compareAtPriceUsd).toFixed(2))} : {})
+        ...(compareAt>price ? {compareAtPrice:Number(compareAt.toFixed(2))} : {})
       }]}})
     });
     const priceBody=await priceRes.json().catch(()=>({}));
@@ -65,5 +75,5 @@ export async function createShopifyDraft(product={}){
     if(!priceRes.ok||priceErrors.length) throw new Error(priceErrors.map(x=>x.message).join("; ")||`Shopify price update failed (${priceRes.status})`);
     created.variants={nodes:priceBody?.data?.productVariantsBulkUpdate?.productVariants||created.variants.nodes};
   }
-  return {ok:true,product:created,store:c.store,note:"Created as DRAFT with selling price set. Review inventory, images and variants before publishing."};
+  return {ok:true,product:created,store:c.store,note:"Created as DRAFT with launch copy and pricing when available. Review inventory, image licensing, supplier variant mapping and claims before publishing."};
 }

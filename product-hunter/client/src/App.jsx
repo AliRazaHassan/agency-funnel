@@ -230,7 +230,7 @@ export default function App() {
     refreshAuth();
   }, []);
 
-  async function runScout() {
+  async function runScoutForHint(hint) {
     setError("");
     setLoading("scout");
     setHunt(null);
@@ -243,16 +243,28 @@ export default function App() {
         body: {
           regionFocus,
           budget: budget ? Number(budget) : undefined,
-          nicheHint: nicheHint || undefined,
+          nicheHint: hint || undefined,
         },
       });
       setScout(data);
+      setView("desk");
     } catch (e) {
       if (e.needLogin) refreshAuth();
       setError(e.message);
     } finally {
       setLoading("");
     }
+  }
+
+  async function runScout() {
+    return runScoutForHint(nicheHint);
+  }
+
+  async function startSeasonalSearch(event) {
+    const hint = [event?.name, ...(event?.themes || []).slice(0, 5)].filter(Boolean).join(" · ");
+    setNicheHint(hint);
+    setView("desk");
+    await runScoutForHint(hint);
   }
 
   async function runHunt(opp) {
@@ -473,6 +485,8 @@ export default function App() {
             setView("desk");
           }}
           onOpenProject={openProject}
+          onSeasonalSearch={startSeasonalSearch}
+          region={regionFocus}
         />
       ) : null}
 
@@ -504,7 +518,10 @@ export default function App() {
                   <article className="radar-card" key={p.id} data-ai-product-id={p.id}>
                     <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.isTopPick ? `Top pick #${p.winnerRank}` : (p.winnerDecision?.label||"Validate")}</span><span className="confidence">Trend {p.dataConfidence||"LOW"} · Evidence {p.winnerDecision?.components?.confidence??"—"}/100</span></div>
                     <div className="lifecycle-line"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><strong>{p.winnerDecision?.score??"—"}/100 winner score</strong></div>
-                    <h3>{p.title}</h3><p className="muted">{p.category}</p>
+                    <div className="radar-product-head">
+                      {p.image?.url ? <img className="product-image radar-image" src={p.image.url} alt={p.title} loading="lazy" /> : <div className="product-image placeholder">No image</div>}
+                      <div><h3>{p.title}</h3><p className="muted">{p.category}</p>{p.seasonalFit ? <span className="seasonal-fit">🎯 {p.seasonalFit.eventName} · fit {p.seasonalFit.score}/100 · {p.seasonalFit.daysAway}d</span> : null}</div>
+                    </div>
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).filter(([k])=>["amazon","tiktok","meta","google"].includes(k)).map(([k,v])=><span key={k}><em>{k}<small className={`source-status ${String(p.dataStatus?.[k]||"UNAVAILABLE").toLowerCase()}`}>{p.dataStatus?.[k]||"UNAVAILABLE"}</small></em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Top Pick #${p.winnerRank} · ${p.winnerDecision?.label||"Validate"}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.isTopPick ? p.topPickReason : p.winnerDecision?.reason}</p></div>
@@ -914,6 +931,7 @@ export default function App() {
                         <th>#</th>
                         <th>Rule gate</th>
                         <th>Trend</th>
+                        <th>Image</th>
                         <th>Product</th>
                         <th>Buy cost</th>
                         <th>Sell</th>
@@ -948,12 +966,16 @@ export default function App() {
                             <strong>{p.trendScore ?? "—"}</strong>
                             <div className="prod-cat">{p.trendStatus || "DISCOVERED"} · {p.dataConfidence || "LOW"} confidence</div>
                           </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            {p.image?.url ? <a href={p.image.sourceUrl || p.image.url} target="_blank" rel="noreferrer"><img className="product-thumb" src={p.image.url} alt={p.title} loading="lazy" /></a> : <div className="product-thumb placeholder">—</div>}
+                          </td>
                           <td>
                             <div className="prod-title">{p.title}</div>
                             <div className="prod-cat">{p.category}</div>
                             {p.problemSolved ? (
                               <div className="prod-problem">Solves: {p.problemSolved}</div>
                             ) : null}
+                            {p.seasonalFit ? <div className="seasonal-fit compact">🎯 {p.seasonalFit.eventName} · {p.seasonalFit.score}/100</div> : null}
                             {p.rejected ? <span className="gate">Gate fail</span> : null}
                           </td>
                           <td>

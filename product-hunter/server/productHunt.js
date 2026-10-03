@@ -10,6 +10,7 @@ import { getHistory } from "./researchStore.js";
 import { attachProductImages } from "./imageResolver.js";
 import { scoreSeasonalFit } from "./seasonal.js";
 import { buildLaunchIntelligence } from "./launchIntelligence.js";
+import { discoverProductsLive } from "./liveDiscovery.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -193,13 +194,20 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     };
   }
 
-  let raw = await aiProducts(opportunity, target);
-  let source = "openai";
+  let discovery = await discoverProductsLive({
+    opportunity,
+    regionFocus: opportunity.sellWhere?.geos?.[0] || "Global",
+    query: opportunity.niche,
+    limit: target
+  });
+  let raw = discovery.products || [];
+  let source = raw.length ? "live-evidence" : "openai";
+  if (!raw?.length) raw = await aiProducts(opportunity, target);
   if (!raw?.length) {
-    source = "seed";
+    source = "seed-emergency-fallback";
     raw = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
-  } else if (raw.length < target) {
-    // Pad AI shortfalls with expanded seeds
+  } else if (raw.length < target && source !== "live-evidence") {
+    // Pad non-live generation shortfalls only; live discovery never gets seed padding
     const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
     const seen = new Set(raw.map((p) => String(p.title || "").toLowerCase()));
     for (const p of pad) {
@@ -214,7 +222,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
 
   raw = dedupeProductCandidates(raw);
   const uniqueTitles = new Set(raw.map(p=>String(p.title).toLowerCase()));
-  if (raw.length < target) {
+  if (raw.length < target && !String(source).startsWith("live-evidence")) {
     const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
     for (const p of pad) {
       if (raw.length >= target) break;
@@ -306,6 +314,12 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     winnerSummary: summarizeFinalWinners(ranked),
     keepa: keepaStatus(),
     seasonalEvent: opportunity.seasonalEvent || null,
+    discovery: {
+      engine: discovery?.engine || "fallback",
+      generatedAt: discovery?.generatedAt || new Date().toISOString(),
+      observed: discovery?.observed || null,
+      honesty: discovery?.honesty || "Fallback generation was used."
+    },
     products: ranked,
   };
 }

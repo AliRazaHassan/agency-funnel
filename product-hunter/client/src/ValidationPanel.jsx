@@ -3,7 +3,7 @@ import { api } from "./api.js";
 
 const STATUS_ORDER=["NEEDS_DATA","READY_TO_TEST","TESTING","VALIDATED"];
 const EMPTY_TEST={spendUsd:"",impressions:"",clicks:"",addToCarts:"",purchases:"",revenueUsd:""};
-const EMPTY_SUPPLIER={source:"",landedCostUsd:"",shippingDays:"",productUrl:""};
+const EMPTY_SUPPLIER={source:"",itemCostUsd:"",shippingCostUsd:"",landedCostUsd:"",shippingDays:"",productUrl:"",rating:"",orderCount:"",supplierAgeYears:"",variants:"",warehouse:"",moq:""};
 
 export function ValidationPanel({ product, open, onClose, onStatusChange }) {
   const [data,setData]=useState(null);
@@ -70,9 +70,17 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
         method:"POST",
         body:{
           source:supplierForm.source.trim(),
-          landedCostUsd:Number(supplierForm.landedCostUsd),
+          itemCostUsd:supplierForm.itemCostUsd===""?null:Number(supplierForm.itemCostUsd),
+          shippingCostUsd:supplierForm.shippingCostUsd===""?null:Number(supplierForm.shippingCostUsd),
+          landedCostUsd:supplierForm.landedCostUsd===""?null:Number(supplierForm.landedCostUsd),
           shippingDays:Number(supplierForm.shippingDays),
-          productUrl:supplierForm.productUrl.trim()
+          productUrl:supplierForm.productUrl.trim(),
+          rating:supplierForm.rating===""?null:Number(supplierForm.rating),
+          orderCount:supplierForm.orderCount===""?null:Number(supplierForm.orderCount),
+          supplierAgeYears:supplierForm.supplierAgeYears===""?null:Number(supplierForm.supplierAgeYears),
+          variants:supplierForm.variants.trim(),
+          warehouse:supplierForm.warehouse.trim(),
+          moq:supplierForm.moq===""?null:Number(supplierForm.moq)
         }
       });
       setSupplier(saved.verification);
@@ -153,16 +161,32 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
             {supplier?.verified ? <span className="proof-pill">Verified</span> : <span className="proof-pill pending">Estimate only</span>}
           </div>
           {supplier?.verified ? <div className="history-grid">
+            <div><b>{"$"+Number(supplier.itemCostUsd??0).toFixed(2)}</b><span>Item cost</span></div>
+            <div><b>{"$"+Number(supplier.shippingCostUsd??0).toFixed(2)}</b><span>Shipping cost</span></div>
             <div><b>{"$"+Number(supplier.landedCostUsd).toFixed(2)}</b><span>Landed cost</span></div>
-            <div><b>{supplier.shippingDays}d</b><span>Shipping</span></div>
+            <div><b>{supplier.shippingDays}d</b><span>Shipping days</span></div>
+            <div><b>{supplier.moq??"—"}</b><span>MOQ</span></div>
+            <div><b>{supplier.rating??"—"}</b><span>Rating</span></div>
+            <div><b>{supplier.orderCount??"—"}</b><span>Orders</span></div>
+            <div><b>{supplier.supplierAgeYears!=null?supplier.supplierAgeYears+"y":"—"}</b><span>Supplier age</span></div>
+            <div><b>{supplier.variants||"—"}</b><span>Variants</span></div>
+            <div><b>{supplier.warehouse||"—"}</b><span>Warehouse</span></div>
             <div><b>{Number(supplier.marginPct).toFixed(1)}%</b><span>Verified margin</span></div>
             <div><b>{"$"+Number(supplier.contributionUsd).toFixed(2)}</b><span>Break-even CPA</span></div>
           </div> : <p className="muted">Enter a real supplier quote. “Validated” stays locked until landed cost passes the 50% margin / $8 contribution gate.</p>}
           <form className="ad-test-form" onSubmit={saveSupplier}>
-            <label><span>Supplier source</span><input value={supplierForm.source} onChange={e=>setSupplierForm({...supplierForm,source:e.target.value})} placeholder="CJ / AutoDS / AliExpress seller" required /></label>
-            <label><span>Landed cost $</span><input type="number" min="0.01" step="0.01" value={supplierForm.landedCostUsd} onChange={e=>setSupplierForm({...supplierForm,landedCostUsd:e.target.value})} required /></label>
+            <label><span>Supplier source</span><input value={supplierForm.source} onChange={e=>setSupplierForm({...supplierForm,source:e.target.value})} placeholder="Alibaba / CJ / AutoDS / AliExpress" required /></label>
+            <label><span>Item cost $</span><input type="number" min="0" step="0.01" value={supplierForm.itemCostUsd} onChange={e=>setSupplierForm({...supplierForm,itemCostUsd:e.target.value})} /></label>
+            <label><span>Shipping cost $</span><input type="number" min="0" step="0.01" value={supplierForm.shippingCostUsd} onChange={e=>setSupplierForm({...supplierForm,shippingCostUsd:e.target.value})} /></label>
+            <label><span>Landed cost $</span><input type="number" min="0.01" step="0.01" value={supplierForm.landedCostUsd} onChange={e=>setSupplierForm({...supplierForm,landedCostUsd:e.target.value})} placeholder="Optional if item + shipping entered" /></label>
             <label><span>Shipping days</span><input type="number" min="1" max="90" step="1" value={supplierForm.shippingDays} onChange={e=>setSupplierForm({...supplierForm,shippingDays:e.target.value})} required /></label>
-            <label><span>Product URL (optional)</span><input value={supplierForm.productUrl} onChange={e=>setSupplierForm({...supplierForm,productUrl:e.target.value})} placeholder="Supplier product URL" /></label>
+            <label><span>MOQ</span><input type="number" min="1" step="1" value={supplierForm.moq} onChange={e=>setSupplierForm({...supplierForm,moq:e.target.value})} /></label>
+            <label><span>Rating</span><input type="number" min="0" max="5" step="0.1" value={supplierForm.rating} onChange={e=>setSupplierForm({...supplierForm,rating:e.target.value})} /></label>
+            <label><span>Order count</span><input type="number" min="0" step="1" value={supplierForm.orderCount} onChange={e=>setSupplierForm({...supplierForm,orderCount:e.target.value})} /></label>
+            <label><span>Supplier age (years)</span><input type="number" min="0" step="0.1" value={supplierForm.supplierAgeYears} onChange={e=>setSupplierForm({...supplierForm,supplierAgeYears:e.target.value})} /></label>
+            <label><span>Variants</span><input value={supplierForm.variants} onChange={e=>setSupplierForm({...supplierForm,variants:e.target.value})} placeholder="3 colors / 4 sizes" /></label>
+            <label><span>Warehouse</span><input value={supplierForm.warehouse} onChange={e=>setSupplierForm({...supplierForm,warehouse:e.target.value})} placeholder="US / EU / CN" /></label>
+            <label><span>Product URL</span><input value={supplierForm.productUrl} onChange={e=>setSupplierForm({...supplierForm,productUrl:e.target.value})} placeholder="Supplier product URL" /></label>
             <button className="btn" type="submit" disabled={savingSupplier}>{savingSupplier?"Verifying…":"Save verified supplier quote"}</button>
           </form>
           {supplier?.verified&&!supplier.economicsPass ? <p className="test-recommendation">Supplier quote is verified, but economics fail the safety gate. Do not scale this product.</p> : null}

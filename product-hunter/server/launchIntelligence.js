@@ -19,9 +19,15 @@ export function buildLaunchIntelligence(product = {}, opportunity = {}) {
   const enc = q(title);
   const seasonal = product.seasonalFit || null;
 
+  const observations = product.discoveryEvidence?.referencedObservations || [];
+  const metaObserved = observations.filter((x)=>x.platform==="meta").map((x)=>({seller:x.metric?.replace(/^Active ads · page\s*/i,"") || x.title, creative:x.title, status:x.status, url:x.url})).slice(0,8);
+  const tiktokObserved = observations.filter((x)=>x.platform==="tiktok").map((x)=>({seller:x.category || "TikTok observation", creative:x.title, status:x.status, url:x.url})).slice(0,8);
   const competitorIntel = {
-    status: "RESEARCH_LINKS",
-    note: "Search links are live. Counts/prices are not claimed until verified from the destination.",
+    status: metaObserved.length || tiktokObserved.length ? "OBSERVED_PARTIAL" : "RESEARCH_LINKS",
+    note: metaObserved.length || tiktokObserved.length
+      ? "Observed social-ad evidence is shown below. Amazon/Shopify seller counts remain unclaimed until a product-level provider is connected."
+      : "Search links are live. Counts/prices are not claimed until verified from the destination.",
+    observed: { metaAdvertisers: metaObserved, tiktokCreatives: tiktokObserved },
     searches: [
       { id:"amazon", label:"Amazon competitors", url:`https://www.amazon.com/s?k=${enc}` },
       { id:"google", label:"Google Shopping", url:`https://www.google.com/search?tbm=shop&q=${enc}` },

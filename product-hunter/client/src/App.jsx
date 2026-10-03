@@ -4,6 +4,7 @@ import { api, downloadBlob } from "./api.js";
 import { Onboarding, HomeView, SettingsView } from "./Shell.jsx";
 import { Concierge } from "./Concierge.jsx";
 import { ValidationPanel } from "./ValidationPanel.jsx";
+import { OpportunityFinder, WinnerBoard, EvidencePanel, HistoryPanel, UnitEconomicsSimulator, WatchAlerts, LaunchKitPanel } from "./V4Views.jsx";
 
 function actionLabel(url = "") {
   if (url.includes("/market/scout")) return "Researching markets";
@@ -124,13 +125,14 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [watchIds, setWatchIds] = useState(() => new Set(JSON.parse(localStorage.getItem("ph_watchlist") || "[]")));
   const [watchOnly, setWatchOnly] = useState(false);
+  const [aiFilters, setAiFilters] = useState({});
   const [loading, setLoading] = useState("");
   const [trendFilter, setTrendFilter] = useState("ALL");
   const [radarQuery, setRadarQuery] = useState("");
   const [radarMarket, setRadarMarket] = useState("ALL");
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
-  const [view, setView] = useState("home"); // home | desk | settings
+  const [view, setView] = useState("home"); // home | desk | radar | winners | validate | test | launch | settings
   const [projectId, setProjectId] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => localStorage.getItem("sd_onboarded") !== "1"
@@ -159,9 +161,17 @@ export default function App() {
       const winOk = winFilter === "ALL" || p.winning?.verdict === winFilter;
       const trendOk = trendFilter === "ALL" || p.trendStatus === trendFilter;
       const watchOk = !watchOnly || watchIds.has(p.id);
-      return winOk && trendOk && watchOk;
+      const cost = Number(p.supplierVerification?.landedCostUsd ?? p.supplierOptions?.[0]?.landedCostUsd ?? p.estCostUsd);
+      const costOk = aiFilters.maxCost == null || cost <= Number(aiFilters.maxCost);
+      const marginOk = aiFilters.minMargin == null || Number(p.marginPct) >= Number(aiFilters.minMargin);
+      const comp = Number(p.winnerDecision?.components?.competition ?? p.pillars?.competitionEase ?? 0);
+      const compOk = aiFilters.minCompetitionEase == null || comp >= Number(aiFilters.minCompetitionEase);
+      const lifecycleOk = !(aiFilters.excludeLifecycle || []).includes(p.trendStatus);
+      const riskText = (p.riskFlags || []).join(" ").toLowerCase();
+      const riskOk = !(aiFilters.excludeRisk || []).some((x) => riskText.includes(String(x).toLowerCase()));
+      return winOk && trendOk && watchOk && costOk && marginOk && compOk && lifecycleOk && riskOk;
     });
-  }, [hunt, winFilter, trendFilter, watchOnly, watchIds]);
+  }, [hunt, winFilter, trendFilter, watchOnly, watchIds, aiFilters]);
 
   async function refreshAuth() {
     try {
@@ -261,6 +271,40 @@ export default function App() {
 
   async function runScout() {
     return runScoutForHint(nicheHint);
+  }
+
+  async function runFullDiscovery(query) {
+    setError("");
+    setLoading("hunt");
+    setNicheHint(query || "");
+    setSelectedIds(new Set());
+    setSelectedProduct(null);
+    setAiFilters({});
+    try {
+      const data = await api("/api/discovery/full", {
+        method: "POST",
+        body: {
+          regionFocus,
+          budget: budget ? Number(budget) : undefined,
+          query: query || nicheHint || undefined,
+          limit: 50
+        }
+      });
+      setScout(data.scout || null);
+      setSelectedOpp(data.selectedOpp || null);
+      setHunt(data.hunt || null);
+      const products = data.hunt?.products || [];
+      const winners = products.filter((p) => p.winning?.verdict === "PASS" || p.winnerDecision?.verdict === "STRONG_CANDIDATE");
+      const pool = winners.length ? winners : products.filter((p)=>!p.rejected);
+      setSelectedIds(new Set(pool.slice(0,20).map((p)=>p.id)));
+      setSelectedProduct(pool[0] || products[0] || null);
+      setView("winners");
+    } catch (e) {
+      if (e.needLogin) refreshAuth();
+      setError(e.message);
+    } finally {
+      setLoading("");
+    }
   }
 
   async function startSeasonalSearch(event) {
@@ -431,7 +475,7 @@ export default function App() {
     if (action.type === "discover" && action.hint) {
       setNicheHint(action.hint);
       setView("desk");
-      await runScoutForHint(action.hint);
+      await runFullDiscovery(action.hint);
       return;
     }
     if (action.type === "show_watchlist") {
@@ -442,7 +486,22 @@ export default function App() {
     if (action.type === "show_winners") {
       setWatchOnly(false);
       setWinFilter("PASS");
-      setView(hunt?.products?.length ? "desk" : "radar");
+      setView("winners");
+      return;
+    }
+    if (action.type === "apply_filters") {
+      setAiFilters(action.filters || {});
+      setWatchOnly(false);
+      setView("winners");
+      return;
+    }
+  }
+
+  function openTrackedAlert(productId) {
+    const p = (hunt?.products || []).find((x) => String(x.id) === String(productId));
+    if (p) {
+      setSelectedProduct(p);
+      setView("validate");
     }
   }
 
@@ -482,23 +541,15 @@ export default function App() {
           </h1>
           <p className="tagline">Trend intelligence · evidence → momentum → profit → Shopify</p>
         </div>
-        <nav className="top-nav">
-          <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>
-            Home
-          </button>
-          <button type="button" className={view === "radar" ? "nav-on" : ""} onClick={() => setView("radar")}>
-            Product Radar
-          </button>
-          <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}>
-            Discover
-          </button>
-          <button
-            type="button"
-            className={view === "settings" ? "nav-on" : ""}
-            onClick={() => setView("settings")}
-          >
-            Settings
-          </button>
+        <nav className="top-nav workflow-nav">
+          <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>Home</button>
+          <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}><span>1</span>Discover</button>
+          <button type="button" className={view === "radar" ? "nav-on" : ""} onClick={() => setView("radar")}><span>2</span>Radar</button>
+          <button type="button" className={view === "validate" ? "nav-on" : ""} onClick={() => setView("validate")}><span>3</span>Validate</button>
+          <button type="button" className={view === "test" ? "nav-on" : ""} onClick={() => setView("test")}><span>4</span>Test</button>
+          <button type="button" className={view === "launch" ? "nav-on" : ""} onClick={() => setView("launch")}><span>5</span>Launch</button>
+          <button type="button" className={view === "winners" ? "nav-on" : ""} onClick={() => setView("winners")}>Winners</button>
+          <button type="button" className={view === "settings" ? "nav-on" : ""} onClick={() => setView("settings")}>Settings</button>
         </nav>
         <div className="top-actions">
           {auth.required ? (
@@ -539,11 +590,11 @@ export default function App() {
               <div className="radar-kpis">
                 <div><b>{radarProducts.length}</b><span>Products</span></div>
                 <div><b>{radarProducts.filter(p=>p.isTopPick).length}</b><span>Top picks</span></div>
-                <div><b>{radarProducts.filter(p=>["EMERGING","DISCOVERED"].includes(p.trendStatus)).length}</b><span>Early opportunities</span></div>
+                <div><b>{radarProducts.filter(p=>["EARLY","EMERGING","ACCELERATING"].includes(p.trendStatus)).length}</b><span>Early opportunities</span></div>
                 <div><b>{radarProducts.filter(p=>p.trendStatus==="SATURATING"||p.saturation?.risk==="HIGH").length}</b><span>Saturation risks</span></div>
               </div>
               <div className="lifecycle-tabs">
-                {["ALL","ACCELERATING","EMERGING","STABLE","SATURATING","DECLINING"].map(s=><button key={s} className={trendFilter===s?"on":""} onClick={()=>setTrendFilter(s)}>{s}</button>)}
+                {["ALL","EARLY","EMERGING","ACCELERATING","PEAK","STABLE","SATURATING","DECLINING"].map(s=><button key={s} className={trendFilter===s?"on":""} onClick={()=>setTrendFilter(s)}>{s}</button>)}
               </div>
               <div className="radar-grid">
                 {radarProducts.filter(p=>trendFilter==="ALL"||p.trendStatus===trendFilter).map(p=>(
@@ -557,7 +608,7 @@ export default function App() {
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).filter(([k])=>["amazon","tiktok","meta","google"].includes(k)).map(([k,v])=><span key={k}><em>{k}<small className={`source-status ${String(p.dataStatus?.[k]||"UNAVAILABLE").toLowerCase()}`}>{p.dataStatus?.[k]||"UNAVAILABLE"}</small></em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Top Pick #${p.winnerRank} · ${p.winnerDecision?.label||"Validate"}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.isTopPick ? p.topPickReason : p.winnerDecision?.reason}</p></div>
-                    <div className="radar-actions"><button className={watchIds.has(p.id) ? "watch-btn on" : "watch-btn"} onClick={()=>toggleWatch(p.id)}>{watchIds.has(p.id) ? "★ Watching" : "☆ Watch"}</button><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
+                    <div className="radar-actions"><button className={watchIds.has(p.id) ? "watch-btn on" : "watch-btn"} onClick={()=>toggleWatch(p.id)}>{watchIds.has(p.id) ? "★ Watching" : "☆ Watch"}</button><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("validate")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
                   </article>
                 ))}
               </div>
@@ -592,7 +643,10 @@ export default function App() {
       />
 
       {view === "desk" ? (
-
+      <>
+      <div className="v4-discover-top">
+        <OpportunityFinder onFind={runFullDiscovery} busy={loading === "hunt" || loading === "scout"} />
+      </div>
       <div className="layout">
         <aside className="side">
           <ol className="steps">
@@ -868,7 +922,7 @@ export default function App() {
                   </p>
                   <div className="win-summary" style={{ marginTop: "0.5rem" }}>
                     <button type="button" className={`win-chip ${watchOnly ? "on" : ""}`} onClick={() => setWatchOnly((v) => !v)}>★ Watchlist {watchIds.size}</button>
-                    {["ALL","ACCELERATING","EMERGING","STABLE","DECLINING","SATURATING"].map((status) => (
+                    {["ALL","EARLY","EMERGING","ACCELERATING","PEAK","STABLE","SATURATING","DECLINING"].map((status) => (
                       <button key={status} type="button" className={`win-chip ${trendFilter === status ? "on" : ""}`} onClick={() => setTrendFilter(status)}>
                         {status === "ALL" ? "All trends" : status}
                       </button>
@@ -1064,6 +1118,50 @@ export default function App() {
           ) : null}
         </section>
       </div>
+      </>
+      ) : null}
+
+      {view === "winners" ? (
+        <WinnerBoard
+          products={hunt?.products || []}
+          externalFilters={aiFilters}
+          watchIds={watchIds}
+          onWatch={toggleWatch}
+          onOpen={(p)=>{setSelectedProduct(p);setView("validate")}}
+          onValidate={(p)=>{setValidationProduct(p);setValidationOpen(true)}}
+          onShopify={addToShopify}
+        />
+      ) : null}
+
+      {view === "validate" ? (
+        <main className="stage-page">
+          <div className="stage-hero"><div className="hero-kicker">03 · VALIDATE</div><h2>Evidence, supplier and economics.</h2><p>Select a product in Radar/Winners, then prove the inputs before spending.</p></div>
+          {!selectedProduct ? <div className="radar-empty"><h3>Select a product first.</h3><button className="btn" onClick={()=>setView("winners")}>Open Winners</button></div> : <>
+            <ProductDetailPanel product={selectedProduct} onClose={()=>setSelectedProduct(null)} />
+            <EvidencePanel product={selectedProduct} />
+            <UnitEconomicsSimulator product={selectedProduct} />
+            <div className="stage-actions"><button className="btn" onClick={()=>{setValidationProduct(selectedProduct);setValidationOpen(true)}}>Open validation workflow</button><button className="ghost" onClick={()=>setView("test")}>Continue to Test →</button></div>
+          </>}
+        </main>
+      ) : null}
+
+      {view === "test" ? (
+        <main className="stage-page">
+          <div className="stage-hero"><div className="hero-kicker">04 · TEST</div><h2>Track proof over time.</h2><p>History + ad-test feedback decide whether a candidate deserves more spend.</p></div>
+          {!selectedProduct ? <div className="radar-empty"><h3>Select a product first.</h3><button className="btn" onClick={()=>setView("winners")}>Open Winners</button></div> : <>
+            <HistoryPanel product={selectedProduct} />
+            <WatchAlerts ids={[...watchIds]} onOpen={openTrackedAlert} />
+            <div className="stage-actions"><button className="btn" onClick={()=>{setValidationProduct(selectedProduct);setValidationOpen(true)}}>Record / review test</button><button className="ghost" onClick={()=>setView("launch")}>Continue to Launch →</button></div>
+          </>}
+        </main>
+      ) : null}
+
+      {view === "launch" ? (
+        <main className="stage-page">
+          <div className="stage-hero"><div className="hero-kicker">05 · LAUNCH</div><h2>Turn research into a Shopify-ready offer.</h2><p>Generate legitimate product copy, pricing, SEO and creative assets, then push a draft.</p></div>
+          {!selectedProduct ? <div className="radar-empty"><h3>Select a product first.</h3><button className="btn" onClick={()=>setView("winners")}>Open Winners</button></div> :
+            <LaunchKitPanel product={selectedProduct} onPushShopify={addToShopify} />}
+        </main>
       ) : null}
     </div>
     </>

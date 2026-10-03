@@ -156,14 +156,27 @@ export async function getHistory(productId,days=30){
   const since=new Date(Date.now()-Math.max(1,Number(days)||30)*86400000).toISOString();
   if(pgReady){
     const {rows}=await pgPool.query(
-      `select captured_at as "capturedAt",trend_score as "trendScore",winner_score as "winnerScore",margin_pct as "marginPct",confidence,lifecycle
+      `select captured_at as "capturedAt",trend_score as "trendScore",winner_score as "winnerScore",margin_pct as "marginPct",confidence,lifecycle,payload
        from product_snapshots where product_id=$1 and captured_at >= $2 order by captured_at asc`,
       [String(productId),since]
     );
-    return rows;
+    return rows.map(enrichHistoryRow);
   }
   const db=kvReady ? await readKvStore() : readFileStore();
-  return db.snapshots.filter(x=>String(x.productId)===String(productId)&&x.capturedAt>=since).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
+  return db.snapshots.filter(x=>String(x.productId)===String(productId)&&x.capturedAt>=since).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt)).map(enrichHistoryRow);
+}
+
+function enrichHistoryRow(row={}){
+  const p=row.payload||{};
+  return {
+    ...row,
+    googleDemand:Number(p.trendComponents?.google)||null,
+    amazonDemand:Number(p.trendComponents?.amazon)||null,
+    metaSignal:Number(p.trendComponents?.meta)||null,
+    supplierCost:Number(p.supplierVerification?.landedCostUsd ?? p.supplierOptions?.[0]?.landedCostUsd ?? p.estCostUsd)||null,
+    sellingPrice:Number(p.estSellPriceUsd)||null,
+    competition:Number(p.winnerDecision?.components?.competition ?? p.pillars?.competitionEase)||null
+  };
 }
 
 export async function updateValidationStatus(productId,status,options={}){
@@ -192,7 +205,12 @@ export async function getTrackedProduct(productId){
 }
 
 export function deriveSupplierEconomics(product={},verification={}){
-  const landedCostUsd=Number(verification.landedCostUsd);
+  const itemCostUsd=Number(verification.itemCostUsd);
+  const shippingCostUsd=Number(verification.shippingCostUsd);
+  const explicitLanded=Number(verification.landedCostUsd);
+  const landedCostUsd=Number.isFinite(explicitLanded)&&explicitLanded>0
+    ? explicitLanded
+    : (Number.isFinite(itemCostUsd)&&itemCostUsd>0 ? itemCostUsd + (Number.isFinite(shippingCostUsd)&&shippingCostUsd>=0 ? shippingCostUsd : 0) : NaN);
   const shippingDays=Number(verification.shippingDays);
   const sell=Number(product.estSellPriceUsd)||0;
   if(!Number.isFinite(landedCostUsd)||landedCostUsd<=0) throw new Error("Verified landed cost must be greater than 0");
@@ -201,6 +219,8 @@ export function deriveSupplierEconomics(product={},verification={}){
   const contributionUsd=sell-landedCostUsd;
   const marginPct=contributionUsd/sell*100;
   return {
+    itemCostUsd:Number.isFinite(itemCostUsd)&&itemCostUsd>0?+itemCostUsd.toFixed(2):null,
+    shippingCostUsd:Number.isFinite(shippingCostUsd)&&shippingCostUsd>=0?+shippingCostUsd.toFixed(2):null,
     landedCostUsd:+landedCostUsd.toFixed(2),
     shippingDays:Math.round(shippingDays),
     contributionUsd:+contributionUsd.toFixed(2),
@@ -219,6 +239,12 @@ export async function saveSupplierVerification(productId,input={}){
     verified:true,
     source,
     productUrl:String(input.productUrl||"").trim()||null,
+    rating:Number.isFinite(Number(input.rating))?Number(input.rating):null,
+    orderCount:Number.isFinite(Number(input.orderCount))?Math.max(0,Math.round(Number(input.orderCount))):null,
+    supplierAgeYears:Number.isFinite(Number(input.supplierAgeYears))?Math.max(0,Number(input.supplierAgeYears)):null,
+    variants:String(input.variants||"").trim()||null,
+    warehouse:String(input.warehouse||"").trim()||null,
+    moq:Number.isFinite(Number(input.moq))?Math.max(1,Math.round(Number(input.moq))):null,
     capturedAt:new Date().toISOString(),
     ...economics,
   };

@@ -35,6 +35,12 @@ export function buildProductLinks(product = {}) {
         url: `https://www.aliexpress.com/w/wholesale-${dash}.html`,
       },
       {
+        id: "alibaba",
+        label: "Alibaba",
+        kind: "source",
+        url: `https://www.alibaba.com/trade/search?SearchText=${enc}`,
+      },
+      {
         id: "amazon",
         label: "Amazon",
         kind: "compete",
@@ -135,8 +141,45 @@ export function buildSupplierOptions(product = {}) {
       searchHint: query,
       verifyUrl: `https://www.aliexpress.com/w/wholesale-${dash}.html`,
       dataQuality: "estimate",
+      rating: null,
+      orderCount: null,
+      supplierAgeYears: null,
+      variants: null,
+      moq: 1,
+      shippingCostUsd: null,
+      landedCostUsd: round2(base * 0.92 + (heavy ? 6 : 3)),
     },
-  ];
+    {
+      id: "alibaba",
+      name: "Alibaba",
+      type: "wholesale_marketplace",
+      unitCostUsd: round2(base * 0.78),
+      shippingDaysMin: heavy ? 18 : 12,
+      shippingDaysMax: heavy ? 40 : 30,
+      warehouse: "Factory / CN; local stock varies",
+      includes: "Wholesale estimate; MOQ and freight vary by supplier",
+      searchHint: query,
+      verifyUrl: `https://www.alibaba.com/trade/search?SearchText=${enc}`,
+      dataQuality: "estimate",
+      rating: null,
+      orderCount: null,
+      supplierAgeYears: null,
+      variants: null,
+      moq: 10,
+      shippingCostUsd: null,
+      landedCostUsd: round2(base * 0.78 + (heavy ? 9 : 4.5)),
+    },
+  ].map((o) => ({
+    ...o,
+    rating: o.rating ?? null,
+    orderCount: o.orderCount ?? null,
+    supplierAgeYears: o.supplierAgeYears ?? null,
+    variants: o.variants ?? null,
+    moq: o.moq ?? 1,
+    shippingCostUsd: o.shippingCostUsd ?? null,
+    landedCostUsd: o.landedCostUsd ?? round2(Number(o.unitCostUsd || 0) + (heavy ? 6 : 3)),
+    verificationStatus: "ESTIMATED"
+  }));
 }
 
 export function defaultSourceFrom(product = {}, opportunity = {}) {
@@ -253,7 +296,7 @@ export function opportunityTradeRoutes(opportunity = {}) {
         }
       : {
           primary: "Dropship catalogs (AutoDS / Zendrop / CJ) → import to Shopify",
-          platforms: ["AutoDS", "Zendrop", "CJ Dropshipping", "AliExpress"],
+          platforms: ["AutoDS", "Zendrop", "CJ Dropshipping", "AliExpress", "Alibaba"],
           notes: "Development store products first; connect real supplier SKUs before client handoff",
         },
     sellOfferOn: {

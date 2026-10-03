@@ -115,6 +115,8 @@ export default function App() {
   const [regionFocus, setRegionFocus] = useState("Global");
   const [budget, setBudget] = useState("500");
   const [nicheHint, setNicheHint] = useState("");
+  const [eventFocus, setEventFocus] = useState("auto");
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [scout, setScout] = useState(null);
   const [selectedOpp, setSelectedOpp] = useState(null);
   const [hunt, setHunt] = useState(null);
@@ -230,6 +232,19 @@ export default function App() {
     refreshAuth();
   }, []);
 
+  useEffect(() => {
+    if (auth.required && !auth.authenticated) return;
+    let cancelled = false;
+    api(`/api/events/upcoming?regionFocus=${encodeURIComponent(regionFocus)}`)
+      .then((data) => {
+        if (!cancelled) setUpcomingEvents(data.events || []);
+      })
+      .catch(() => {
+        if (!cancelled) setUpcomingEvents([]);
+      });
+    return () => { cancelled = true; };
+  }, [regionFocus, auth.required, auth.authenticated]);
+
   async function runScout() {
     setError("");
     setLoading("scout");
@@ -244,6 +259,7 @@ export default function App() {
           regionFocus,
           budget: budget ? Number(budget) : undefined,
           nicheHint: nicheHint || undefined,
+          eventFocus,
         },
       });
       setScout(data);
@@ -353,6 +369,7 @@ export default function App() {
           regionFocus,
           budget,
           nicheHint,
+          eventFocus,
           scout,
           selectedOpp,
           hunt,
@@ -377,6 +394,8 @@ export default function App() {
       setRegionFocus(p.regionFocus || "Global");
       setBudget(p.budget != null ? String(p.budget) : "500");
       setNicheHint(p.nicheHint || "");
+      setEventFocus(p.eventFocus || p.scout?.eventFocus || "auto");
+      setUpcomingEvents(p.scout?.upcomingEvents || []);
       setScout(p.scout || null);
       setSelectedOpp(p.selectedOpp || null);
       setHunt(p.hunt || null);
@@ -504,6 +523,10 @@ export default function App() {
                   <article className="radar-card" key={p.id} data-ai-product-id={p.id}>
                     <div className="radar-card-top"><span className={`winner-pill ${String(p.winnerDecision?.verdict||"validate").toLowerCase()}`}>{p.isTopPick ? `Top pick #${p.winnerRank}` : (p.winnerDecision?.label||"Validate")}</span><span className="confidence">Trend {p.dataConfidence||"LOW"} · Evidence {p.winnerDecision?.components?.confidence??"—"}/100</span></div>
                     <div className="lifecycle-line"><span className={`lifecycle ${String(p.trendStatus||"discovered").toLowerCase()}`}>{p.trendStatus||"DISCOVERED"}</span><strong>{p.winnerDecision?.score??"—"}/100 winner score</strong></div>
+                    <div className="product-card-media">
+                      <img src={p.imageUrl} alt={p.title} loading="lazy" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                      {p.eventFit ? <span className="event-badge">{p.eventFit.eventName} · {p.eventFit.score}/100</span> : null}
+                    </div>
                     <h3>{p.title}</h3><p className="muted">{p.category}</p>
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).filter(([k])=>["amazon","tiktok","meta","google"].includes(k)).map(([k,v])=><span key={k}><em>{k}<small className={`source-status ${String(p.dataStatus?.[k]||"UNAVAILABLE").toLowerCase()}`}>{p.dataStatus?.[k]||"UNAVAILABLE"}</small></em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
@@ -588,6 +611,17 @@ export default function App() {
             <input value={budget} onChange={(e) => setBudget(e.target.value)} />
           </label>
           <label className="field">
+            <span>Upcoming event</span>
+            <select value={eventFocus} onChange={(e) => setEventFocus(e.target.value)}>
+              <option value="auto">Auto · nearest opportunity</option>
+              {upcomingEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.emoji} {event.name} · {event.daysUntil}d · {event.phase}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             <span>Niche hint</span>
             <input
               value={nicheHint}
@@ -640,6 +674,40 @@ export default function App() {
                   selectedOpp={selectedOpp}
                   keepa={hunt?.keepa || scout.keepa}
                 />
+{(scout.upcomingEvents || upcomingEvents).length ? (
+                  <div className="event-opportunity-strip">
+                    <div className="section-head">
+                      <div>
+                        <h2>Upcoming commerce events</h2>
+                        <p>Product Hunter automatically searches seasonal demand windows before they peak.</p>
+                      </div>
+                    </div>
+                    <div className="event-grid">
+                      {(scout.upcomingEvents || upcomingEvents).slice(0,6).map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          className={`event-card ${eventFocus === event.id || scout.activeEvent?.id === event.id ? "active" : ""}`}
+                          onClick={() => {
+                            setEventFocus(event.id);
+                            setNicheHint(event.searchHint || event.name);
+                          }}
+                        >
+                          <span className="event-emoji">{event.emoji}</span>
+                          <strong>{event.name}</strong>
+                          <small>{event.daysUntil} days · {event.phase}</small>
+                          <b>{event.opportunityScore}/100 window</b>
+                        </button>
+                      ))}
+                    </div>
+                    {scout.activeEvent ? (
+                      <div className="active-event-note">
+                        <strong>{scout.activeEvent.emoji} Research focus: {scout.activeEvent.name}</strong>
+                        <span>{scout.activeEvent.daysUntil} days away · sourcing and delivery timing included in product generation.</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {scout.socialTrends ? (
                   <SocialTrendsBoard
                     trends={scout.socialTrends}
@@ -914,6 +982,7 @@ export default function App() {
                         <th>#</th>
                         <th>Rule gate</th>
                         <th>Trend</th>
+                        <th>Image</th>
                         <th>Product</th>
                         <th>Buy cost</th>
                         <th>Sell</th>
@@ -948,8 +1017,14 @@ export default function App() {
                             <strong>{p.trendScore ?? "—"}</strong>
                             <div className="prod-cat">{p.trendStatus || "DISCOVERED"} · {p.dataConfidence || "LOW"} confidence</div>
                           </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <div className="table-product-image">
+                              <img src={p.imageUrl} alt="" loading="lazy" onError={(e)=>{e.currentTarget.style.display="none"}} />
+                            </div>
+                          </td>
                           <td>
                             <div className="prod-title">{p.title}</div>
+                            {p.eventFit ? <div className="prod-event">{p.eventFit.eventName} fit {p.eventFit.score}/100 · {p.eventFit.daysUntil}d</div> : null}
                             <div className="prod-cat">{p.category}</div>
                             {p.problemSolved ? (
                               <div className="prod-problem">Solves: {p.problemSolved}</div>

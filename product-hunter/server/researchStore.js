@@ -205,7 +205,12 @@ export async function getTrackedProduct(productId){
 }
 
 export function deriveSupplierEconomics(product={},verification={}){
-  const landedCostUsd=Number(verification.landedCostUsd);
+  const itemCostUsd=Number(verification.itemCostUsd);
+  const shippingCostUsd=Number(verification.shippingCostUsd);
+  const explicitLanded=Number(verification.landedCostUsd);
+  const landedCostUsd=Number.isFinite(explicitLanded)&&explicitLanded>0
+    ? explicitLanded
+    : (Number.isFinite(itemCostUsd)&&itemCostUsd>0 ? itemCostUsd + (Number.isFinite(shippingCostUsd)&&shippingCostUsd>=0 ? shippingCostUsd : 0) : NaN);
   const shippingDays=Number(verification.shippingDays);
   const sell=Number(product.estSellPriceUsd)||0;
   if(!Number.isFinite(landedCostUsd)||landedCostUsd<=0) throw new Error("Verified landed cost must be greater than 0");
@@ -214,6 +219,8 @@ export function deriveSupplierEconomics(product={},verification={}){
   const contributionUsd=sell-landedCostUsd;
   const marginPct=contributionUsd/sell*100;
   return {
+    itemCostUsd:Number.isFinite(itemCostUsd)&&itemCostUsd>0?+itemCostUsd.toFixed(2):null,
+    shippingCostUsd:Number.isFinite(shippingCostUsd)&&shippingCostUsd>=0?+shippingCostUsd.toFixed(2):null,
     landedCostUsd:+landedCostUsd.toFixed(2),
     shippingDays:Math.round(shippingDays),
     contributionUsd:+contributionUsd.toFixed(2),
@@ -232,6 +239,12 @@ export async function saveSupplierVerification(productId,input={}){
     verified:true,
     source,
     productUrl:String(input.productUrl||"").trim()||null,
+    rating:Number.isFinite(Number(input.rating))?Number(input.rating):null,
+    orderCount:Number.isFinite(Number(input.orderCount))?Math.max(0,Math.round(Number(input.orderCount))):null,
+    supplierAgeYears:Number.isFinite(Number(input.supplierAgeYears))?Math.max(0,Number(input.supplierAgeYears)):null,
+    variants:String(input.variants||"").trim()||null,
+    warehouse:String(input.warehouse||"").trim()||null,
+    moq:Number.isFinite(Number(input.moq))?Math.max(1,Math.round(Number(input.moq))):null,
     capturedAt:new Date().toISOString(),
     ...economics,
   };

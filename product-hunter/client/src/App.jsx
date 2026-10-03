@@ -4,6 +4,7 @@ import { api, downloadBlob } from "./api.js";
 import { Onboarding, HomeView, SettingsView } from "./Shell.jsx";
 import { Concierge } from "./Concierge.jsx";
 import { ValidationPanel } from "./ValidationPanel.jsx";
+import { OpportunityFinder, WinnerBoard, EvidencePanel, HistoryPanel, UnitEconomicsSimulator, WatchAlerts, LaunchKitPanel } from "./V4Views.jsx";
 
 function actionLabel(url = "") {
   if (url.includes("/market/scout")) return "Researching markets";
@@ -130,7 +131,7 @@ export default function App() {
   const [radarMarket, setRadarMarket] = useState("ALL");
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
-  const [view, setView] = useState("home"); // home | desk | settings
+  const [view, setView] = useState("home"); // home | desk | radar | winners | validate | test | launch | settings
   const [projectId, setProjectId] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => localStorage.getItem("sd_onboarded") !== "1"
@@ -446,6 +447,14 @@ export default function App() {
     }
   }
 
+  function openTrackedAlert(productId) {
+    const p = (hunt?.products || []).find((x) => String(x.id) === String(productId));
+    if (p) {
+      setSelectedProduct(p);
+      setView("validate");
+    }
+  }
+
   async function logout() {
     await api("/api/auth/logout", { method: "POST", body: {} });
     setScout(null);
@@ -482,23 +491,15 @@ export default function App() {
           </h1>
           <p className="tagline">Trend intelligence · evidence → momentum → profit → Shopify</p>
         </div>
-        <nav className="top-nav">
-          <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>
-            Home
-          </button>
-          <button type="button" className={view === "radar" ? "nav-on" : ""} onClick={() => setView("radar")}>
-            Product Radar
-          </button>
-          <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}>
-            Discover
-          </button>
-          <button
-            type="button"
-            className={view === "settings" ? "nav-on" : ""}
-            onClick={() => setView("settings")}
-          >
-            Settings
-          </button>
+        <nav className="top-nav workflow-nav">
+          <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>Home</button>
+          <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}><span>1</span>Discover</button>
+          <button type="button" className={view === "radar" ? "nav-on" : ""} onClick={() => setView("radar")}><span>2</span>Radar</button>
+          <button type="button" className={view === "validate" ? "nav-on" : ""} onClick={() => setView("validate")}><span>3</span>Validate</button>
+          <button type="button" className={view === "test" ? "nav-on" : ""} onClick={() => setView("test")}><span>4</span>Test</button>
+          <button type="button" className={view === "launch" ? "nav-on" : ""} onClick={() => setView("launch")}><span>5</span>Launch</button>
+          <button type="button" className={view === "winners" ? "nav-on" : ""} onClick={() => setView("winners")}>Winners</button>
+          <button type="button" className={view === "settings" ? "nav-on" : ""} onClick={() => setView("settings")}>Settings</button>
         </nav>
         <div className="top-actions">
           {auth.required ? (
@@ -592,7 +593,10 @@ export default function App() {
       />
 
       {view === "desk" ? (
-
+      <>
+      <div className="v4-discover-top">
+        <OpportunityFinder onFind={runScoutForHint} busy={loading === "scout"} />
+      </div>
       <div className="layout">
         <aside className="side">
           <ol className="steps">
@@ -1064,6 +1068,49 @@ export default function App() {
           ) : null}
         </section>
       </div>
+      </>
+      ) : null}
+
+      {view === "winners" ? (
+        <WinnerBoard
+          products={hunt?.products || []}
+          watchIds={watchIds}
+          onWatch={toggleWatch}
+          onOpen={(p)=>{setSelectedProduct(p);setView("validate")}}
+          onValidate={(p)=>{setValidationProduct(p);setValidationOpen(true)}}
+          onShopify={addToShopify}
+        />
+      ) : null}
+
+      {view === "validate" ? (
+        <main className="stage-page">
+          <div className="stage-hero"><div className="hero-kicker">03 · VALIDATE</div><h2>Evidence, supplier and economics.</h2><p>Select a product in Radar/Winners, then prove the inputs before spending.</p></div>
+          {!selectedProduct ? <div className="radar-empty"><h3>Select a product first.</h3><button className="btn" onClick={()=>setView("winners")}>Open Winners</button></div> : <>
+            <ProductDetailPanel product={selectedProduct} onClose={()=>setSelectedProduct(null)} />
+            <EvidencePanel product={selectedProduct} />
+            <UnitEconomicsSimulator product={selectedProduct} />
+            <div className="stage-actions"><button className="btn" onClick={()=>{setValidationProduct(selectedProduct);setValidationOpen(true)}}>Open validation workflow</button><button className="ghost" onClick={()=>setView("test")}>Continue to Test →</button></div>
+          </>}
+        </main>
+      ) : null}
+
+      {view === "test" ? (
+        <main className="stage-page">
+          <div className="stage-hero"><div className="hero-kicker">04 · TEST</div><h2>Track proof over time.</h2><p>History + ad-test feedback decide whether a candidate deserves more spend.</p></div>
+          {!selectedProduct ? <div className="radar-empty"><h3>Select a product first.</h3><button className="btn" onClick={()=>setView("winners")}>Open Winners</button></div> : <>
+            <HistoryPanel product={selectedProduct} />
+            <WatchAlerts ids={[...watchIds]} onOpen={openTrackedAlert} />
+            <div className="stage-actions"><button className="btn" onClick={()=>{setValidationProduct(selectedProduct);setValidationOpen(true)}}>Record / review test</button><button className="ghost" onClick={()=>setView("launch")}>Continue to Launch →</button></div>
+          </>}
+        </main>
+      ) : null}
+
+      {view === "launch" ? (
+        <main className="stage-page">
+          <div className="stage-hero"><div className="hero-kicker">05 · LAUNCH</div><h2>Turn research into a Shopify-ready offer.</h2><p>Generate legitimate product copy, pricing, SEO and creative assets, then push a draft.</p></div>
+          {!selectedProduct ? <div className="radar-empty"><h3>Select a product first.</h3><button className="btn" onClick={()=>setView("winners")}>Open Winners</button></div> :
+            <LaunchKitPanel product={selectedProduct} onPushShopify={addToShopify} />}
+        </main>
       ) : null}
     </div>
     </>

@@ -273,6 +273,40 @@ export default function App() {
     return runScoutForHint(nicheHint);
   }
 
+  async function runFullDiscovery(query) {
+    setError("");
+    setLoading("hunt");
+    setNicheHint(query || "");
+    setSelectedIds(new Set());
+    setSelectedProduct(null);
+    setAiFilters({});
+    try {
+      const data = await api("/api/discovery/full", {
+        method: "POST",
+        body: {
+          regionFocus,
+          budget: budget ? Number(budget) : undefined,
+          query: query || nicheHint || undefined,
+          limit: 50
+        }
+      });
+      setScout(data.scout || null);
+      setSelectedOpp(data.selectedOpp || null);
+      setHunt(data.hunt || null);
+      const products = data.hunt?.products || [];
+      const winners = products.filter((p) => p.winning?.verdict === "PASS" || p.winnerDecision?.verdict === "STRONG_CANDIDATE");
+      const pool = winners.length ? winners : products.filter((p)=>!p.rejected);
+      setSelectedIds(new Set(pool.slice(0,20).map((p)=>p.id)));
+      setSelectedProduct(pool[0] || products[0] || null);
+      setView("winners");
+    } catch (e) {
+      if (e.needLogin) refreshAuth();
+      setError(e.message);
+    } finally {
+      setLoading("");
+    }
+  }
+
   async function startSeasonalSearch(event) {
     const hint = [event?.name, ...(event?.themes || []).slice(0, 5)].filter(Boolean).join(" · ");
     setNicheHint(hint);
@@ -441,7 +475,7 @@ export default function App() {
     if (action.type === "discover" && action.hint) {
       setNicheHint(action.hint);
       setView("desk");
-      await runScoutForHint(action.hint);
+      await runFullDiscovery(action.hint);
       return;
     }
     if (action.type === "show_watchlist") {
@@ -611,7 +645,7 @@ export default function App() {
       {view === "desk" ? (
       <>
       <div className="v4-discover-top">
-        <OpportunityFinder onFind={runScoutForHint} busy={loading === "scout"} />
+        <OpportunityFinder onFind={runFullDiscovery} busy={loading === "hunt" || loading === "scout"} />
       </div>
       <div className="layout">
         <aside className="side">

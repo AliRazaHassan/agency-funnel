@@ -154,7 +154,10 @@ export default function App() {
     return products.filter((p) => {
       const marketOk = radarMarket === "ALL" || String(p.market || regionFocus).toUpperCase().includes(radarMarket);
       const queryOk = !q || [p.title,p.category,p.problemSolved,p.trendStatus,p.whyTrending?.summary].filter(Boolean).join(" ").toLowerCase().includes(q);
-      const watchOk = !watchOnly || watchIds.has(p.id);\n      return marketOk && queryOk && watchOk;\n    }).sort((a,b) => Number(b.trendScore || 0) - Number(a.trendScore || 0));\n  }, [hunt, radarQuery, radarMarket, regionFocus, watchOnly, watchIds]);
+      const watchOk = !watchOnly || watchIds.has(p.id);
+      return marketOk && queryOk && watchOk;
+    }).sort((a,b) => Number(b.trendScore || 0) - Number(a.trendScore || 0));
+  }, [hunt, radarQuery, radarMarket, regionFocus, watchOnly, watchIds]);
 
   const filteredHuntProducts = useMemo(() => {
     const list = hunt?.products || [];

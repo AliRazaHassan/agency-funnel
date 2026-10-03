@@ -108,10 +108,18 @@ export function UnitEconomicsSimulator({ product }) {
   </div>;
 }
 
-export function WinnerBoard({ products=[], onOpen, onValidate, onShopify, watchIds=new Set(), onWatch }) {
+export function WinnerBoard({ products=[], externalFilters={}, onOpen, onValidate, onShopify, watchIds=new Set(), onWatch }) {
   const [filter,setFilter]=useState("ALL");
   const today=new Date().toISOString().slice(0,10);
   const filtered=products.filter(p=>{
+    const cost=Number(p.supplierVerification?.landedCostUsd ?? p.supplierOptions?.[0]?.landedCostUsd ?? p.estCostUsd);
+    if(externalFilters.maxCost!=null && cost>Number(externalFilters.maxCost))return false;
+    if(externalFilters.minMargin!=null && Number(p.marginPct)<Number(externalFilters.minMargin))return false;
+    const comp=Number(p.winnerDecision?.components?.competition ?? p.pillars?.competitionEase ?? 0);
+    if(externalFilters.minCompetitionEase!=null && comp<Number(externalFilters.minCompetitionEase))return false;
+    if((externalFilters.excludeLifecycle||[]).includes(p.trendStatus))return false;
+    const risk=(p.riskFlags||[]).join(" ").toLowerCase();
+    if((externalFilters.excludeRisk||[]).some(x=>risk.includes(String(x).toLowerCase())))return false;
     if(filter==="ALL")return true;
     if(filter==="NEW")return String(p.discoveredAt||"").startsWith(today);
     if(filter==="EMERGING")return ["EMERGING","ACCELERATING"].includes(p.trendStatus);
@@ -120,10 +128,12 @@ export function WinnerBoard({ products=[], onOpen, onValidate, onShopify, watchI
     if(filter==="SHOPIFY")return !p.rejected && Number(p.marginPct)>=50 && Boolean(p.image?.url);
     if(filter==="TESTED")return ["TESTING","VALIDATED"].includes(p.validationStatus);
     return true;
-  }).sort((a,b)=>Number(b.winnerDecision?.score||0)-Number(a.winnerDecision?.score||0));
+  }).sort((a,b)=>Number(b.winnerDecision?.score||0)-Number(a.winnerDecision?.score||0))
+    .slice(0,externalFilters.limit||products.length);
   const filters=[["ALL","All"],["NEW","New today"],["EMERGING","Emerging"],["MARGIN","High margin"],["LOW_COMP","Low competition"],["SHOPIFY","Shopify ready"],["TESTED","Tested"]];
   return <main className="winner-page">
     <div className="radar-hero"><div><div className="hero-kicker">WINNING PRODUCTS</div><h2>Shortlist decisions, not 50-row homework.</h2><p>Ranked by winner score while preserving evidence quality and lifecycle.</p></div></div>
+    {Object.keys(externalFilters||{}).length?<div className="ai-filter-banner"><strong>AI filters active</strong><span>{JSON.stringify(externalFilters)}</span></div>:null}
     <div className="winner-filters">{filters.map(([k,l])=><button key={k} className={filter===k?"on":""} onClick={()=>setFilter(k)}>{l}</button>)}</div>
     <div className="winner-table-wrap"><table className="winner-table"><thead><tr><th>Watch</th><th>Product</th><th>Score</th><th>Trend</th><th>Margin</th><th>Competition</th><th>Proof</th><th>Actions</th></tr></thead>
       <tbody>{filtered.map(p=><tr key={p.id}>

@@ -1432,3 +1432,20 @@ tr.row-active td {
 @media (max-width: 800px) {
   .toolkit-grid { grid-template-columns: 1fr; }
 }
+
+
+.watch-toggle {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: .65rem .8rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.watch-toggle.on,
+.watch-btn.on {
+  border-color: #c99700;
+  background: #fff8dc;
+  color: #7a5a00;
+}

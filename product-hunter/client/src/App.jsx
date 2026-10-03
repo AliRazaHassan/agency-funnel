@@ -128,6 +128,11 @@ export default function App() {
   const [trendFilter, setTrendFilter] = useState("ALL");
   const [radarQuery, setRadarQuery] = useState("");
   const [radarMarket, setRadarMarket] = useState("ALL");
+  const [watchOnly, setWatchOnly] = useState(false);
+  const [watchIds, setWatchIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("ph_watchlist") || "[]")); }
+    catch { return new Set(); }
+  });
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
   const [view, setView] = useState("home"); // home | desk | settings
@@ -149,9 +154,7 @@ export default function App() {
     return products.filter((p) => {
       const marketOk = radarMarket === "ALL" || String(p.market || regionFocus).toUpperCase().includes(radarMarket);
       const queryOk = !q || [p.title,p.category,p.problemSolved,p.trendStatus,p.whyTrending?.summary].filter(Boolean).join(" ").toLowerCase().includes(q);
-      return marketOk && queryOk;
-    }).sort((a,b) => Number(b.trendScore || 0) - Number(a.trendScore || 0));
-  }, [hunt, radarQuery, radarMarket, regionFocus]);
+      const watchOk = !watchOnly || watchIds.has(p.id);\n      return marketOk && queryOk && watchOk;\n    }).sort((a,b) => Number(b.trendScore || 0) - Number(a.trendScore || 0));\n  }, [hunt, radarQuery, radarMarket, regionFocus, watchOnly, watchIds]);
 
   const filteredHuntProducts = useMemo(() => {
     const list = hunt?.products || [];
@@ -298,6 +301,15 @@ export default function App() {
     } finally {
       setLoading("");
     }
+  }
+
+  function toggleWatch(id) {
+    setWatchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem("ph_watchlist", JSON.stringify([...next]));
+      return next;
+    });
   }
 
   function toggleProduct(id) {
@@ -506,6 +518,7 @@ export default function App() {
             <select value={radarMarket} onChange={(e)=>setRadarMarket(e.target.value)}>
               {["ALL","US","UK","CA","AU","DE","FR"].map(x=><option key={x}>{x}</option>)}
             </select>
+            <button type="button" className={`watch-toggle ${watchOnly ? "on" : ""}`} onClick={()=>setWatchOnly(v=>!v)}>★ Watchlist {watchIds.size}</button>
           </div>
           {!hunt?.products?.length ? <div className="radar-empty"><h3>Your radar is ready.</h3><p>Run Discover once to populate evidence-based product intelligence.</p><button className="btn" style={{width:"auto"}} onClick={()=>setView("desk")}>Start discovery</button></div> : (
             <>
@@ -531,7 +544,7 @@ export default function App() {
                     <div className="score-quads"><div><b>{p.trendScore??"—"}</b><span>Trend</span></div><div><b>{p.winnerDecision?.components?.profit??p.marginPct??"—"}</b><span>Profit</span></div><div><b>{p.winnerDecision?.components?.competition??p.competitionEase??p.pillars?.competitionEase??"—"}</b><span>Competition</span></div><div><b>{p.marginPct??"—"}%</b><span>Margin</span></div></div>
                     <div className="platform-signals">{Object.entries(p.trendComponents||{}).filter(([k])=>["amazon","tiktok","meta","google"].includes(k)).map(([k,v])=><span key={k}><em>{k}<small className={`source-status ${String(p.dataStatus?.[k]||"UNAVAILABLE").toLowerCase()}`}>{p.dataStatus?.[k]||"UNAVAILABLE"}</small></em><b>{Math.round(Number(v)||0)}</b></span>)}</div>
                     <div className="why-mini"><strong>Why trending</strong><p>{p.whyTrending?.summary||"Not enough cross-platform evidence yet."}</p></div><div className="winner-reason"><strong>{p.isTopPick ? `Top Pick #${p.winnerRank} · ${p.winnerDecision?.label||"Validate"}` : `${p.winnerDecision?.verifiedSources||0} verified/recent sources`}</strong><p>{p.isTopPick ? p.topPickReason : p.winnerDecision?.reason}</p></div>
-                    <div className="radar-actions"><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
+                    <div className="radar-actions"><button className={`ghost watch-btn ${watchIds.has(p.id)?"on":""}`} onClick={()=>toggleWatch(p.id)}>{watchIds.has(p.id)?"★ Watching":"☆ Watch"}</button><button className="ghost" onClick={()=>{setSelectedProduct(p);setView("desk")}}>Intelligence</button><button className="btn" onClick={()=>{setValidationProduct(p);setValidationOpen(true)}}>Validate</button><button className="ghost" onClick={()=>addToShopify(p)}>Shopify draft</button></div>
                   </article>
                 ))}
               </div>

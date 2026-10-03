@@ -206,8 +206,8 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
   if (!raw?.length) {
     source = "seed-emergency-fallback";
     raw = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
-  } else if (raw.length < target) {
-    // Pad AI shortfalls with expanded seeds
+  } else if (raw.length < target && source !== "live-evidence") {
+    // Pad non-live generation shortfalls only; live discovery never gets seed padding
     const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
     const seen = new Set(raw.map((p) => String(p.title || "").toLowerCase()));
     for (const p of pad) {
@@ -222,7 +222,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
 
   raw = dedupeProductCandidates(raw);
   const uniqueTitles = new Set(raw.map(p=>String(p.title).toLowerCase()));
-  if (raw.length < target) {
+  if (raw.length < target && !String(source).startsWith("live-evidence")) {
     const pad = expandSeedsToLimit(seedForNiche(opportunity.niche), target);
     for (const p of pad) {
       if (raw.length >= target) break;
@@ -232,7 +232,6 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       raw.push(p);
     }
     if (source === "openai") source = "openai+seed";
-    else if (source === "live-evidence") source = "live-evidence+seed";
   }
   raw = raw.slice(0, target);
 

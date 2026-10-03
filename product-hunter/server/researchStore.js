@@ -156,14 +156,27 @@ export async function getHistory(productId,days=30){
   const since=new Date(Date.now()-Math.max(1,Number(days)||30)*86400000).toISOString();
   if(pgReady){
     const {rows}=await pgPool.query(
-      `select captured_at as "capturedAt",trend_score as "trendScore",winner_score as "winnerScore",margin_pct as "marginPct",confidence,lifecycle
+      `select captured_at as "capturedAt",trend_score as "trendScore",winner_score as "winnerScore",margin_pct as "marginPct",confidence,lifecycle,payload
        from product_snapshots where product_id=$1 and captured_at >= $2 order by captured_at asc`,
       [String(productId),since]
     );
-    return rows;
+    return rows.map(enrichHistoryRow);
   }
   const db=kvReady ? await readKvStore() : readFileStore();
-  return db.snapshots.filter(x=>String(x.productId)===String(productId)&&x.capturedAt>=since).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt));
+  return db.snapshots.filter(x=>String(x.productId)===String(productId)&&x.capturedAt>=since).sort((a,b)=>a.capturedAt.localeCompare(b.capturedAt)).map(enrichHistoryRow);
+}
+
+function enrichHistoryRow(row={}){
+  const p=row.payload||{};
+  return {
+    ...row,
+    googleDemand:Number(p.trendComponents?.google)||null,
+    amazonDemand:Number(p.trendComponents?.amazon)||null,
+    metaSignal:Number(p.trendComponents?.meta)||null,
+    supplierCost:Number(p.supplierVerification?.landedCostUsd ?? p.supplierOptions?.[0]?.landedCostUsd ?? p.estCostUsd)||null,
+    sellingPrice:Number(p.estSellPriceUsd)||null,
+    competition:Number(p.winnerDecision?.components?.competition ?? p.pillars?.competitionEase)||null
+  };
 }
 
 export async function updateValidationStatus(productId,status,options={}){

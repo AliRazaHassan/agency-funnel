@@ -558,7 +558,44 @@ export default function App() {
 
       {view === "settings" ? <SettingsView /> : null}
 
-      <Concierge product={selectedProduct} products={hunt?.products || []} />
+      <Concierge
+        product={selectedProduct}
+        products={hunt?.products || []}
+        onAction={(action, currentProduct) => {
+          if (!action?.type) return;
+          if (action.type === "SHOW_WATCHLIST") {
+            setWatchOnly(true);
+            setView("radar");
+            return;
+          }
+          if (action.type === "SHOW_TOP_PICKS") {
+            setWatchOnly(false);
+            setTrendFilter("ALL");
+            setRadarQuery("");
+            setView("radar");
+            return;
+          }
+          if (action.type === "FILTER_LIFECYCLE") {
+            setWatchOnly(false);
+            setTrendFilter(action.value || "ALL");
+            setView("radar");
+            return;
+          }
+          if (action.type === "VALIDATE_PRODUCT" && currentProduct) {
+            setValidationProduct(currentProduct);
+            setValidationOpen(true);
+            return;
+          }
+          if (action.type === "SHOPIFY_PRODUCT" && currentProduct) {
+            addToShopify(currentProduct);
+            return;
+          }
+          if (action.type === "OPEN_EVENT_DISCOVERY") {
+            setEventFocus("auto");
+            setView("desk");
+          }
+        }}
+      />
       <ValidationPanel
         product={validationProduct}
         open={validationOpen}

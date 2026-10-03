@@ -19,7 +19,7 @@ export function trendScore(signals={}){
 
 export function momentum(history=[]){
   const sorted=[...history].filter(x=>x&&Number.isFinite(Number(x.value))&&!Number.isNaN(new Date(x.date).getTime())).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  if(sorted.length<2)return {d7:null,d14:null,d30:null,acceleration:null,status:"DISCOVERED"};
+  if(sorted.length<2)return {d7:null,d14:null,d30:null,acceleration:null,status:"EARLY"};
   const latest=sorted.at(-1);
   const latestMs=new Date(latest.date).getTime();
   const oldestMs=new Date(sorted[0].date).getTime();
@@ -31,10 +31,11 @@ export function momentum(history=[]){
   const calc=(days,minSpan)=>spanDays>=minSpan?pct(latest.value,nearest(days).value):null;
   const d7=calc(7,5), d14=calc(14,10), d30=calc(30,21);
   const acceleration=d7!=null&&d14!=null?d7-(d14/2):null;
-  let status="DISCOVERED";
+  let status="EARLY";
   if(d30!=null&&d30<-15)status="DECLINING";
   else if(d7!=null&&acceleration!=null&&d7>20&&acceleration>5)status="ACCELERATING";
-  else if(d30!=null&&d30>15)status="EMERGING";
+  else if(d30!=null&&d30>=30&&d7!=null&&d7>=-5&&d7<=12)status="PEAK";
+  else if((d30!=null&&d30>15)||(d14!=null&&d14>12))status="EMERGING";
   else if(d7!=null||d14!=null||d30!=null)status="STABLE";
   return {
     d7:d7==null?null:+d7.toFixed(1),

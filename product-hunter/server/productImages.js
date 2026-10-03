@@ -71,8 +71,9 @@ async function commonsImage(query) {
   }
 }
 
-export async function enrichProductImages(products = [], { concurrency = 8, liveLookupLimit = 16 } = {}) {
+export async function enrichProductImages(products = [], { concurrency = 8, liveLookupLimit = Number(process.env.PRODUCT_IMAGE_LOOKUP_LIMIT ?? 16) } = {}) {
   const list = Array.isArray(products) ? products : [];
+  liveLookupLimit = Math.max(0, Math.min(list.length, Number.isFinite(Number(liveLookupLimit)) ? Number(liveLookupLimit) : 16));
   const out = new Array(list.length);
   let cursor = 0;
   async function worker() {

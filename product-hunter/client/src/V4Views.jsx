@@ -72,8 +72,14 @@ export function HistoryPanel({ product }) {
     <div className="viz-head"><h3>Historical Trends</h3><div className="history-tabs">{[7,30,90].map(d=><button key={d} className={days===d?"on":""} onClick={()=>setDays(d)}>{d}D</button>)}</div></div>
     {busy?<p className="muted">Loading history…</p>:<div className="history-charts">
       <Spark points={history} field="trendScore" label="Trend Score"/>
-      <Spark points={history} field="winnerScore" label="Winner Score"/>
+      <Spark points={history} field="googleDemand" label="Google demand"/>
+      <Spark points={history} field="amazonDemand" label="Amazon demand"/>
+      <Spark points={history} field="metaSignal" label="Meta advertiser signal"/>
+      <Spark points={history} field="supplierCost" label="Supplier / landed cost"/>
+      <Spark points={history} field="sellingPrice" label="Selling price"/>
+      <Spark points={history} field="competition" label="Competition ease"/>
       <Spark points={history} field="marginPct" label="Margin %"/>
+      <Spark points={history} field="winnerScore" label="Winner Score"/>
     </div>}
     <p className="viz-disclaimer">History reflects captured research snapshots. Additional source-specific series appear as those providers supply verified data.</p>
   </div>;

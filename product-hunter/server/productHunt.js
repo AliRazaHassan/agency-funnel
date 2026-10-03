@@ -7,6 +7,8 @@ import { attachKeepaToProducts, keepaStatus } from "./keepa.js";
 import { buildIntelligence } from "./intelligence.js";
 import { buildWinnerDecision, summarizeWinnerDecisions, selectFinalWinners, summarizeFinalWinners } from "./winnerEngine.js";
 import { getHistory } from "./researchStore.js";
+import { attachProductImages } from "./imageResolver.js";
+import { scoreSeasonalFit } from "./seasonal.js";
 
 const SEED_PRODUCTS = {
   "Pet Supplies": [
@@ -164,13 +166,13 @@ soldOn { yourChannel, geos (string[]), whereCompetitorsSell (string[]), demandSi
 sourceFrom = where YOU buy/source the product (AutoDS, Zendrop, CJ, AliExpress, etc).
 soldOn = where this type of product is already selling + where YOU should sell.
 No fad unless necessary. No trademarked brands. Prefer light shipping. Aim margin >50%.
-Return EXACTLY ${limit} unique products (different titles).`,
+Return EXACTLY ${limit} unique products (different titles). If the opportunity has a seasonalEvent, prioritize products that can realistically be sourced and delivered before that event, include gift/bundle angles where appropriate, and avoid products whose shipping risk makes the event window unrealistic.`,
     `Opportunity niche: ${opportunity.niche}
 Audience: ${opportunity.audience}
 Geo: ${(opportunity.sellWhere?.geos || []).join(", ")}
 Your sell channel: ${opportunity.sellWhere?.primary || "Shopify"}
 Target AOV context: $${opportunity.estAovUsd}
-Return ${limit} product candidates.`
+Seasonal event: ${opportunity.seasonalEvent ? JSON.stringify(opportunity.seasonalEvent) : "none"}\nReturn ${limit} product candidates.`
   );
   return ai?.products || null;
 }
@@ -281,10 +283,15 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     }catch{}
     const history=[...trackedHistory,{date:new Date().toISOString(),value:baseIntelligence.trendScore}];
     const intelligence = buildIntelligence({ ...p, marketplaceSales, signals, dataStatus, dataScope, history, market: opportunity.sellWhere?.geos?.[0] || "Global" });
-    return { ...intelligence, winnerDecision: buildWinnerDecision(intelligence) };
+    return { ...intelligence, seasonalFit: scoreSeasonalFit(intelligence, opportunity), winnerDecision: buildWinnerDecision(intelligence) };
   }));
 
-  const ranked = selectFinalWinners(rankedBase);
+  let ranked = selectFinalWinners(rankedBase);
+  if (opportunity.seasonalEvent) {
+    ranked = [...ranked].sort((a,b) => ((b.seasonalFit?.score || 0) * 0.35 + (b.winnerDecision?.score || 0) * 0.65) - ((a.seasonalFit?.score || 0) * 0.35 + (a.winnerDecision?.score || 0) * 0.65));
+    ranked = ranked.map((p, i) => ({ ...p, seasonalRank: i + 1 }));
+  }
+  ranked = await attachProductImages(ranked);
 
   return {
     source,
@@ -296,6 +303,7 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
     winningSummary: summarizeWinningDeck(ranked),
     winnerSummary: summarizeFinalWinners(ranked),
     keepa: keepaStatus(),
+    seasonalEvent: opportunity.seasonalEvent || null,
     products: ranked,
   };
 }

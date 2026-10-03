@@ -6,6 +6,11 @@ on:
     paths:
       - "product-hunter/**"
       - ".github/workflows/product-hunter-e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "product-hunter/**"
+      - ".github/workflows/product-hunter-e2e.yml"
   workflow_dispatch:
 
 jobs:

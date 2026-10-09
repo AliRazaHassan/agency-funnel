@@ -69,3 +69,30 @@ if(!reduced && 'IntersectionObserver' in window){
   target.appendChild(wrapper);
  }
 })();
+
+
+/* Explicit handoff of the locally generated brief — never sends without user action. */
+(function(){
+ const success=document.querySelector('#brief-success');
+ if(!success||success.querySelector('.brief-send-actions'))return;
+ const actions=document.createElement('div');actions.className='brief-send-actions';
+ const email=document.createElement('a');email.className='button dark';email.textContent='Email the team ↗';
+ email.href='mailto:service@blueheavenconstructions.com?subject='+encodeURIComponent('Remodeling consultation — ARQORA design brief');
+ email.addEventListener('click',()=>{
+  const form=document.querySelector('#project-form');if(!form)return;
+  const data=new FormData(form);const parts=['Hello, I would like to discuss a remodeling consultation.','',
+   'Name: '+(data.get('name')||'Not provided'),
+   'Space: '+(data.get('space')||'Not selected'),
+   'Location: '+(data.get('location')||'Not provided'),
+   'Design direction: '+(data.get('mood')||'Not selected'),
+   'Budget: '+(data.get('budget')||'Not selected'),
+   'Timing: '+(data.get('timing')||'Not selected'),
+   'Goals: '+(data.get('goals')||'Not provided'),'',
+   'Please let me know the next steps.'];
+  email.href='mailto:service@blueheavenconstructions.com?subject='+encodeURIComponent('Remodeling consultation — ARQORA design brief')+'&body='+encodeURIComponent(parts.join('\n'));
+ });
+ const call=document.createElement('a');call.className='link-arrow';call.href='tel:+19165479596';call.textContent='Or call (916) 547-9596 ↗';
+ actions.append(email,call);
+ const note=document.createElement('p');note.className='brief-send-disclaimer';note.textContent='The email button opens your email app with your project details. Please review and send it yourself. No photos are attached automatically.';
+ const again=success.querySelector('#download-again');if(again)again.before(actions,note);else success.append(actions,note);
+})();

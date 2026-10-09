@@ -153,3 +153,38 @@ h3{font-size:clamp(36px,3.1vw,55px)}
  .closing-main h2{font-size:62px}
 }
 @media(prefers-reduced-motion:reduce){.project-photo img,.hero-photo img{transition:none!important;transform:none!important}}
+
+
+/* Signature cinematic remodeling presentation */
+.signature-hero{display:block!important;position:relative;min-height:calc(100svh - 98px);height:max(760px,calc(100svh - 98px));max-height:1100px;overflow:hidden;background:#25231e;color:#fff}
+.signature-visual,.signature-shade{position:absolute;inset:0}.signature-visual img{width:100%;height:100%;object-fit:cover;object-position:center 52%;animation:signatureArrival 1.8s cubic-bezier(.18,.65,.3,1) both;filter:saturate(.92)}
+.signature-shade{background:linear-gradient(90deg,rgba(12,15,13,.83) 0%,rgba(15,19,17,.61) 41%,rgba(11,13,11,.10) 100%),linear-gradient(0deg,rgba(10,10,9,.43),transparent 28%)}
+.signature-inner{position:relative;z-index:2;padding:clamp(105px,12vh,160px) 7% 120px;max-width:1150px}
+.signature-eyebrow{display:flex;align-items:center;gap:18px;color:#f2e8d8;font-size:13px;letter-spacing:.22em;font-weight:600}.signature-rule{display:block;width:55px;height:1px;background:#cdbd9e}
+.signature-hero h1{font-family:var(--display);font-size:clamp(86px,9.9vw,176px);line-height:.86;letter-spacing:-.059em;margin:56px 0 35px;max-width:1260px;color:#fff;text-shadow:0 3px 40px #0002}
+.signature-hero h1 em{color:#e4d0ab;font-weight:400;white-space:nowrap}
+.signature-inner>p{color:#f1eee8;font-size:clamp(19px,1.5vw,25px);line-height:1.55;max-width:640px;margin:0 0 38px}
+.signature-actions{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.signature-primary{background:#e1c9a2!important;color:#22211c!important;border:1px solid #e1c9a2!important;font-size:15px!important;font-weight:600;letter-spacing:.03em;min-height:69px;padding:20px 30px}
+.signature-primary:hover{background:#f4e5c9!important;transform:translateY(-3px)}
+.signature-secondary{font-size:15px;border-bottom:1px solid #e2d6c0;padding:15px 0;display:flex;gap:30px;color:#fff}
+.signature-bottom{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:25px 7%;display:flex;justify-content:space-between;gap:15px;align-items:center;border-top:1px solid #ffffff50;font-size:11px;letter-spacing:.19em;color:#fff}
+.editorial-strip{background:#201f1c;color:#eae4d8;display:grid;grid-template-columns:repeat(3,1fr);padding:37px 7%;gap:40px}
+.editorial-strip>div{display:grid;grid-template-columns:37px 1fr;column-gap:16px;align-items:start;border-right:1px solid #ffffff24}
+.editorial-strip>div:last-child{border:0}.editorial-strip span{font-family:var(--display);font-size:30px;color:#cbb38e;line-height:1}.editorial-strip strong{font-weight:500;font-size:18px}.editorial-strip p{grid-column:2;font-size:14px;color:#bfb7aa;margin:7px 0 0}
+.signature-gallery-grid{display:grid;grid-template-columns:1.15fr .85fr;grid-template-rows:repeat(2,350px);gap:24px}
+.signature-gallery-grid a{position:relative;display:block;overflow:hidden;background:#36342d}
+.signature-gallery-grid a.signature-gallery-large{grid-row:span 2}.signature-gallery-grid img{width:100%;height:100%;object-fit:cover;transition:transform 1s cubic-bezier(.2,.6,.2,1)}.signature-gallery-grid a:hover img{transform:scale(1.06)}
+.signature-gallery-grid a:after{content:'';position:absolute;inset:40% 0 0;background:linear-gradient(0deg,#0b0b0bcc,transparent);pointer-events:none}
+.signature-gallery-grid a>span{position:absolute;z-index:1;left:35px;right:35px;bottom:33px;color:white;display:flex;align-items:center;justify-content:space-between;font-size:14px;letter-spacing:.13em;font-weight:600}.signature-gallery-grid b{font-size:24px;font-weight:400}
+.signature-gallery>.image-footnote{margin-top:22px}
+.signature-cta{display:grid;grid-template-columns:1.15fr .85fr;background:#272722;min-height:650px;color:#fff}
+.signature-cta>div{padding:clamp(70px,8vw,140px) 9%;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.signature-cta h2{font-size:clamp(60px,6vw,110px);color:#fff;margin:0 0 26px}
+.signature-cta h2 em{color:#d5bd97}
+.signature-cta p{font-size:19px;max-width:460px;color:#d1ccc3}
+.signature-cta img{height:100%;min-height:650px;width:100%;object-fit:cover}
+@keyframes signatureArrival{from{transform:scale(1.09);opacity:.75}to{transform:scale(1);opacity:1}}
+@media(max-width:900px){.signature-hero{height:790px;min-height:0}.signature-hero h1{font-size:clamp(82px,12vw,120px)}.signature-inner{padding:140px 7% 100px}.signature-shade{background:linear-gradient(90deg,#10130ed6,#15161244)}.editorial-strip{gap:22px;padding:30px 5%}.editorial-strip strong{font-size:15px}.editorial-strip p{font-size:12px}.signature-gallery-grid{grid-template-rows:repeat(2,290px)}.signature-cta{min-height:0}.signature-cta img{min-height:500px}}
+@media(max-width:650px){.signature-hero{height:min(860px,calc(100svh - 78px));min-height:700px}.signature-visual img{object-position:58%}.signature-shade{background:linear-gradient(90deg,#121510d9,#1516126b),linear-gradient(0deg,#10130e80,transparent)}.signature-inner{padding:110px 6% 115px}.signature-eyebrow{font-size:10px;letter-spacing:.14em}.signature-rule{width:25px}.signature-hero h1{font-size:clamp(68px,13vw,100px);line-height:.91;margin:55px 0 25px}.signature-hero h1 em{white-space:normal}.signature-inner>p{font-size:18px}.signature-bottom{padding:19px 6%;font-size:9px}.signature-bottom span:last-child{display:none}.editorial-strip{grid-template-columns:1fr;padding:35px 7%;gap:22px}.editorial-strip>div{border-right:0;border-bottom:1px solid #ffffff25;padding-bottom:20px}.editorial-strip>div:last-child{padding-bottom:0}.editorial-strip strong{font-size:18px}.editorial-strip p{font-size:14px}.signature-gallery-grid{grid-template-columns:1fr;grid-template-rows:500px 370px 370px;gap:14px}.signature-gallery-grid a.signature-gallery-large{grid-row:auto}.signature-gallery-grid a>span{font-size:12px;left:20px;right:20px;bottom:25px}.signature-cta{grid-template-columns:1fr}.signature-cta>div{padding:85px 7%}.signature-cta h2{font-size:clamp(57px,11vw,78px)}.signature-cta img{min-height:420px;height:420px}}
+@media(prefers-reduced-motion:reduce){.signature-visual img{animation:none!important}.signature-gallery-grid img{transition:none}}

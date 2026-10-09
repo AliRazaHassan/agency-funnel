@@ -75,7 +75,7 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
 .arq-spatial-title p{font-size:15px;max-width:295px;color:#d4cec2;margin:0}
 .arq-spatial-stage{position:relative;aspect-ratio:16/8.5;min-height:350px;max-height:800px;overflow:hidden;isolation:isolate;background:#343f36;--progress:0}
 .arq-spatial-stage>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(calc(1.07 - var(--progress)*.07));transition:transform .15s linear;filter:saturate(1.04)}
-.arq-spatial-blueprint{position:absolute;inset:0;z-index:2;clip-path:inset(0 0 0 calc(var(--progress)*100%));background:linear-gradient(135deg,#182e35f2,#304f58eb);display:grid;place-items:center;pointer-events:none}
+.arq-spatial-blueprint{position:absolute;inset:0;z-index:2;clip-path:inset(0 calc(var(--progress)*100%) 0 0);background:linear-gradient(135deg,#182e35f2,#304f58eb);display:grid;place-items:center;pointer-events:none}
 .arq-spatial-blueprint:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#e7d9b026 1px,transparent 1px),linear-gradient(90deg,#e7d9b026 1px,transparent 1px);background-size:35px 35px}
 .arq-spatial-blueprint svg{position:relative;width:75%;height:82%;filter:drop-shadow(0 0 9px #d8c69b40)}
 .arq-spatial-blueprint path,.arq-spatial-blueprint rect{stroke-dasharray:1;stroke-dashoffset:0;stroke:#e2cda5;fill:none;stroke-width:2;vector-effect:non-scaling-stroke}

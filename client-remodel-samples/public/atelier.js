@@ -52,3 +52,20 @@ if(!reduced && 'IntersectionObserver' in window){
  candidates.forEach((el,i)=>{el.classList.add('arq-reveal');scrollObserver.observe(el)});
  document.documentElement.classList.add('arq-motion-enabled');
 }
+
+
+/* Three distinct ARQORA motion studies, inserted only where editorial whitespace permits. */
+(function(){
+ const scenes=[
+  {selector:'.expertise .section-head',kind:'plan',label:'Planning geometry',svg:'<svg viewBox="0 0 260 160" aria-hidden="true"><g class="arq-motion-trace" fill="none" stroke="currentColor" stroke-width="1.5"><path pathLength="1" d="M23 25H235V138H23Z"/><path pathLength="1" d="M111 25V84H235M23 87H112M160 84V138M23 115H85V138"/><path pathLength="1" d="M112 52H160V83M190 25V65"/></g><path class="arq-motion-highlight" pathLength="1" d="M111 25V84H235" fill="none" stroke="#b29b7f" stroke-width="3"/></svg>'},
+  {selector:'.material-feature-copy',kind:'material',label:'Material layers',svg:'<svg viewBox="0 0 260 150" aria-hidden="true"><g class="arq-layer-one"><path d="M34 99L105 58L186 99L114 139Z" fill="#cdbca3" stroke="#8c7b67"/></g><g class="arq-layer-two"><path d="M56 72L126 31L208 73L136 114Z" fill="#e3dbce" stroke="#908b80"/></g><g class="arq-layer-three"><path d="M86 46L139 15L213 52L159 86Z" fill="#a6aaa0" stroke="#747d71"/></g><path d="M30 99L114 145L213 89" stroke="#999184" stroke-dasharray="3 5" fill="none"/></svg>'},
+  {selector:'.process .section-head',kind:'craft',label:'Craftsmanship detailing',svg:'<svg viewBox="0 0 260 160" aria-hidden="true"><g class="arq-motion-trace" fill="none" stroke="currentColor" stroke-width="1.5"><path pathLength="1" d="M28 121H231M63 121V27H181V121M87 121V52H157V121"/><path pathLength="1" d="M29 140H231M37 130V150M220 130V150M204 121V44H229V121"/></g><circle class="arq-craft-orbit" cx="122" cy="85" r="18" fill="none" stroke="#b29b7f" stroke-width="2"/><path class="arq-motion-highlight" pathLength="1" d="M87 52H157V121" fill="none" stroke="#b29b7f" stroke-width="3"/></svg>'}
+ ];
+ for(const scene of scenes){
+  const target=q(scene.selector);if(!target||q('.arq-motion-study',target))continue;
+  const wrapper=document.createElement('div');wrapper.className='arq-motion-study arq-motion-'+scene.kind;
+  wrapper.setAttribute('role','img');wrapper.setAttribute('aria-label',scene.label+' animated illustration');
+  wrapper.innerHTML=scene.svg;
+  target.appendChild(wrapper);
+ }
+})();

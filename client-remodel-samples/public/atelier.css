@@ -203,3 +203,15 @@ h3{font-size:clamp(36px,3.1vw,55px)}
 .client-trust-grid blockquote footer{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#766b5e}
 .trust-stars{font-size:22px;color:#96744d;letter-spacing:5px}
 @media(max-width:800px){.brand-proof{grid-template-columns:1fr}.brand-proof>div{padding:24px 7%}.client-trust-grid{grid-template-columns:1fr}.client-trust-grid blockquote{padding:40px 7%}}
+
+
+/* Direct contact channel for the client-branded preview */
+.contact-direct{background:#252820;color:#f5f0e7;padding:clamp(70px,9vw,145px) 7%;position:relative;overflow:hidden}
+.contact-direct:after{content:"";position:absolute;width:520px;height:520px;right:-170px;top:-200px;border:1px solid #d6c49b3d;border-radius:50%;box-shadow:0 0 0 80px #d6c49b08,0 0 0 160px #d6c49b06;pointer-events:none}
+.contact-direct>div{position:relative;z-index:1;max-width:1050px}
+.contact-direct h2{font-size:clamp(54px,6.5vw,106px);color:#fff;margin:25px 0}
+.contact-direct h2 em{color:#ddc9a4}
+.contact-direct p{font-size:clamp(17px,1.5vw,22px);color:#ddd8ce;max-width:670px}
+.contact-direct-actions{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:36px}
+.contact-direct .link-arrow{color:#fff;border-color:#b7a37c}
+@media(max-width:600px){.contact-direct{padding:75px 6%}.contact-direct h2{font-size:clamp(54px,12vw,78px)}.contact-direct-actions{flex-direction:column;align-items:stretch;gap:12px}.contact-direct-actions>a{justify-content:space-between}}

@@ -96,3 +96,24 @@ if(!reduced && 'IntersectionObserver' in window){
  const note=document.createElement('p');note.className='brief-send-disclaimer';note.textContent='The email button opens your email app with your project details. Please review and send it yourself. No photos are attached automatically.';
  const again=success.querySelector('#download-again');if(again)again.before(actions,note);else success.append(actions,note);
 })();
+
+
+/* Consistent navigation and focus behavior across ARQORA. */
+(function(){
+ const nav=document.querySelector('#site-nav'),toggle=document.querySelector('.menu-toggle');
+ if(nav&&toggle){
+   nav.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>{
+     nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');
+     toggle.setAttribute('aria-label','Open navigation');
+   }));
+   document.addEventListener('click',event=>{
+     if(toggle.getAttribute('aria-expanded')==='true'&&!nav.contains(event.target)&&!toggle.contains(event.target)){
+       nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Open navigation');
+     }
+   });
+ }
+ const allDialogs=[...document.querySelectorAll('dialog')];
+ allDialogs.forEach(dialog=>{
+   dialog.addEventListener('close',()=>{const opener=dialog.id==='companion'?document.querySelector('[data-open-companion]'):dialog.id==='disclosure'?document.querySelector('[data-open-disclosure]'):null;if(opener&&opener.isConnected)opener.focus({preventScroll:true})});
+ });
+})();

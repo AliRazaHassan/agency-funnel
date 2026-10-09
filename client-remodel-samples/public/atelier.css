@@ -361,3 +361,45 @@ html.arq-motion-enabled .arq-reveal .project-card{transition-delay:80ms}
 @media(max-width:900px){.arq-motion-study{max-width:180px;flex-basis:180px;height:120px}.material-feature-copy .arq-motion-study{max-width:165px;height:110px}}
 @media(max-width:600px){.expertise .section-head,.process .section-head{align-items:flex-start}.arq-motion-study{margin:12px 0;max-width:150px;flex-basis:150px;height:100px}.material-feature-copy .arq-motion-study{max-width:160px;height:95px}}
 @media(prefers-reduced-motion:reduce){.arq-motion-trace path,.arq-motion-highlight{stroke-dashoffset:0}.arq-layer-one,.arq-layer-two,.arq-layer-three,.arq-craft-orbit{animation:none}}
+
+
+/* ARQORA studio-grade refinement — global across all interior pages */
+:root{--paper:#f4f0e9;--ink:#252e27;--muted:#626c63;--bronze:#987c54}
+body{overflow-x:clip}
+.site-header{transition:box-shadow .3s,background .3s}
+.site-header:has(a:focus-visible){box-shadow:0 8px 25px #00000014}
+.wordmark{font-weight:400;letter-spacing:.15em}
+.site-header nav a{font-size:13px;letter-spacing:.015em}
+.header-cta{font-size:13px}
+.page-intro{position:relative;overflow:hidden;isolation:isolate}
+.page-intro:after{content:"ARQORA";position:absolute;right:-.03em;bottom:-.42em;font-family:var(--display);font-style:italic;font-size:clamp(130px,25vw,440px);line-height:1;letter-spacing:-.07em;color:#b6ae9e;opacity:.10;pointer-events:none;z-index:-1}
+.page-intro h1{font-size:clamp(74px,8vw,140px);line-height:.9;letter-spacing:-.055em;max-width:1100px;text-wrap:balance}
+.page-intro>p{font-size:clamp(15px,1.15vw,19px);line-height:1.75;max-width:560px}
+.page-intro .kicker{font-size:11px}
+.section-head h2{font-size:clamp(55px,6vw,104px);line-height:.97;letter-spacing:-.05em}
+.section-head .kicker{font-size:11px}
+.collection .project-grid{gap:clamp(26px,4vw,75px)}
+.collection .project-card:nth-child(2){padding-top:0}
+.collection .project-card:nth-child(3){margin-top:-32px}
+.project-meta h3{font-size:clamp(30px,3vw,47px)}
+.project-meta .kicker{font-size:10px}
+.project-photo{transition:box-shadow .6s cubic-bezier(.2,.8,.2,1)}
+.project-photo:hover{box-shadow:0 24px 70px #18261b22}
+.project-photo img{transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+.project-photo:hover img{transform:scale(1.045)}
+.service-grid h2,.studio-philosophy h2{letter-spacing:-.045em}
+.service-grid p,.service-detail p,.article-body p{font-size:clamp(14px,1.1vw,17px);line-height:1.8}
+.button,.arq-btn,.header-cta{min-height:46px}
+.button,.arq-btn{transition:background .25s,color .25s,transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s}
+.button:hover,.arq-btn:hover{box-shadow:0 12px 32px #00000016}
+.enquiry-card{box-shadow:0 25px 75px #1c30221a}
+.field input,.field textarea,.field select{min-height:46px}
+.brief-send-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:20px 0 24px}
+.brief-send-actions .button{font-size:12px}
+.brief-send-actions .link-arrow{font-size:12px}
+.brief-send-disclaimer{font-size:12px;line-height:1.7;max-width:460px}
+.filter-bar button{min-height:44px}
+[aria-current="page"]{text-decoration-thickness:1px}
+@media(max-width:900px){.page-intro h1{font-size:clamp(60px,10vw,100px)}.section-head h2{font-size:clamp(51px,8vw,80px)}.collection .project-card:nth-child(3){margin-top:0}}
+@media(max-width:600px){.page-intro h1{font-size:clamp(52px,13vw,76px)}.page-intro>p{font-size:15px}.project-meta h3{font-size:32px}.collection .project-grid{gap:35px}.collection .project-card:nth-child(2){margin-top:0;padding-top:0}.brief-send-actions{flex-direction:column;align-items:stretch}.brief-send-actions .button,.brief-send-actions .link-arrow{width:100%;justify-content:center}.site-header nav a{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.project-photo img,.button,.arq-btn{transition:none!important}}

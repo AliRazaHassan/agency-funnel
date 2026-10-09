@@ -89,6 +89,19 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
 @media(max-width:600px){.arq-spatial-section{padding:80px 5%}.arq-spatial-title h2{font-size:clamp(52px,11vw,75px)}.arq-spatial-stage{min-height:360px}.arq-spatial-caption{font-size:9px;left:18px;right:18px}.arq-spatial-controls{flex-wrap:wrap}.arq-spatial-controls input{order:3;flex:0 0 100%}.arq-spatial-controls output{margin-left:auto}}
 @media(hover:none),(pointer:coarse){.arq-hero-image{transform:scale(1.035)}.arq-hero-content{transform:translateY(-50%)}.arq-hero-inset,.arq-touch-tilt:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.arq-hero-image,.arq-hero-inset,.arq-touch-tilt,.arq-spatial-reveal,.arq-spatial-stage>img{transform:none!important;transition:none!important}.arq-hero-content{transform:translateY(-50%)!important;transition:none!important}.arq-spatial-reveal{opacity:1}.arq-spatial-blueprint{transition:none!important}}
+
+/* Keep the scene in view while natural scrolling reveals the interior. */
+.arq-spatial-section.is-scroll-pinned{padding:0 6.5%;overflow:visible;height:calc(var(--pin-height) + var(--scroll-span))}
+.is-scroll-pinned .arq-spatial-inner{position:sticky;top:var(--pin-top);height:var(--pin-height);box-sizing:border-box;display:flex;flex-direction:column;padding:28px 0 24px}
+.is-scroll-pinned .arq-spatial-title{flex:none;margin-bottom:22px}
+.is-scroll-pinned .arq-spatial-title h2{font-size:clamp(48px,5.5vw,82px)}
+.is-scroll-pinned .arq-spatial-stage{flex:1;min-height:0;max-height:none;aspect-ratio:auto}
+.is-scroll-pinned .arq-spatial-controls{flex:none;margin-top:12px}
+.is-scroll-pinned .arq-spatial-note{flex:none;margin-top:8px}
+.is-scroll-pinned .arq-spatial-reveal{transform:none}
+@media(max-width:850px){.is-scroll-pinned .arq-spatial-title{display:flex;align-items:end;gap:20px}.is-scroll-pinned .arq-spatial-title p{font-size:12px;margin:0;max-width:230px}}
+@media(max-width:600px){.arq-spatial-section.is-scroll-pinned{padding:0 5%}.is-scroll-pinned .arq-spatial-inner{padding:20px 0 16px}.is-scroll-pinned .arq-spatial-title{display:block;margin-bottom:16px}.is-scroll-pinned .arq-spatial-title h2{font-size:clamp(36px,9vw,52px)}.is-scroll-pinned .arq-spatial-title p{max-width:none;margin:10px 0 0;font-size:12px;line-height:1.4}.is-scroll-pinned .arq-spatial-controls{gap:4px 12px}.is-scroll-pinned .arq-spatial-note{font-size:10px;line-height:1.4}}
+@media(max-height:600px){.is-scroll-pinned .arq-spatial-inner{padding:12px 0}.is-scroll-pinned .arq-spatial-title h2{font-size:36px}.is-scroll-pinned .arq-spatial-title{margin-bottom:12px}.is-scroll-pinned .arq-spatial-title p,.is-scroll-pinned .arq-spatial-note{display:none}}
 </style>
 <script id="arq-spatial-runtime">
 (()=>{
@@ -101,8 +114,8 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
  const stage=section.querySelector('.arq-spatial-stage'),slider=section.querySelector('input'),out=section.querySelector('output');
  function render(pct){pct=Math.max(0,Math.min(100,pct));slider.value=String(Math.round(pct));stage.style.setProperty('--progress',(pct/100).toFixed(3));out.textContent=Math.round(pct)+'% REVEALED';const captions=stage.querySelectorAll('.arq-spatial-caption span');captions[0].style.opacity=1-pct/100;captions[1].style.opacity=pct/100}
  let manualReveal=false;slider.addEventListener('input',()=>{manualReveal=true;render(Number(slider.value))});render(0);
- // Scroll drives a reversible crossfade; direct slider input takes over until the next scroll.
- if(!reduced){let scrollFrame=0;function syncScroll(){scrollFrame=0;if(manualReveal)return;const top=stage.getBoundingClientRect().top;render((innerHeight*.85-top)/(innerHeight*.75)*100)}function scheduleScroll(){if(!scrollFrame)scrollFrame=requestAnimationFrame(syncScroll)}function resumeScroll(){manualReveal=false;scheduleScroll()}addEventListener('wheel',resumeScroll,{passive:true});addEventListener('touchmove',resumeScroll,{passive:true});addEventListener('keydown',e=>{if(e.target!==slider&&['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key))resumeScroll()});addEventListener('scroll',scheduleScroll,{passive:true});addEventListener('resize',scheduleScroll,{passive:true});scheduleScroll()}
+ // A sticky scene uses a dedicated scroll span before releasing to the next section.
+ if(!reduced){section.classList.add('is-scroll-pinned');let scrollFrame=0,pinTop=0,scrollSpan=0;function measure(){pinTop=document.querySelector('.site-header').getBoundingClientRect().height;scrollSpan=innerHeight*1.8;section.style.setProperty('--pin-top',pinTop+'px');section.style.setProperty('--pin-height',(innerHeight-pinTop)+'px');section.style.setProperty('--scroll-span',scrollSpan+'px')}measure();function syncScroll(){scrollFrame=0;if(manualReveal)return;render((pinTop-section.getBoundingClientRect().top)/(scrollSpan*.9)*100)}function scheduleScroll(){if(!scrollFrame)scrollFrame=requestAnimationFrame(syncScroll)}function resumeScroll(){manualReveal=false;scheduleScroll()}addEventListener('wheel',resumeScroll,{passive:true});addEventListener('touchmove',resumeScroll,{passive:true});addEventListener('keydown',e=>{if(e.target!==slider&&['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key))resumeScroll()});addEventListener('scroll',scheduleScroll,{passive:true});addEventListener('resize',()=>{measure();scheduleScroll()},{passive:true});scheduleScroll()}
  if(!reduced&&'IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}})},{threshold:0,rootMargin:'0px 0px 60px 0px'});section.querySelectorAll('.arq-spatial-reveal').forEach(el=>observer.observe(el))}
  else section.querySelectorAll('.arq-spatial-reveal').forEach(el=>el.classList.add('is-visible'));
  }

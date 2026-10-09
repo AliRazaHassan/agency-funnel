@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check public/app.js && node --check public/room.js",
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/room.js && node --check public/atelier.js",
     "dev": "PORT=4173 node server.mjs"
   },
   "engines": {

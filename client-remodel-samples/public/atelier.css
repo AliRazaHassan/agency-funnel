@@ -337,3 +337,27 @@ html.arq-motion-enabled .arq-reveal.arq-visible{opacity:1;transform:translateZ(0
 html.arq-motion-enabled .arq-reveal .project-card{transition-delay:80ms}
 }
 @media(prefers-reduced-motion:reduce){html.arq-motion-enabled .arq-reveal{opacity:1;transform:none}.arq-plan-dot{animation:none}}
+
+
+/* Three quiet motion studies, each with a distinct choreography */
+.arq-motion-study{color:#78786e;max-width:260px;width:100%;height:160px;flex:0 0 260px;margin:16px 0 0 auto;pointer-events:none;overflow:hidden}
+.arq-motion-study svg{height:100%;width:100%;display:block}
+.material-feature-copy .arq-motion-study{margin:25px 0 12px;max-width:210px;height:130px}
+.expertise .section-head,.process .section-head{align-items:center;gap:25px}
+@media(prefers-reduced-motion:no-preference){
+.arq-motion-trace path{stroke-dasharray:1;stroke-dashoffset:1;animation:arqStudyTrace 7.5s ease-in-out infinite}
+.arq-motion-highlight{stroke-dasharray:1;stroke-dashoffset:1;animation:arqStudyHighlight 7.5s ease-in-out infinite}
+.arq-layer-one{animation:arqLayerOne 8s ease-in-out infinite;transform-origin:130px 100px}
+.arq-layer-two{animation:arqLayerTwo 8s ease-in-out infinite;transform-origin:130px 80px}
+.arq-layer-three{animation:arqLayerThree 8s ease-in-out infinite;transform-origin:150px 50px}
+.arq-craft-orbit{transform-origin:122px 85px;animation:arqCraftOrbit 6s ease-in-out infinite}
+@keyframes arqStudyTrace{0%,8%{stroke-dashoffset:1;opacity:.1}35%,82%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:1;opacity:.1}}
+@keyframes arqStudyHighlight{0%,30%{stroke-dashoffset:1;opacity:0}55%,80%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:1;opacity:0}}
+@keyframes arqLayerOne{0%,100%{transform:translateY(13px);opacity:.65}45%,80%{transform:translateY(0);opacity:1}}
+@keyframes arqLayerTwo{0%,100%{transform:translateY(-7px);opacity:.6}45%,80%{transform:translateY(0);opacity:1}}
+@keyframes arqLayerThree{0%,100%{transform:translateY(-23px);opacity:.7}45%,80%{transform:translateY(0);opacity:1}}
+@keyframes arqCraftOrbit{0%,100%{opacity:.25;transform:scale(.7)}42%,75%{opacity:1;transform:scale(1)}}
+}
+@media(max-width:900px){.arq-motion-study{max-width:180px;flex-basis:180px;height:120px}.material-feature-copy .arq-motion-study{max-width:165px;height:110px}}
+@media(max-width:600px){.expertise .section-head,.process .section-head{align-items:flex-start}.arq-motion-study{margin:12px 0;max-width:150px;flex-basis:150px;height:100px}.material-feature-copy .arq-motion-study{max-width:160px;height:95px}}
+@media(prefers-reduced-motion:reduce){.arq-motion-trace path,.arq-motion-highlight{stroke-dashoffset:0}.arq-layer-one,.arq-layer-two,.arq-layer-three,.arq-craft-orbit{animation:none}}

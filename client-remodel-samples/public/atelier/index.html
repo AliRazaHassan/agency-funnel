@@ -60,12 +60,9 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
 })();
 </script>
 <style id="arq-spatial-experience-v1">
-.arq-hero{perspective:1200px;--mx:0;--my:0}
-.arq-hero-image{transform:scale(1.085) translate3d(calc(var(--mx) * -14px),calc(var(--my) * -9px),0);transition:transform .32s ease-out;animation:none!important;will-change:transform}
-.arq-hero-inset{transform:perspective(900px) rotateY(calc(var(--mx)*-5deg)) rotateX(calc(var(--my)*3deg)) translate3d(calc(var(--mx)*18px),calc(var(--my)*10px),0);transition:transform .45s ease-out,box-shadow .45s}
-.arq-hero-inset:hover{transform:translateY(-7px) scale(1.02)}
-.arq-hero-content{transform:translate3d(calc(var(--mx)*8px),calc(-50% + var(--my)*-5px),0);transition:transform .4s ease-out}
-.arq-hero-glow{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 32% 48% at calc(52% + var(--mx)*14%),calc(32% + var(--my)*10%),#fff3,transparent 78%);mix-blend-mode:soft-light}
+.arq-hero-image{transform:scale(1.035);animation:none!important}
+.arq-hero-content{transform:translateY(-50%)}
+.arq-hero-inset,.arq-hero-inset:hover{transform:none}
 .arq-spatial-section{background:#18241f;color:#f7f0e5;padding:clamp(75px,9vw,130px) 6.5%;position:relative;overflow:hidden}
 .arq-spatial-section:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#d4bc8c0c 1px,transparent 1px),linear-gradient(90deg,#d4bc8c0c 1px,transparent 1px);background-size:50px 50px;mask-image:linear-gradient(to bottom,#000,transparent)}
 .arq-spatial-inner{max-width:1500px;margin:auto;position:relative}
@@ -86,10 +83,6 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
 .arq-spatial-controls input{width:100%;height:40px;accent-color:#d4b995;cursor:ew-resize}
 .arq-spatial-controls output{white-space:nowrap;font-size:13px;min-width:85px;text-align:right}
 .arq-spatial-note{color:#cfc8bc;font-size:12px;margin:18px 0 0}
-.arq-touch-tilt{transform-style:preserve-3d;will-change:transform;transition:transform .4s ease-out,box-shadow .4s;--tx:0;--ty:0}
-.arq-touch-tilt:hover{transform:perspective(1000px) rotateY(calc(var(--tx)*5deg)) rotateX(calc(var(--ty)*-4deg)) translateY(-4px);box-shadow:0 25px 65px #0002}
-.arq-touch-tilt img{transition:transform .75s ease-out!important}
-.arq-touch-tilt:hover img{transform:scale(1.065)}
 .arq-spatial-reveal{opacity:1;transform:translateY(35px);transition:opacity 1s ease,transform 1s cubic-bezier(.16,1,.3,1)}
 .arq-spatial-reveal.is-visible{opacity:1;transform:none}
 @media(max-width:850px){.arq-spatial-title{display:block}.arq-spatial-title p{margin:24px 0 0}.arq-spatial-stage{aspect-ratio:4/3;min-height:320px}.arq-spatial-blueprint svg{width:94%}.arq-spatial-controls{gap:14px}.arq-spatial-controls label{font-size:10px}}
@@ -100,12 +93,6 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
 <script id="arq-spatial-runtime">
 (()=>{
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
- const fine=matchMedia('(hover:hover) and (pointer:fine)').matches;
- const hero=document.querySelector('.arq-hero');
- if(hero){
-  const glow=document.createElement('div');glow.className='arq-hero-glow';glow.setAttribute('aria-hidden','true');hero.append(glow);
-  if(!reduced&&fine){let raf=0;hero.addEventListener('pointermove',e=>{if(raf)return;const rect=hero.getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width-.5,y=(e.clientY-rect.top)/rect.height-.5;raf=requestAnimationFrame(()=>{hero.style.setProperty('--mx',x.toFixed(3));hero.style.setProperty('--my',y.toFixed(3));raf=0})},{passive:true});hero.addEventListener('pointerleave',()=>{hero.style.setProperty('--mx',0);hero.style.setProperty('--my',0)})}
- }
  const target=document.querySelector('.intro-band');
  if(target&&!document.querySelector('.arq-spatial-section')){
  const section=document.createElement('section');section.className='arq-spatial-section';section.setAttribute('aria-labelledby','arq-spatial-heading');
@@ -119,12 +106,6 @@ document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===loca
  if(!reduced&&'IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}})},{threshold:0,rootMargin:'0px 0px 60px 0px'});section.querySelectorAll('.arq-spatial-reveal').forEach(el=>observer.observe(el))}
  else section.querySelectorAll('.arq-spatial-reveal').forEach(el=>el.classList.add('is-visible'));
  }
- if(fine&&!reduced){
- document.querySelectorAll('.project-photo,.signature-gallery-grid a,.material-photo').forEach(card=>{
-  card.classList.add('arq-touch-tilt');let frame=0;
-  card.addEventListener('pointermove',e=>{if(frame)return;const b=card.getBoundingClientRect();const x=((e.clientX-b.left)/b.width-.5)*2,y=((e.clientY-b.top)/b.height-.5)*2;frame=requestAnimationFrame(()=>{card.style.setProperty('--tx',x.toFixed(2));card.style.setProperty('--ty',y.toFixed(2));frame=0})},{passive:true});
-  card.addEventListener('pointerleave',()=>{card.style.setProperty('--tx',0);card.style.setProperty('--ty',0)});
- });
- }
+
 })();
 </script></body></html>

@@ -188,3 +188,18 @@ h3{font-size:clamp(36px,3.1vw,55px)}
 @media(max-width:900px){.signature-hero{height:790px;min-height:0}.signature-hero h1{font-size:clamp(82px,12vw,120px)}.signature-inner{padding:140px 7% 100px}.signature-shade{background:linear-gradient(90deg,#10130ed6,#15161244)}.editorial-strip{gap:22px;padding:30px 5%}.editorial-strip strong{font-size:15px}.editorial-strip p{font-size:12px}.signature-gallery-grid{grid-template-rows:repeat(2,290px)}.signature-cta{min-height:0}.signature-cta img{min-height:500px}}
 @media(max-width:650px){.signature-hero{height:min(860px,calc(100svh - 78px));min-height:700px}.signature-visual img{object-position:58%}.signature-shade{background:linear-gradient(90deg,#121510d9,#1516126b),linear-gradient(0deg,#10130e80,transparent)}.signature-inner{padding:110px 6% 115px}.signature-eyebrow{font-size:10px;letter-spacing:.14em}.signature-rule{width:25px}.signature-hero h1{font-size:clamp(68px,13vw,100px);line-height:.91;margin:55px 0 25px}.signature-hero h1 em{white-space:normal}.signature-inner>p{font-size:18px}.signature-bottom{padding:19px 6%;font-size:9px}.signature-bottom span:last-child{display:none}.editorial-strip{grid-template-columns:1fr;padding:35px 7%;gap:22px}.editorial-strip>div{border-right:0;border-bottom:1px solid #ffffff25;padding-bottom:20px}.editorial-strip>div:last-child{padding-bottom:0}.editorial-strip strong{font-size:18px}.editorial-strip p{font-size:14px}.signature-gallery-grid{grid-template-columns:1fr;grid-template-rows:500px 370px 370px;gap:14px}.signature-gallery-grid a.signature-gallery-large{grid-row:auto}.signature-gallery-grid a>span{font-size:12px;left:20px;right:20px;bottom:25px}.signature-cta{grid-template-columns:1fr}.signature-cta>div{padding:85px 7%}.signature-cta h2{font-size:clamp(57px,11vw,78px)}.signature-cta img{min-height:420px;height:420px}}
 @media(prefers-reduced-motion:reduce){.signature-visual img{animation:none!important}.signature-gallery-grid img{transition:none}}
+
+
+/* Blue Heaven client-specific flagship conversion and proof system */
+.brand-proof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:#d8d1c5;border-block:1px solid #d8d1c5}
+.brand-proof>div{background:#f6f3ed;padding:29px 6vw;display:flex;flex-direction:column;gap:8px;min-width:0}
+.brand-proof strong{font-family:var(--display);font-size:clamp(26px,2.3vw,37px);font-weight:400;line-height:1.08}
+.brand-proof span,.brand-proof a{font-size:13px;color:#70695e;letter-spacing:.035em}
+.brand-proof a{color:#6e4d29;text-decoration:underline;text-underline-offset:5px}
+.client-trust{border-top:1px solid var(--line)}
+.client-trust-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.client-trust-grid blockquote{margin:0;background:#eae6de;padding:clamp(35px,5vw,78px);display:flex;flex-direction:column;justify-content:space-between;gap:28px}
+.client-trust-grid blockquote p{font-family:var(--display);font-size:clamp(30px,3.25vw,55px);line-height:1.16;letter-spacing:-.035em;color:#28241e;margin:0}
+.client-trust-grid blockquote footer{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#766b5e}
+.trust-stars{font-size:22px;color:#96744d;letter-spacing:5px}
+@media(max-width:800px){.brand-proof{grid-template-columns:1fr}.brand-proof>div{padding:24px 7%}.client-trust-grid{grid-template-columns:1fr}.client-trust-grid blockquote{padding:40px 7%}}

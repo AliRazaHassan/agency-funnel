@@ -1,0 +1,14 @@
+{
+  "name": "premium-remodel-samples",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/room.js",
+    "dev": "PORT=4173 node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

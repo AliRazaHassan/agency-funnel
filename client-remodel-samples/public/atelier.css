@@ -445,3 +445,18 @@ body{font-size:15px}
 .companion-trigger{max-width:calc(100vw - 30px)}
 }
 @media(prefers-reduced-motion:reduce){#brief-success{animation:none}#step-fill{transition:none}}
+
+/* QA refinement: stable hero composition, readable comparisons and touch targets. */
+.arq-hero-content{max-width:calc(100% - 360px)}
+.arq-hero h1{font-size:clamp(75px,7.6vw,128px)}
+.arq-hero-inset{bottom:115px}
+.transformation-copy h2{text-wrap:initial;font-size:clamp(44px,4.1vw,66px);line-height:1.04}
+.menu-toggle{min-width:44px;min-height:44px}
+.site-header nav.open{max-height:calc(100svh - 76px);overflow-y:auto}
+.arq-contact-assurance:before{content:none}
+body:has(dialog[open]){overflow:hidden}
+#companion-conversation{overscroll-behavior:contain}
+.dialog-close{min-width:44px;min-height:44px}
+@media(max-width:1100px){.arq-hero-content{max-width:calc(100% - 270px)}.arq-hero h1{font-size:clamp(64px,7.6vw,90px)}}
+@media(max-width:760px){.arq-hero{height:auto;min-height:750px;display:flex;flex-direction:column;padding:80px 6% 0}.arq-hero-content{position:relative;top:auto;left:auto;width:100%;max-width:none;transform:none!important}.arq-hero h1{font-size:clamp(56px,10vw,82px);line-height:1;margin:28px 0 24px}.arq-hero h1 em{white-space:normal}.arq-hero-inset{position:relative;align-self:flex-end;right:auto;bottom:auto;margin:30px 0 28px;width:150px;transform:none}.arq-hero-inset img{height:125px}.arq-hero-inset>span{font-size:8px}.arq-hero-bottom{position:relative;left:auto;right:auto;margin-top:auto;min-height:64px;width:100%}.arq-hero-actions{margin-top:28px}.arq-hero-content>p{font-size:17px}.arq-hero-overlay{background:linear-gradient(90deg,#142019d9,#14201969),linear-gradient(0deg,#121b16b0,transparent 40%)}.transformation-copy h2{font-size:clamp(46px,8vw,62px)}.site-header nav{top:76px}.header-cta{display:none}.site-header{gap:15px}.companion-trigger{bottom:max(14px,env(safe-area-inset-bottom));min-height:44px}.comparison{aspect-ratio:4/3}.compare-tabs button{min-height:44px}dialog{max-height:calc(100dvh - 24px);max-width:calc(100vw - 24px)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.arq-hero-content{transition:none!important}}

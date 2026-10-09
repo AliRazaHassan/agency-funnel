@@ -403,3 +403,45 @@ body{overflow-x:clip}
 @media(max-width:900px){.page-intro h1{font-size:clamp(60px,10vw,100px)}.section-head h2{font-size:clamp(51px,8vw,80px)}.collection .project-card:nth-child(3){margin-top:0}}
 @media(max-width:600px){.page-intro h1{font-size:clamp(52px,13vw,76px)}.page-intro>p{font-size:15px}.project-meta h3{font-size:32px}.collection .project-grid{gap:35px}.collection .project-card:nth-child(2){margin-top:0;padding-top:0}.brief-send-actions{flex-direction:column;align-items:stretch}.brief-send-actions .button,.brief-send-actions .link-arrow{width:100%;justify-content:center}.site-header nav a{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.project-photo img,.button,.arq-btn{transition:none!important}}
+
+
+/* Final interaction, trust, and responsive detailing */
+:root{--ease-luxury:cubic-bezier(.22,1,.36,1)}
+a,button{-webkit-tap-highlight-color:transparent}
+.site-header{box-shadow:0 1px 0 #1b2c1c0d}
+.site-header .header-cta{align-items:center;gap:14px;font-weight:600}
+.site-footer a:hover{color:var(--bronze)}
+.project-photo img,.service-image img,.story-cover img{transform-origin:center;backface-visibility:hidden}
+.project-card:hover .project-meta h3 a{color:#94754e}
+.project-meta h3 a{transition:color .3s ease}
+.enquiry-aside .form-disclosure{border-left:2px solid #9b8464;padding-left:18px}
+.form-progress{position:relative}
+.form-progress>div{overflow:hidden}
+#step-fill{transition:width .45s var(--ease-luxury)}
+#brief-success{animation:arqSuccess .5s var(--ease-luxury) both}
+@keyframes arqSuccess{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.arq-contact-assurance{display:flex;align-items:center;gap:12px;margin-top:25px;font-size:12px;letter-spacing:.02em;line-height:1.7;color:#5c695f}
+.arq-contact-assurance:before{content:'✓';display:grid;place-items:center;flex:none;width:30px;height:30px;border:1px solid #9b8464;border-radius:50%;color:#80633d}
+.arq-quick-cta{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin:28px 0 10px}
+.arq-quick-cta a{font-size:13px}
+.arq-quick-cta .button{min-height:52px}
+#companion{max-height:min(92dvh,860px);overflow-y:auto}
+#companion-form textarea{min-height:100px}
+.companion-trigger{z-index:45}
+@media(max-width:1100px){.site-header{gap:16px;padding-inline:3%}.site-header nav{gap:17px}.wordmark{font-size:27px}}
+@media(max-width:900px){.site-header{padding-inline:5%}.site-header .wordmark{font-size:28px}.page-intro:after{opacity:.06}}
+@media(max-width:600px){
+body{font-size:15px}
+.site-header{height:76px}
+.site-header .wordmark{font-size:25px;letter-spacing:.12em}
+.site-header .wordmark span{font-size:6px;letter-spacing:.15em}
+.page-intro{padding-block:72px}
+.page-intro h1{line-height:1}
+.section,.collection{padding-inline:6%}
+.enquiry-card{box-shadow:none}
+.arq-contact-assurance{font-size:12px}
+.arq-quick-cta{flex-direction:column;align-items:stretch;gap:9px}
+.arq-quick-cta .button{width:100%;justify-content:center}
+.companion-trigger{max-width:calc(100vw - 30px)}
+}
+@media(prefers-reduced-motion:reduce){#brief-success{animation:none}#step-fill{transition:none}}

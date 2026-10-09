@@ -58,4 +58,71 @@ const intro=document.querySelector('.intro-band');if(intro&&!intro.querySelector
 const expert=document.querySelector('.expertise');if(expert&&!document.querySelector('.arq-cinema-divider')){const section=document.createElement('section');section.className='arq-cinema-divider';section.setAttribute('aria-label','ARQORA design philosophy');section.innerHTML='<div><span>ARQORA / THE DESIGN PHILOSOPHY</span><h2>Spaces that<br><em>stay with you.</em></h2><p>Not simply beautiful to look at. Beautiful to live in, day after day.</p></div>';expert.after(section)}
 document.querySelectorAll('.site-header nav a').forEach(a=>{if(a.pathname===location.pathname)a.setAttribute('aria-current','page')});
 })();
+</script>
+<style id="arq-spatial-experience-v1">
+.arq-hero{perspective:1200px;--mx:0;--my:0}
+.arq-hero-image{transform:scale(1.085) translate3d(calc(var(--mx) * -14px),calc(var(--my) * -9px),0);transition:transform .32s ease-out;animation:none!important;will-change:transform}
+.arq-hero-inset{transform:perspective(900px) rotateY(calc(var(--mx)*-5deg)) rotateX(calc(var(--my)*3deg)) translate3d(calc(var(--mx)*18px),calc(var(--my)*10px),0);transition:transform .45s ease-out,box-shadow .45s}
+.arq-hero-inset:hover{transform:translateY(-7px) scale(1.02)}
+.arq-hero-content{transform:translate3d(calc(var(--mx)*8px),calc(var(--my)*-5px),0);transition:transform .4s ease-out}
+.arq-hero-glow{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 32% 48% at calc(52% + var(--mx)*14%),calc(32% + var(--my)*10%),#fff3,transparent 78%);mix-blend-mode:soft-light}
+.arq-spatial-section{background:#18241f;color:#f7f0e5;padding:clamp(75px,9vw,130px) 6.5%;position:relative;overflow:hidden}
+.arq-spatial-section:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#d4bc8c0c 1px,transparent 1px),linear-gradient(90deg,#d4bc8c0c 1px,transparent 1px);background-size:50px 50px;mask-image:linear-gradient(to bottom,#000,transparent)}
+.arq-spatial-inner{max-width:1500px;margin:auto;position:relative}
+.arq-spatial-title{display:flex;justify-content:space-between;gap:40px;align-items:end;margin-bottom:44px}
+.arq-spatial-title h2{font-size:clamp(61px,7vw,126px);letter-spacing:-.055em;line-height:.91;max-width:980px}
+.arq-spatial-title h2 em{color:#d6b894}
+.arq-spatial-title p{font-size:15px;max-width:295px;color:#d4cec2;margin:0}
+.arq-spatial-stage{position:relative;aspect-ratio:16/8.5;min-height:350px;max-height:800px;overflow:hidden;isolation:isolate;background:#343f36;--progress:0}
+.arq-spatial-stage>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(calc(1.07 - var(--progress)*.07));transition:transform .15s linear;filter:saturate(1.04)}
+.arq-spatial-blueprint{position:absolute;inset:0;z-index:2;opacity:calc(1 - var(--progress));background:linear-gradient(135deg,#182e35f2,#304f58eb);display:grid;place-items:center;pointer-events:none}
+.arq-spatial-blueprint:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#e7d9b026 1px,transparent 1px),linear-gradient(90deg,#e7d9b026 1px,transparent 1px);background-size:35px 35px}
+.arq-spatial-blueprint svg{position:relative;width:75%;height:82%;filter:drop-shadow(0 0 9px #d8c69b40)}
+.arq-spatial-blueprint path,.arq-spatial-blueprint rect{stroke-dasharray:1;stroke-dashoffset:calc(1 - var(--progress));stroke:#e2cda5;fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
+.arq-spatial-vignette{position:absolute;inset:0;pointer-events:none;z-index:3;background:linear-gradient(0deg,#0e211c6b,transparent 35%)}
+.arq-spatial-caption{position:absolute;z-index:4;bottom:25px;left:30px;right:30px;display:flex;justify-content:space-between;gap:20px;color:#fff;font-size:11px;letter-spacing:.16em;text-shadow:0 1px 12px #0009}
+.arq-spatial-controls{display:flex;align-items:center;gap:25px;margin-top:30px}
+.arq-spatial-controls label{font-size:12px;letter-spacing:.14em;white-space:nowrap}
+.arq-spatial-controls input{width:100%;height:40px;accent-color:#d4b995;cursor:ew-resize}
+.arq-spatial-controls output{white-space:nowrap;font-size:13px;min-width:85px;text-align:right}
+.arq-spatial-note{color:#cfc8bc;font-size:12px;margin:18px 0 0}
+.arq-touch-tilt{transform-style:preserve-3d;will-change:transform;transition:transform .4s ease-out,box-shadow .4s;--tx:0;--ty:0}
+.arq-touch-tilt:hover{transform:perspective(1000px) rotateY(calc(var(--tx)*5deg)) rotateX(calc(var(--ty)*-4deg)) translateY(-4px);box-shadow:0 25px 65px #0002}
+.arq-touch-tilt img{transition:transform .75s ease-out!important}
+.arq-touch-tilt:hover img{transform:scale(1.065)}
+.arq-spatial-reveal{opacity:0;transform:translateY(35px);transition:opacity 1s ease,transform 1s cubic-bezier(.16,1,.3,1)}
+.arq-spatial-reveal.is-visible{opacity:1;transform:none}
+@media(max-width:850px){.arq-spatial-title{display:block}.arq-spatial-title p{margin:24px 0 0}.arq-spatial-stage{aspect-ratio:4/3;min-height:320px}.arq-spatial-blueprint svg{width:94%}.arq-spatial-controls{gap:14px}.arq-spatial-controls label{font-size:10px}}
+@media(max-width:600px){.arq-spatial-section{padding:80px 5%}.arq-spatial-title h2{font-size:clamp(52px,11vw,75px)}.arq-spatial-stage{min-height:360px}.arq-spatial-caption{font-size:9px;left:18px;right:18px}.arq-spatial-controls{flex-wrap:wrap}.arq-spatial-controls input{order:3;flex:0 0 100%}.arq-spatial-controls output{margin-left:auto}}
+@media(hover:none),(pointer:coarse){.arq-hero-image{transform:scale(1.035)}.arq-hero-content,.arq-hero-inset,.arq-touch-tilt:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.arq-hero-image,.arq-hero-content,.arq-hero-inset,.arq-touch-tilt,.arq-spatial-reveal,.arq-spatial-stage>img{transform:none!important;transition:none!important}.arq-spatial-reveal{opacity:1}}
+</style>
+<script id="arq-spatial-runtime">
+(()=>{
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const fine=matchMedia('(hover:hover) and (pointer:fine)').matches;
+ const hero=document.querySelector('.arq-hero');
+ if(hero){
+  const glow=document.createElement('div');glow.className='arq-hero-glow';glow.setAttribute('aria-hidden','true');hero.append(glow);
+  if(!reduced&&fine){let raf=0;hero.addEventListener('pointermove',e=>{if(raf)return;const rect=hero.getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width-.5,y=(e.clientY-rect.top)/rect.height-.5;raf=requestAnimationFrame(()=>{hero.style.setProperty('--mx',x.toFixed(3));hero.style.setProperty('--my',y.toFixed(3));raf=0})},{passive:true});hero.addEventListener('pointerleave',()=>{hero.style.setProperty('--mx',0);hero.style.setProperty('--my',0)})}
+ }
+ const target=document.querySelector('.intro-band');
+ if(target&&!document.querySelector('.arq-spatial-section')){
+ const section=document.createElement('section');section.className='arq-spatial-section';section.setAttribute('aria-labelledby','arq-spatial-heading');
+ section.innerHTML=`<div class="arq-spatial-inner"><div class="arq-spatial-title arq-spatial-reveal"><div><span class="kicker">THE DESIGN TRANSFORMATION / 001</span><h2 id="arq-spatial-heading">From a line.<br><em>To a living space.</em></h2></div><p>Discover how an architectural idea begins to feel like home. Drag to reveal the transformation.</p></div><div class="arq-spatial-stage arq-spatial-reveal" id="arq-spatial-stage"><img src="/kitchen-after.webp" alt="Illustrative warm oak and stone kitchen design concept" loading="lazy" decoding="async"><div class="arq-spatial-blueprint" aria-hidden="true"><svg viewBox="0 0 900 470" preserveAspectRatio="xMidYMid meet"><g><rect x="88" y="52" width="730" height="349" pathLength="1"/><path d="M88 401L37 439H863L818 401M88 52L37 15H863L818 52M88 52V401M818 52V401" pathLength="1"/><rect x="118" y="88" width="265" height="276" pathLength="1"/><path d="M162 88V364M340 88V364M118 225H383" pathLength="1"/><rect x="432" y="90" width="324" height="154" pathLength="1"/><path d="M432 142H756M432 190H756M533 90V244M649 90V244" pathLength="1"/><path d="M457 402V292H736V402M476 292V267H716V292M552 292V402M664 292V402" pathLength="1"/><path d="M452 420H746M452 413V429M746 413V429" pathLength="1"/></g></svg></div><div class="arq-spatial-vignette"></div><div class="arq-spatial-caption"><span>01 / ARCHITECTURAL CONCEPT</span><span>02 / CONSIDERED INTERIOR</span></div></div><div class="arq-spatial-controls"><label for="arq-spatial-slider">REVEAL THE VISION</label><input id="arq-spatial-slider" type="range" min="0" max="100" value="0" aria-label="Reveal concept drawing to illustrative completed interior"><output for="arq-spatial-slider">0% REVEALED</output></div><p class="arq-spatial-note">Interactive design visualization. Imagery is illustrative, not a completed client commission.</p></div>`;
+ target.after(section);
+ const stage=section.querySelector('.arq-spatial-stage'),slider=section.querySelector('input'),out=section.querySelector('output');
+ function update(){const pct=Number(slider.value);stage.style.setProperty('--progress',(pct/100).toFixed(3));out.textContent=pct+'% REVEALED';stage.querySelector('.arq-spatial-caption span:first-child').style.opacity=1-pct/100}
+ slider.addEventListener('input',update);update();
+ if(!reduced&&'IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}})},{threshold:.12});section.querySelectorAll('.arq-spatial-reveal').forEach(el=>observer.observe(el))}
+ else section.querySelectorAll('.arq-spatial-reveal').forEach(el=>el.classList.add('is-visible'));
+ }
+ if(fine&&!reduced){
+ document.querySelectorAll('.project-photo,.signature-gallery-grid a,.material-photo').forEach(card=>{
+  card.classList.add('arq-touch-tilt');let frame=0;
+  card.addEventListener('pointermove',e=>{if(frame)return;const b=card.getBoundingClientRect();const x=((e.clientX-b.left)/b.width-.5)*2,y=((e.clientY-b.top)/b.height-.5)*2;frame=requestAnimationFrame(()=>{card.style.setProperty('--tx',x.toFixed(2));card.style.setProperty('--ty',y.toFixed(2));frame=0})},{passive:true});
+  card.addEventListener('pointerleave',()=>{card.style.setProperty('--tx',0);card.style.setProperty('--ty',0)});
+ });
+ }
+})();
 </script></body></html>

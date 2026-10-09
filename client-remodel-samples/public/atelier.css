@@ -299,3 +299,22 @@ body{background:var(--paper);color:var(--ink);font-family:Arial,"Helvetica Neue"
 @media(max-width:1100px){.arq-hero-inset{width:185px;right:5%;bottom:80px}.arq-hero-inset img{height:170px}}
 @media(max-width:760px){.arq-hero-inset{width:135px;right:6%;bottom:78px;padding:4px 4px 0}.arq-hero-inset img{height:120px}.arq-hero-inset>span{min-height:32px;font-size:7px;padding:4px}}
 @media(max-width:480px){.arq-hero-inset{width:112px;bottom:70px}.arq-hero-inset img{height:98px}.arq-hero-inset>span{font-size:6px;min-height:27px}.arq-hero-inset b{font-size:15px}}
+
+
+/* ARQORA — architectural illustration; quiet animation rather than an autoplaying gimmick */
+.intro-band.arq-intro-animated{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.07fr);gap:clamp(42px,5vw,110px);align-items:center;padding-block:clamp(80px,8vw,145px);min-height:650px}
+.arq-intro-art{display:flex;flex-direction:column;align-items:flex-start;align-self:stretch;min-width:0}
+.arq-intro-art>.kicker{display:block;margin-bottom:clamp(35px,4.5vw,70px)}
+.arq-plan-motion{width:100%;max-width:560px;position:relative;margin:auto 0;overflow:hidden}
+.arq-plan-motion svg{display:block;width:100%;height:auto;overflow:visible}
+.arq-plan-wall,.arq-plan-floor{opacity:0;animation:arqSurface 1.2s 1s ease both}
+.arq-architecture-lines path{stroke-dasharray:1;stroke-dashoffset:1;animation:arqDraw 2.5s .3s cubic-bezier(.25,.7,.3,1) forwards}
+.arq-architecture-accents path{stroke-dasharray:1;stroke-dashoffset:1;animation:arqDraw 1.5s 1.45s ease forwards}
+.arq-schematic-guides{opacity:0;animation:arqSurface .7s .25s ease forwards}
+.arq-plan-caption{fill:#807564;font-size:11px;letter-spacing:2.4px;font-family:Arial,sans-serif}
+.arq-plan-footnote{margin:5px 0 0 10%;display:flex;align-items:center;gap:13px;font-size:10px;letter-spacing:.16em;color:#77746b}
+.arq-plan-dot{width:8px;height:8px;border-radius:50%;background:#a38c70;box-shadow:0 0 0 5px #a38c7024}
+@keyframes arqDraw{to{stroke-dashoffset:0}}@keyframes arqSurface{to{opacity:1}}
+@media(max-width:900px){.intro-band.arq-intro-animated{grid-template-columns:1fr;gap:35px;min-height:0}.arq-intro-art>.kicker{margin-bottom:10px}.arq-plan-motion{max-width:500px;margin:0 auto}.arq-intro-animated>div:last-child{max-width:760px}}
+@media(max-width:550px){.intro-band.arq-intro-animated{padding-block:66px;gap:32px}.arq-plan-motion{max-width:390px}.arq-plan-footnote{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.arq-architecture-lines path,.arq-architecture-accents path{animation:none;stroke-dashoffset:0}.arq-plan-wall,.arq-plan-floor,.arq-schematic-guides{animation:none;opacity:1}}

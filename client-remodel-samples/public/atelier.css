@@ -246,3 +246,45 @@ h3{font-size:clamp(36px,3.1vw,55px)}
 @media(max-width:760px){.bh-hero{min-height:780px;height:calc(100svh - 78px);max-height:950px}.bh-hero-topline{top:25px}.bh-hero-topline span:last-child{display:none}.bh-hero-content{top:45%;left:6%;width:90%;transform:translateY(-50%)}.bh-hero h1{font-size:clamp(67px,12vw,106px);margin:31px 0}.bh-hero h1 em{white-space:normal}.bh-hero-content>p{font-size:17px;max-width:420px}.bh-hero-photo-card{width:130px;height:165px;bottom:80px;right:8%;border-width:4px;transform:rotate(6deg)}.bh-hero-photo-card>span{font-size:6px;height:21px;line-height:21px}.bh-hero-photo-card img{height:calc(100% - 21px)}.bh-hero-stamp{display:none}.bh-hero-bottom span{display:none}.bh-hero-cta{min-height:63px;padding-left:18px;font-size:11px;gap:22px}.bh-hero-cta-icon{height:41px;width:41px}}
 @media(max-width:480px){.bh-hero{min-height:740px}.bh-hero-content{top:43%}.bh-hero h1{font-size:clamp(64px,12.6vw,80px)}.bh-hero-actions{gap:18px}.bh-hero-text-link{font-size:10px}.bh-hero-photo-card{opacity:.8;right:7%;bottom:84px;width:108px;height:145px}.bh-type-marquee{padding:14px 0}}
 @media(prefers-reduced-motion:reduce){.bh-backdrop>img,.bh-hero-photo-card,.bh-type-marquee>div{animation:none!important}}
+
+
+/* ARQORA EDITION — restrained, architectural, accessible */
+:root{--paper:#f7f4ef;--ink:#222420;--muted:#626760;--bronze:#ac9476;--olive:#242824;--line:#28302522}
+body{background:var(--paper);color:var(--ink);font-family:Arial,"Helvetica Neue",sans-serif}
+.site-header{height:86px;background:#f7f4efeb;border-bottom:1px solid #22242018;padding:0 5.5%;backdrop-filter:blur(20px)}
+.wordmark{font-family:Arial,"Helvetica Neue",sans-serif;font-size:29px;font-weight:600;letter-spacing:.22em;line-height:1.1}
+.wordmark span{font-size:8px;letter-spacing:.15em;font-weight:400;margin-top:9px}
+.site-header nav a{font-size:13px}.header-cta{font-size:13px;border:1px solid #252b25;padding:13px 18px;gap:20px;transition:background .2s,color .2s}
+.header-cta:hover{background:#252b25;color:white}.header-cta span{font-size:16px}
+.arq-hero{position:relative;min-height:760px;height:calc(100svh - 86px);max-height:1040px;background:#30362f;overflow:hidden;color:#fff;isolation:isolate}
+.arq-hero-image,.arq-hero-overlay{position:absolute;inset:0;width:100%;height:100%}
+.arq-hero-image{object-fit:cover;object-position:52% center;animation:arqEntrance 1.65s ease-out both;z-index:-2}
+.arq-hero-overlay{z-index:-1;background:linear-gradient(90deg,#142019cf 0%,#1420199e 39%,#14201921 86%),linear-gradient(0deg,#121b16b0,transparent 26%)}
+.arq-hero-content{position:absolute;left:7%;top:48%;transform:translateY(-50%);max-width:1050px;width:86%}
+.arq-eyebrow{display:flex;gap:15px;align-items:center;font-size:12px;letter-spacing:.21em;font-weight:600;color:#f0e7d9}
+.arq-line{width:35px;height:1px;background:#ded2c0;display:block}
+.arq-hero h1{font-size:clamp(75px,8.7vw,145px);line-height:.93;letter-spacing:-.057em;color:#fff;margin:35px 0 30px;font-weight:400;max-width:1200px}
+.arq-hero h1 em{font-weight:400;color:#e1d1bb;white-space:nowrap}
+.arq-hero-content>p{font-size:clamp(18px,1.35vw,22px);color:#efece7;max-width:540px;line-height:1.65;margin:0}
+.arq-hero-actions,.arq-closing-links{display:flex;align-items:center;flex-wrap:wrap;gap:34px;margin-top:36px}
+.arq-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:54px;padding:20px 28px;font-size:14px;font-weight:600;min-height:65px;transition:background .25s,transform .25s}
+.arq-btn-light{background:#f3ece1;color:#222820}.arq-btn:hover{transform:translateY(-2px);background:#fff}
+.arq-btn span{font-size:22px;font-weight:400}
+.arq-quiet-link{font-size:14px;color:#fff;border-bottom:1px solid #ffffffa0;padding-bottom:9px;display:inline-flex;gap:25px}
+.arq-hero-bottom{position:absolute;bottom:0;left:7%;right:7%;border-top:1px solid #ffffff60;display:flex;justify-content:space-between;padding:20px 0;font-size:11px;letter-spacing:.15em;color:#eee9df}
+.arq-credentials{display:flex;justify-content:space-between;gap:30px;padding:28px 7%;background:#efebe4;color:#565c52;border-bottom:1px solid #d6d3ca;font-size:11px;font-weight:600;letter-spacing:.115em}
+.arq-closing{background:#252b25;color:#fff;display:grid;grid-template-columns:1.08fr .92fr;min-height:640px}
+.arq-closing-copy{padding:clamp(70px,7vw,120px) 9%;display:flex;align-items:flex-start;justify-content:center;flex-direction:column}
+.arq-closing .kicker{color:#d9cbb6}
+.arq-closing h2{font-size:clamp(60px,6.7vw,108px);color:#fff;letter-spacing:-.05em;margin:12px 0 27px}
+.arq-closing h2 em{color:#ddcab1}
+.arq-closing p{color:#e1e0d9;max-width:490px;font-size:18px}
+.arq-closing-art{position:relative;min-height:550px;overflow:hidden}.arq-closing-art img{width:100%;height:100%;object-fit:cover}
+.arq-closing-art:after{position:absolute;content:"";inset:65% 0 0;background:linear-gradient(0deg,#12171280,transparent)}
+.arq-art-label{position:absolute;bottom:35px;left:35px;z-index:1;color:white;font-size:12px;letter-spacing:.18em}
+.site-footer{background:#f0ece5}
+@keyframes arqEntrance{from{opacity:.55;transform:scale(1.045)}to{opacity:1;transform:scale(1)}}
+@media(max-width:1050px){.arq-hero h1{font-size:clamp(73px,9.1vw,106px)}.arq-closing{grid-template-columns:1fr 1fr}.arq-closing h2{font-size:clamp(55px,6vw,80px)}}
+@media(max-width:800px){.arq-hero{min-height:750px;height:calc(100svh - 78px)}.arq-hero h1{font-size:clamp(65px,11.5vw,95px)}.arq-hero-content{left:6%;width:88%}.arq-credentials{flex-wrap:wrap;padding:23px 6%;gap:15px}.arq-closing{grid-template-columns:1fr}.arq-closing-copy{padding:85px 7%}.arq-closing-art{min-height:420px;height:480px}}
+@media(max-width:550px){.site-header{height:76px}.wordmark{font-size:23px}.wordmark span{font-size:7px}.arq-hero{min-height:650px;height:calc(100svh - 76px)}.arq-hero-content{top:46%}.arq-hero h1{font-size:clamp(53px,11.3vw,69px);line-height:1;margin:28px 0 24px}.arq-hero h1 em{white-space:normal}.arq-hero-content>p{font-size:16px}.arq-eyebrow{font-size:10px;letter-spacing:.1em}.arq-hero-actions{gap:23px;margin-top:30px}.arq-btn{padding:16px 19px;min-height:56px;gap:23px;font-size:13px}.arq-hero-bottom{font-size:9px}.arq-hero-bottom span{display:none}.arq-credentials{display:grid;grid-template-columns:1fr;gap:8px;font-size:10px}.arq-closing h2{font-size:clamp(53px,11vw,72px)}.arq-closing-copy{padding:75px 6%}.arq-closing-art{height:380px;min-height:380px}}
+@media(prefers-reduced-motion:reduce){.arq-hero-image{animation:none}}

@@ -41,3 +41,14 @@ if(companion){q('[data-open-companion]').addEventListener('click',()=>companion.
  try{if(liveAI){const res=await fetch('/api/design',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history})});const data=await res.json();if(!res.ok)throw Error(data.error||'The advisor is unavailable.');message=data.reply;history.push({role:'user',content:text},{role:'assistant',content:message});history=history.slice(-6)}else message=preview(text);addMessage(message)}catch(err){addMessage(err.message+' Your ideas have not been lost. Try again or continue to the project brief.')}finally{button.disabled=false;button.textContent='Explore my direction ↗'}});
  qa('[data-companion-prompt]').forEach(b=>b.addEventListener('click',()=>{q('#companion-input').value=b.dataset.companionPrompt;q('#companion-input').focus()}));
 }
+
+
+/* ARQORA progressive-enhancement scroll reveals */
+if(!reduced && 'IntersectionObserver' in window){
+ const candidates=qa('.intro-band, .section-head, .project-card, .signature-gallery, .editorial-strip, .studio-philosophy, .values, .service-card, .process, .arq-closing-copy, .arq-closing-art, .contact-direct, .transformation, .client-trust, .collection-grid, .section.enquiry-layout');
+ const scrollObserver=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('arq-visible');scrollObserver.unobserve(entry.target)}});
+ },{threshold:0.11,rootMargin:'0px 0px -35px 0px'});
+ candidates.forEach((el,i)=>{el.classList.add('arq-reveal');scrollObserver.observe(el)});
+ document.documentElement.classList.add('arq-motion-enabled');
+}

@@ -50,7 +50,7 @@ joiner=[
  rect('Vest',[0,39],[27,40],gold,3),poly('Vest stitching',[[0,20],[0,59],[-11,45],[11,45]],ink,1.5),
  rect('Tool belt',[0,61],[38,7],cream,1),rect('Tool pouch',[-10,71],[13,16],gold,2),
  poly('Rear arm',[[-16,23],[-26,43],[-20,61]],cream,10),ellipse('Hand',[-20,61],[8,9],skin),
- group('Working arm',[poly('Upper arm',[[14,21],[32,29]],cream,10),poly('Forearm',[[32,29],[49,17]],skin,8),ellipse('Grip',[49,17],[8,9],skin),rect('Drill body',[56,12],[24,12],gold,2),rect('Drill handle',[49,23],[7,14],ink,1),poly('Drill bit',[[68,12],[82,12]],cream,2)],trans(a=[14,21],p=[14,21],r=keys(armposes))),
+ group('Working arm',[poly('Upper arm',[[14,21],[32,29]],cream,10),poly('Forearm',[[32,29],[49,17]],skin,8),ellipse('Grip',[49,17],[8,9],skin),group('Drill',[rect('Drill body',[56,12],[24,12],gold,2),rect('Drill handle',[49,23],[7,14],ink,1),poly('Drill bit',[[68,12],[82,12]],cream,2)],trans(o=keys([(0,0),(74,0),(81,100),(239,100)]))),group('Tape measure',[rect('Tape housing',[49,17],[13,12],gold,2),poly('Measuring tape',[[55,17],[92,17]],cream,2)],trans(o=keys([(0,100),(74,100),(81,0),(239,0)])))],trans(a=[14,21],p=[14,21],r=keys(armposes))),
  rect('Neck',[0,9],[10,12],skin,2),ellipse('Head',[0,-3],[23,28],skin,ink),
  poly('Face',[[10,-4],[13,2],[8,5]],ink,1.4),ellipse('Helmet crown',[0,-15],[30,18],gold,ink),rect('Helmet brim',[2,-8],[37,5],cream,1),poly('Helmet seam',[[0,-21],[0,-11]],ink,1.5)
 ]
@@ -65,6 +65,10 @@ layer('Countertop',[poly('Stone slab',[[428,0],[733,0],[733,14],[428,14]],cream,
 layer('Survey dimensions',[poly('Measure',[[100,65],[780,65]],gold,1),poly('Left tick',[[100,55],[100,75]],cream,1),poly('Right tick',[[780,55],[780,75]],cream,1)],opacity=keys([(0,0),(28,0),(40,85),(67,85),(82,0),(239,0)]))
 # Soft ground shadows anchor the figures in the construction scene.
 layer('Worker shadows',[ellipse('Joiner shadow',[443,404],[75,9],ink),ellipse('Painter shadow',[687,405],[70,9],ink)],opacity=keys([(0,0),(77,0),(98,30),(197,30),(215,0),(239,0)]))
+# Shape groups are painted in reverse order. Put apparel and facial detail
+# over the body, while leaving Lottie's fill/stroke item order intact.
+for item in layers:
+ if item['nm'].startswith(('Painter /','Joiner /')):item['shapes'].reverse()
 # Lottie paints top-to-bottom: put workers above construction layers.
 data={'v':'5.7.4','fr':30,'ip':0,'op':240,'w':900,'h':470,'nm':'ARQORA / A home in the making','ddd':0,'assets':[],'layers':layers,'markers':[{'tm':0,'cm':'The existing space','dr':36},{'tm':36,'cm':'Survey and design','dr':45},{'tm':81,'cm':'Craft and installation','dr':61},{'tm':142,'cm':'Finish and detail','dr':65},{'tm':207,'cm':'Welcome home','dr':33}]}
 OUT.write_text(json.dumps(data,separators=(',',':')))

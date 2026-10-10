@@ -52,7 +52,7 @@
  async function loadWorkers(){
   if(loading||reduced||!window.lottie)return;loading=true;
   try{
-   const response=await fetch('/renovation-workers.json?v=1');
+   const response=await fetch('/renovation-workers.json?v=2');
    if(!response.ok)throw new Error('Renovation artwork unavailable');
    const data=await response.json();
    animation=window.lottie.loadAnimation({container:workerContainer,renderer:'svg',loop:false,autoplay:false,animationData:data,rendererSettings:{preserveAspectRatio:'xMidYMid meet',progressiveLoad:false,hideOnTransparent:true}});

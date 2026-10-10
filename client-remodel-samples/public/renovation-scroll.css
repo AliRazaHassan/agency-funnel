@@ -1,0 +1,30 @@
+/* A photographic renovation story, with original vector craftspeople. */
+.arq-spatial-stage>.arq-renovation-before,.arq-spatial-stage>.arq-renovation-after{transform:none;transition:none;object-position:center}
+.arq-renovation-before{z-index:0;filter:saturate(.7)!important}
+.arq-spatial-stage>.arq-renovation-after{z-index:1;opacity:var(--interior,0);filter:none}
+.arq-spatial-stage .arq-spatial-blueprint{opacity:var(--blueprint,.78);background:linear-gradient(135deg,#182e35c9,#304f58ad);transition:none}
+.arq-renovation-treatment{position:absolute;inset:0;z-index:2;background:#162d29;opacity:var(--work-tone,.38);pointer-events:none}
+.arq-renovation-workers{position:absolute;inset:0;z-index:3;opacity:var(--crew,1);pointer-events:none;filter:drop-shadow(0 3px 4px #0d191c55)}
+.arq-renovation-workers svg{width:100%;height:100%;display:block}
+.arq-renovation-phase{position:absolute;top:20px;left:24px;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#142923d9;border:1px solid #ddc6a34d;color:#f3e9d9;font-size:11px;letter-spacing:.1em;backdrop-filter:blur(10px)}
+.arq-renovation-phase-dot{width:5px;height:5px;border-radius:50%;background:#d4b995;box-shadow:0 0 0 4px #d4b99518}
+.arq-renovation-steps{display:flex;flex:none;list-style:none;margin:16px 0 0;padding:0;gap:16px;color:#a8b3a9}
+.arq-renovation-steps li{flex:1;position:relative;padding-top:10px;border-top:1px solid #c7b39030;font-size:12px;letter-spacing:.03em;transition:color .2s}
+.arq-renovation-steps li:before{content:'';position:absolute;left:0;top:-1px;width:0;height:1px;background:#d4b995;transition:width .3s}
+.arq-renovation-steps li[aria-current]:before,.arq-renovation-steps li.is-complete:before{width:100%}
+.arq-renovation-steps li[aria-current]{color:#f7efdf}
+.arq-renovation-steps li.is-complete{color:#d4b995}
+.arq-renovation-steps span{font-size:10px;margin-right:8px;color:#d4b995}
+#renovation-story .arq-spatial-controls{margin-top:6px}
+#renovation-story .arq-spatial-controls input{height:30px}
+#renovation-story .arq-spatial-note{padding-right:170px;font-size:11px}
+#renovation-story .arq-spatial-title h2{font-size:clamp(48px,5.3vw,78px)}
+@media(max-width:850px){.arq-renovation-steps{gap:10px}.arq-renovation-steps li{font-size:11px}.arq-renovation-steps span{margin-right:4px}}
+@media(max-width:600px){#renovation-story .arq-spatial-title h2{font-size:clamp(36px,9vw,52px)}#renovation-story.is-scroll-pinned .arq-spatial-title p{font-size:12px;margin-top:8px;line-height:1.4}.arq-renovation-phase{top:12px;left:12px;font-size:10px;padding:8px 10px;letter-spacing:.04em}.arq-renovation-steps{gap:8px;margin-top:12px}.arq-renovation-steps li{font-size:10px;padding-top:8px}.arq-renovation-steps span{display:block;margin-bottom:3px}#renovation-story .arq-spatial-note{padding-right:0;font-size:10px}#renovation-story .arq-spatial-caption{bottom:14px;left:12px;right:12px;font-size:8px;letter-spacing:.08em}#renovation-story .arq-spatial-caption span{max-width:45%}}
+@media(max-height:600px){#renovation-story .arq-spatial-title h2{font-size:36px}.arq-renovation-steps{margin-top:8px}.arq-renovation-steps li{padding-top:6px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.arq-renovation-workers{display:none}.arq-renovation-steps li:before{transition:none}}
+
+.arq-renovation-active .companion-trigger{font-size:0;width:44px;height:44px;min-height:44px;padding:0;justify-content:center;gap:0}
+.arq-renovation-active .companion-trigger>span{font-size:23px;border:0;padding:0}
+.arq-renovation-active .companion-trigger>i{display:none}
+#renovation-story .arq-spatial-controls output{margin-right:58px}

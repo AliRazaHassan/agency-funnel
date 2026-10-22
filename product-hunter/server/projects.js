@@ -12,6 +12,20 @@ const DIR = join(__dirname, "data", "projects");
 let pool = null;
 let ready = false;
 let attempted = false;
+let kvClient = null;
+let kvPromise = null;
+const PROJECTS_KEY = "product-hunter:projects:v1";
+async function kv() {
+  if (!process.env.REDIS_URL) return null;
+  if (!kvPromise) kvPromise = (async () => {
+    const {default: Redis} = await import("ioredis");
+    const client = new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:1,lazyConnect:true,retryStrategy:()=>null});
+    client.on("error",()=>{});
+    try { await client.connect(); await client.ping(); kvClient = client; return client; }
+    catch(err) { client.disconnect(); throw new Error("Project storage unavailable: " + err.message); }
+  })();
+  return kvPromise;
+}
 
 function ensureDir() {
   if (!existsSync(DIR)) mkdirSync(DIR, { recursive: true });
@@ -49,7 +63,7 @@ async function db() {
   }
 }
 export async function projectStoreMode() {
-  return (await db()) ? "postgres" : "file";
+  return (await db()) ? "postgres" : (await kv()) ? "keyvalue" : "file";
 }
 
 function summary(p={}) {
@@ -91,6 +105,8 @@ export async function listProjects() {
     const {rows}=await p.query(`select payload from research_projects order by updated_at desc limit 250`);
     return rows.map(r=>summary(r.payload));
   }
+  const k=await kv();
+  if(k) return Object.values(await k.hgetall(PROJECTS_KEY)).map(raw=>summary(JSON.parse(raw))).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))).slice(0,250);
   ensureDir();
   const files=readdirSync(DIR).filter(f=>f.endsWith(".json"));
   return files.map(f=>{
@@ -105,6 +121,8 @@ export async function getProject(projectId) {
     const {rows}=await p.query(`select payload from research_projects where id=$1 limit 1`,[String(projectId)]);
     return rows[0]?.payload || null;
   }
+  const k=await kv();
+  if(k) { const raw=await k.hget(PROJECTS_KEY,String(projectId)); return raw ? JSON.parse(raw) : null; }
   ensureDir();
   const path=join(DIR,`${projectId}.json`);
   if(!existsSync(path)) return null;
@@ -125,6 +143,13 @@ export async function saveProject(payload={}) {
     );
     return project;
   }
+  const k=await kv();
+  if(k) {
+    const existing=await getProject(project.id);
+    if(existing?.createdAt) project.createdAt=existing.createdAt;
+    await k.hset(PROJECTS_KEY,project.id,JSON.stringify(project));
+    return project;
+  }
   ensureDir();
   if(payload.id){
     const old=join(DIR,`${payload.id}.json`);
@@ -142,9 +167,12 @@ export async function deleteProject(projectId) {
     const result=await p.query(`delete from research_projects where id=$1`,[String(projectId)]);
     return result.rowCount>0;
   }
+  const k=await kv();
+  if(k) return (await k.hdel(PROJECTS_KEY,String(projectId))) > 0;
   ensureDir();
   const path=join(DIR,`${projectId}.json`);
   if(!existsSync(path)) return false;
   unlinkSync(path);
   return true;
 }
+

@@ -1,3 +1,4 @@
+import { buildChristmasShortlist } from "./christmas.js";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -79,6 +80,22 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/keepa/status", (_req, res) => {
   res.json(keepaStatus());
+});
+
+app.get("/api/christmas/shortlist", async (req,res) => {
+  try { res.json(buildChristmasShortlist(await listTrackedProducts(), {market:String(req.query.market || "US")})); }
+  catch(err) { res.status(400).json({error:err.message}); }
+});
+
+app.post("/api/christmas/export", async (req,res) => {
+  try {
+    const list=buildChristmasShortlist(await listTrackedProducts(), {market:String(req.body?.market || "US")});
+    const cell=v=>'"'+String(v ?? "").replaceAll('"','""')+'"';
+    const rows=[["Priority","Product","Market","Verdict","Verified winner","Category evidence","Source","Data as of","Delivery status","Last order date","Next steps","Supplier search","Amazon research","Meta research"],...list.products.map(p=>[p.priority,p.title,p.market,p.verdict,p.verifiedWinner,p.evidence.summary,p.evidence.url,p.evidence.dataAsOf,p.delivery.status,p.delivery.latestOrderDate,p.nextSteps.join("; "),p.links.supplier,p.links.amazon,p.links.meta])];
+    res.setHeader("Content-Type","text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition",'attachment; filename="christmas-2026-shortlist.csv"');
+    res.send(rows.map(row=>row.map(cell).join(",")).join("\n"));
+  } catch(err) {res.status(400).json({error:err.message});}
 });
 
 app.get("/api/events/upcoming", (req, res) => {
@@ -167,15 +184,18 @@ app.post("/api/discovery/full", async (req,res)=>{
     const { regionFocus="Global", budget, query, limit=50 } = req.body || {};
     const scout = await scoutMarket({regionFocus,budget,nicheHint:query});
     lastScout = scout;
-    const selectedOpp = scout.opportunities?.[0];
+    const requestedEvent = /christmas/i.test(query || "") ? "christmas" : null;
+    const selectedOpp = requestedEvent ? scout.opportunities?.find(o => o.seasonalEvent?.id === requestedEvent) : scout.opportunities?.[0];
     if(!selectedOpp) return res.status(404).json({error:"No opportunity found for this request"});
-    const hunt = await huntProducts(selectedOpp,{limit});
+    const researchOpp = requestedEvent ? {...selectedOpp, niche:String(query), audience:`Christmas 2026 shoppers in ${regionFocus}`} : selectedOpp;
+    const hunt = await huntProducts(researchOpp,{limit});
+    if (!hunt.products?.length) return res.status(422).json({error:"No product-specific candidates could be researched. Check the AI/data connection or add verified observations; generic catalog padding is not used for this query."});
     lastHuntProducts = hunt.products || [];
     await trackProducts(lastHuntProducts,{opportunityId:selectedOpp.id,niche:selectedOpp.niche,market:selectedOpp.sellWhere?.geos?.[0]||regionFocus,query});
     res.json({scout,selectedOpp,hunt,summary:{
       detected:lastHuntProducts.length,
       accelerating:lastHuntProducts.filter(p=>p.trendStatus==="ACCELERATING").length,
-      winners:lastHuntProducts.filter(p=>p.winning?.verdict==="PASS"||p.winnerDecision?.verdict==="STRONG_CANDIDATE").length
+      winners:lastHuntProducts.filter(p=>p.winnerDecision?.verdict==="STRONG_CANDIDATE").length
     }});
   }catch(err){
     console.error(err);
@@ -440,3 +460,4 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Auth: ${auth.enabled ? "password required" : "open (set APP_PASSWORD)"}`);
   console.log(`OpenAI: ${hasOpenAIKey ? "configured" : "seed fallback (OPENAI_API_KEY missing)"}`);
 });
+

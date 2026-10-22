@@ -89,8 +89,8 @@ export function UnitEconomicsSimulator({ product }) {
   const defaults=useMemo(()=>({
     price:Number(product?.estSellPriceUsd)||34.99,
     cogs:Number(product?.supplierVerification?.landedCostUsd)||Number(product?.estCostUsd)||8.2,
-    shipping:Number(product?.supplierVerification?.shippingCostUsd)||4.1,
-    fees:1.5,
+    shipping:product?.supplierVerification?.landedCostUsd != null ? 0 : Number(product?.shippingBufferUsd ?? 3),
+    fees:+((Number(product?.estSellPriceUsd)||34.99)*0.035).toFixed(2),
     cpa:Number(product?.unitEconomics?.targetCpaUsd)||13
   }),[product?.id]);
   const [v,setV]=useState(defaults);
@@ -185,3 +185,4 @@ export function LaunchKitPanel({ product, onPushShopify }) {
     </div>:<p className="muted">Generate a launch kit after supplier/economics review.</p>}
   </div>;
 }
+

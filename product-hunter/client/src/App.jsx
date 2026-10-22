@@ -1,3 +1,4 @@
+import { ChristmasDesk } from "./ChristmasDesk.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, SocialTrendsBoard } from "./Visuals.jsx";
 import { api, downloadBlob } from "./api.js";
@@ -273,7 +274,7 @@ export default function App() {
     return runScoutForHint(nicheHint);
   }
 
-  async function runFullDiscovery(query) {
+  async function runFullDiscovery(query, market = regionFocus) {
     setError("");
     setLoading("hunt");
     setNicheHint(query || "");
@@ -284,7 +285,7 @@ export default function App() {
       const data = await api("/api/discovery/full", {
         method: "POST",
         body: {
-          regionFocus,
+          regionFocus: market,
           budget: budget ? Number(budget) : undefined,
           query: query || nicheHint || undefined,
           limit: 50
@@ -476,6 +477,7 @@ export default function App() {
       setNicheHint(action.hint);
       setView("desk");
       await runFullDiscovery(action.hint);
+      setAiFilters(action.filters || {});
       return;
     }
     if (action.type === "show_watchlist") {
@@ -548,6 +550,7 @@ export default function App() {
           <button type="button" className={view === "validate" ? "nav-on" : ""} onClick={() => setView("validate")}><span>3</span>Validate</button>
           <button type="button" className={view === "test" ? "nav-on" : ""} onClick={() => setView("test")}><span>4</span>Test</button>
           <button type="button" className={view === "launch" ? "nav-on" : ""} onClick={() => setView("launch")}><span>5</span>Launch</button>
+          <button type="button" className={view === "christmas" ? "nav-on" : ""} onClick={() => setView("christmas")}>Christmas 2026</button>
           <button type="button" className={view === "winners" ? "nav-on" : ""} onClick={() => setView("winners")}>Winners</button>
           <button type="button" className={view === "settings" ? "nav-on" : ""} onClick={() => setView("settings")}>Settings</button>
         </nav>
@@ -1121,6 +1124,8 @@ export default function App() {
       </>
       ) : null}
 
+      {view === "christmas" ? <ChristmasDesk busy={Boolean(loading)} onResearch={(query, market)=>{setRegionFocus(market);return runFullDiscovery(query,market);}} /> : null}
+
       {view === "winners" ? (
         <WinnerBoard
           products={hunt?.products || []}
@@ -1167,3 +1172,4 @@ export default function App() {
     </>
   );
 }
+

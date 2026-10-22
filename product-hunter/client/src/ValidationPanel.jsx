@@ -3,7 +3,7 @@ import { api } from "./api.js";
 
 const STATUS_ORDER=["NEEDS_DATA","READY_TO_TEST","TESTING","VALIDATED"];
 const EMPTY_TEST={spendUsd:"",impressions:"",clicks:"",addToCarts:"",purchases:"",revenueUsd:""};
-const EMPTY_SUPPLIER={source:"",itemCostUsd:"",shippingCostUsd:"",landedCostUsd:"",shippingDays:"",productUrl:"",rating:"",orderCount:"",supplierAgeYears:"",variants:"",warehouse:"",moq:""};
+const EMPTY_SUPPLIER={source:"",itemCostUsd:"",shippingCostUsd:"",landedCostUsd:"",shippingDays:"",processingDays:"",productUrl:"",rating:"",orderCount:"",supplierAgeYears:"",variants:"",warehouse:"",moq:""};
 
 export function ValidationPanel({ product, open, onClose, onStatusChange }) {
   const [data,setData]=useState(null);
@@ -74,6 +74,7 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
           shippingCostUsd:supplierForm.shippingCostUsd===""?null:Number(supplierForm.shippingCostUsd),
           landedCostUsd:supplierForm.landedCostUsd===""?null:Number(supplierForm.landedCostUsd),
           shippingDays:Number(supplierForm.shippingDays),
+          processingDays:supplierForm.processingDays === "" ? null : Number(supplierForm.processingDays),
           productUrl:supplierForm.productUrl.trim(),
           rating:supplierForm.rating===""?null:Number(supplierForm.rating),
           orderCount:supplierForm.orderCount===""?null:Number(supplierForm.orderCount),
@@ -179,7 +180,8 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
             <label><span>Item cost $</span><input type="number" min="0" step="0.01" value={supplierForm.itemCostUsd} onChange={e=>setSupplierForm({...supplierForm,itemCostUsd:e.target.value})} /></label>
             <label><span>Shipping cost $</span><input type="number" min="0" step="0.01" value={supplierForm.shippingCostUsd} onChange={e=>setSupplierForm({...supplierForm,shippingCostUsd:e.target.value})} /></label>
             <label><span>Landed cost $</span><input type="number" min="0.01" step="0.01" value={supplierForm.landedCostUsd} onChange={e=>setSupplierForm({...supplierForm,landedCostUsd:e.target.value})} placeholder="Optional if item + shipping entered" /></label>
-            <label><span>Shipping days</span><input type="number" min="1" max="90" step="1" value={supplierForm.shippingDays} onChange={e=>setSupplierForm({...supplierForm,shippingDays:e.target.value})} required /></label>
+            <label><span>Processing days</span><input type="number" min="0" value={supplierForm.processingDays} onChange={e=>setSupplierForm({...supplierForm,processingDays:e.target.value})} /></label>
+              <label><span>Shipping days</span><input type="number" min="1" max="90" step="1" value={supplierForm.shippingDays} onChange={e=>setSupplierForm({...supplierForm,shippingDays:e.target.value})} required /></label>
             <label><span>MOQ</span><input type="number" min="1" step="1" value={supplierForm.moq} onChange={e=>setSupplierForm({...supplierForm,moq:e.target.value})} /></label>
             <label><span>Rating</span><input type="number" min="0" max="5" step="0.1" value={supplierForm.rating} onChange={e=>setSupplierForm({...supplierForm,rating:e.target.value})} /></label>
             <label><span>Order count</span><input type="number" min="0" step="1" value={supplierForm.orderCount} onChange={e=>setSupplierForm({...supplierForm,orderCount:e.target.value})} /></label>
@@ -220,3 +222,4 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
     </aside>
   );
 }
+

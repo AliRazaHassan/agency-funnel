@@ -6,3 +6,7 @@ node_modules/
 dist/
 .DS_Store
 Thumbs.db
+product-hunter/server/data/research-store.json
+product-hunter/server/data/evidence-store.json
+product-hunter/test-results/
+product-hunter/playwright-report/

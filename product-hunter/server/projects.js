@@ -28,6 +28,7 @@ async function kv() {
 }
 
 function ensureDir() {
+  if(process.env.NODE_ENV === "production") throw new Error("Persistent project storage is required: configure DATABASE_URL or REDIS_URL");
   if (!existsSync(DIR)) mkdirSync(DIR, { recursive: true });
 }
 function id() {
@@ -56,7 +57,8 @@ async function db() {
     ready = true;
     return pool;
   } catch (err) {
-    console.warn("Projects Postgres unavailable, using file fallback:", err.message);
+    if(process.env.NODE_ENV === "production") throw new Error("Configured project database is unavailable");
+    console.warn("Projects Postgres unavailable in development");
     pool = null;
     ready = false;
     return null;

@@ -1,3 +1,4 @@
+import { ResearchPortal } from "./ResearchPortal.jsx";
 import { ChristmasDesk } from "./ChristmasDesk.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MarketVizBoard, ProductDetailPanel, FreeSignalChip, WinningBadge, SocialTrendsBoard } from "./Visuals.jsx";
@@ -133,7 +134,9 @@ export default function App() {
   const [radarMarket, setRadarMarket] = useState("ALL");
   const [error, setError] = useState("");
   const [winFilter, setWinFilter] = useState("ALL"); // ALL | PASS | WATCH | FAIL
-  const [view, setView] = useState("home"); // home | desk | radar | winners | validate | test | launch | settings
+  useEffect(()=>{const expired=()=>refreshAuth();window.addEventListener("signaldesk-session-expired",expired);return()=>window.removeEventListener("signaldesk-session-expired",expired);},[]);
+  const [researchRequest,setResearchRequest] = useState("");
+  const [view, setView] = useState("research"); // home | desk | radar | winners | validate | test | launch | settings
   const [projectId, setProjectId] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => localStorage.getItem("sd_onboarded") !== "1"
@@ -474,10 +477,8 @@ export default function App() {
   async function handleConciergeAction(action) {
     if (!action?.type) return;
     if (action.type === "discover" && action.hint) {
-      setNicheHint(action.hint);
-      setView("desk");
-      await runFullDiscovery(action.hint);
-      setAiFilters(action.filters || {});
+      setResearchRequest(action.hint);
+      setView("research");
       return;
     }
     if (action.type === "show_watchlist") {
@@ -544,6 +545,7 @@ export default function App() {
           <p className="tagline">Trend intelligence · evidence → momentum → profit → Shopify</p>
         </div>
         <nav className="top-nav workflow-nav">
+          <button type="button" className={view === "research" ? "nav-on" : ""} onClick={() => setView("research")}>Evidence research</button>
           <button type="button" className={view === "home" ? "nav-on" : ""} onClick={() => setView("home")}>Home</button>
           <button type="button" className={view === "desk" ? "nav-on" : ""} onClick={() => setView("desk")}><span>1</span>Discover</button>
           <button type="button" className={view === "radar" ? "nav-on" : ""} onClick={() => setView("radar")}><span>2</span>Radar</button>
@@ -551,7 +553,7 @@ export default function App() {
           <button type="button" className={view === "test" ? "nav-on" : ""} onClick={() => setView("test")}><span>4</span>Test</button>
           <button type="button" className={view === "launch" ? "nav-on" : ""} onClick={() => setView("launch")}><span>5</span>Launch</button>
           <button type="button" className={view === "christmas" ? "nav-on" : ""} onClick={() => setView("christmas")}>Christmas 2026</button>
-          <button type="button" className={view === "winners" ? "nav-on" : ""} onClick={() => setView("winners")}>Winners</button>
+          <button type="button" className={view === "winners" ? "nav-on" : ""} onClick={() => setView("winners")}>Legacy rankings</button>
           <button type="button" className={view === "settings" ? "nav-on" : ""} onClick={() => setView("settings")}>Settings</button>
         </nav>
         <div className="top-actions">
@@ -1124,7 +1126,8 @@ export default function App() {
       </>
       ) : null}
 
-      {view === "christmas" ? <ChristmasDesk busy={Boolean(loading)} onResearch={(query, market)=>{setRegionFocus(market);return runFullDiscovery(query,market);}} /> : null}
+      {view === "christmas" ? <ResearchPortal initialQuery="Christmas" /> : null}
+      {view === "research" ? <ResearchPortal key={researchRequest} initialQuery={researchRequest} autoResearch={Boolean(researchRequest)} /> : null}
 
       {view === "winners" ? (
         <WinnerBoard

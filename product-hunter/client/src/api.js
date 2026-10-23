@@ -17,6 +17,7 @@ export async function api(url, { method = "GET", body, raw } = {}) {
       const data = await res.json().catch(() => ({}));
       const err = new Error(data.error || res.statusText);
       err.needLogin = data.needLogin;
+      if (data.needLogin) window.dispatchEvent(new Event("signaldesk-session-expired"));
       throw err;
     }
     return res;
@@ -25,6 +26,7 @@ export async function api(url, { method = "GET", body, raw } = {}) {
   if (!res.ok) {
     const err = new Error(data.error || res.statusText);
     err.needLogin = data.needLogin;
+      if (data.needLogin) window.dispatchEvent(new Event("signaldesk-session-expired"));
     throw err;
   }
   return data;

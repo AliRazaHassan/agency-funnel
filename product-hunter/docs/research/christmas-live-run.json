@@ -1,0 +1,72 @@
+{
+  "at": "2026-10-22T19:24:56.261Z",
+  "constraints": {
+    "market": "US",
+    "query": "Christmas",
+    "season": "christmas-2026",
+    "maxLandedCost": 15,
+    "minMargin": 60
+  },
+  "capabilities": [
+    {
+      "platform": "amazon",
+      "provider": "Keepa snapshot",
+      "configured": true,
+      "note": "Dated ASIN snapshot/manual import. Existing Keepa key is not automatically charged or pulled."
+    },
+    {
+      "platform": "meta",
+      "provider": "Existing social integration",
+      "configured": false,
+      "note": "Ad activity only, never sales. Search links and curated seed rows excluded."
+    },
+    {
+      "platform": "tiktok",
+      "provider": "Existing Creative Center integration",
+      "configured": true,
+      "note": "Public response when available; curated seeds excluded. Views are not sales."
+    },
+    {
+      "platform": "google",
+      "provider": "Google Trends",
+      "configured": false,
+      "note": "Opt-in relative interest only. No Wikipedia substitution. Import dated query-level exports if disabled."
+    }
+  ],
+  "runs": [
+    {
+      "platform": "amazon",
+      "status": "unavailable",
+      "reason": "No dated ASIN observations in snapshot",
+      "startedAt": "2026-10-22T19:24:50.255Z",
+      "completedAt": "2026-10-22T19:24:50.255Z",
+      "count": 0
+    },
+    {
+      "platform": "meta",
+      "status": "unavailable",
+      "reason": "Provider returned no exact, dated structured observations; use evidence import",
+      "startedAt": "2026-10-22T19:24:50.255Z",
+      "completedAt": "2026-10-22T19:24:56.261Z",
+      "count": 0
+    },
+    {
+      "platform": "tiktok",
+      "status": "unavailable",
+      "reason": "Provider returned no exact, dated structured observations; use evidence import",
+      "startedAt": "2026-10-22T19:24:50.267Z",
+      "completedAt": "2026-10-22T19:24:56.261Z",
+      "count": 0
+    },
+    {
+      "platform": "google",
+      "status": "unavailable",
+      "reason": "ENABLE_GOOGLE_TRENDS is disabled; import a dated Google Trends observation",
+      "startedAt": "2026-10-22T19:24:50.267Z",
+      "completedAt": "2026-10-22T19:24:50.267Z",
+      "count": 0
+    }
+  ],
+  "observations": 0,
+  "products": []
+}

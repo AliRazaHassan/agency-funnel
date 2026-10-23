@@ -11,6 +11,7 @@ let kvReady=false;
 const KV_KEY="product-hunter:research-store:v1";
 
 function ensureFile(){
+  if(process.env.NODE_ENV === "production") throw new Error("Persistent research storage required: configure DATABASE_URL or REDIS_URL");
   const dir=dirname(FILE);
   if(!existsSync(dir)) mkdirSync(dir,{recursive:true});
   if(!existsSync(FILE)) writeFileSync(FILE,JSON.stringify({products:{},snapshots:[],tests:[]},null,2),"utf8");

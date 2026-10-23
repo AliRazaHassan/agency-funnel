@@ -1,3 +1,4 @@
+import { evidenceRouter } from "./evidenceRoutes.js";
 import { buildChristmasShortlist } from "./christmas.js";
 import dotenv from "dotenv";
 import express from "express";
@@ -59,6 +60,7 @@ app.use((err, _req, res, next) => {
   return next(err);
 });
 app.use(auth.middleware);
+app.use("/api/research", evidenceRouter);
 
 let lastScout = { opportunities: [] };
 let lastHuntProducts = [];

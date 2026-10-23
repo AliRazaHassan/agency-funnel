@@ -46,6 +46,7 @@ const money = (v) => (v == null ? "Unknown" : `$${v.toFixed(2)}`);
 export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
   const started = useRef(false);
   const revision = useRef(0);
+  const [hydrating,setHydrating]=useState(true);
   const [query, setQuery] = useState(initialQuery),
     [market, setMarket] = useState("US"),
     [season, setSeason] = useState(
@@ -84,7 +85,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
       .catch((e) => setError(e.message));
     api("/api/research/state")
       .then((d) => {
-        setSessions(d.sessions);
+        setSessions(current=>[...new Map([...d.sessions,...current].map(s=>[s.id,s])).values()]);
         if (
           d.sessions.length &&
           revision.current === 0 &&
@@ -101,7 +102,8 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           setDeliveryTarget(last.constraints.deliveryTarget || "");
         }
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(()=>setHydrating(false));
   }, []);
   useEffect(() => {
     if (autoResearch && !started.current) {
@@ -214,6 +216,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           run(true);
         }}
       >
+        <fieldset disabled={hydrating} className="research-query-fieldset">
         <label className="wide">
           Research request / concierge
           <input
@@ -284,6 +287,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         >
           Filter saved evidence
         </button>
+        </fieldset>
       </form>
       {busy ? <p role="status">{busy}</p> : null}
       {error ? (

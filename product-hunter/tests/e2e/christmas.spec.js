@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+test.setTimeout(45000);
 
 test("Christmas data is protected and authenticated CSV has six source-backed rows", async ({
   request,

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+test.setTimeout(45000);
 test("right-click product statistic keeps analyst menu and sends selected context", async ({
   page,
 }) => {

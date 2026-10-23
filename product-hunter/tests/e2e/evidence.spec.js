@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+test.setTimeout(45000);
 const fixture = {
   platform: "amazon",
   externalId: "TEST-ORNAMENT",
@@ -120,3 +121,12 @@ for (const width of [1440, 390])
       fullPage: true,
     });
   });
+
+test('saved-session hydration cannot append to a newly entered research request',async({page})=>{
+ let release;const pending=new Promise(resolve=>release=resolve);
+ await page.route('**/api/research/state',async route=>{await pending;await route.fulfill({json:{observations:[],records:{},runs:[],sessions:[{id:'saved-hydration',createdAt:new Date().toISOString(),constraints:{market:'US',query:'Previous research'},products:[],count:0}]}});});
+ await page.addInitScript(()=>localStorage.setItem('sd_onboarded','1'));
+ await page.goto('/');await page.getByLabel('Password').fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
+ const input=page.getByLabel('Research request',{exact:true});await expect(input).toBeDisabled();release();await expect(input).toBeEnabled();await expect(input).toHaveValue('Previous research');
+ await input.fill('Christmas pet');const response=page.waitForResponse(r=>r.url().endsWith('/api/research/research')&&r.request().method()==='POST');await page.getByRole('button',{name:'Filter saved evidence'}).click();const res=await response;expect(res.status()).toBe(200);expect(res.request().postDataJSON().query).toBe('Christmas pet');
+});

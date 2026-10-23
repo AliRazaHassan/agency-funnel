@@ -30,3 +30,7 @@ Full browser and remote CI results are recorded below after execution. No produc
 The public health endpoint now reports the deployed Render commit and actual research storage mode. On production startup, a read-only localhost smoke test uses the existing environment password internally to verify unauthenticated blocking, login, provider status and saved research reads. Only boolean outcomes are exposed; no credentials/cookies/source data are logged or returned.
 
 Existing Render service: srv-dar80jbncjis73cg2c00. Existing Key Value: product-hunter-kv. Its current free plan reports persistenceMode=off: it preserves data across app-process reconnects but is not a durable database backup. No plan change or new infrastructure was authorized or performed. Live source coverage and supplier quote quality remain separate from the correctness fixes; no verified winning-product claim is made.
+
+### Follow-up loading-state regression
+
+A full browser run exposed saved-session hydration racing with input entry, producing an appended query and detaching result cards. Research inputs now remain disabled until the initial saved-state read finishes; async restoration cannot overwrite an active request. A deterministic delayed-state browser test covers this exact trigger.

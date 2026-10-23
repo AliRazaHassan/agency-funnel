@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -11,6 +12,8 @@ import {
   parseRequest,
   rankEvidence,
   csv,
+  productId,
+  migrateEvidenceRecords,
 } from "../../server/evidence.js";
 import { createEvidenceStore } from "../../server/evidenceStore.js";
 const now = new Date("2026-10-23T12:00:00Z");
@@ -49,9 +52,16 @@ const quote = {
   processingDays: 2,
   transitDays: 8,
   personalizationDays: 0,
+  destination: "US",
+  currency: "USD",
 };
 const rank = (rows, records = {}, c = {}) =>
-  rankEvidence(rows, records, { market: "US", ...c }, now);
+  rankEvidence(
+    rows,
+    records,
+    { market: "US", deliveryTarget: "2026-12-20", ...c },
+    now,
+  );
 test("observation validates exact provenance and genuine zero", () => {
   assert.equal(row({ value: 0 }).value, 0);
   for (const data of [
@@ -146,12 +156,15 @@ test("missing shipping and quote dates cannot pass delivery", () => {
   );
 });
 test("Christmas delivery planning has exact independent date math", () => {
-  const d = delivery(quote, {}, now);
+  const d = delivery(quote, { season: "christmas-2026" }, now);
   assert.equal(d.latestOrderDate, "2026-12-05");
   assert.equal(d.testDeadline, "2026-11-28");
   assert.equal(
-    delivery({ ...quote, quotedAt: "2026-12-06" }, {}, new Date("2026-12-07"))
-      .status,
+    delivery(
+      { ...quote, quotedAt: "2026-12-06" },
+      { season: "christmas-2026" },
+      new Date("2026-12-07"),
+    ).status,
     "too late",
   );
 });
@@ -239,4 +252,103 @@ test("required fresh platform filters exclude absent corroboration", () => {
   );
   assert.deepEqual(c.requiredPlatforms, ["amazon", "tiktok"]);
   assert.equal(rank([row()], {}, c).length, 0);
+});
+test("modeled status is case-insensitive and unknown statuses reject", () => {
+  for (const status of ["MODELED", "Estimated", "estimated", "modeled"])
+    assert.equal(rank([row({ dataStatus: status })])[0].confidence, 0);
+  assert.throws(() => row({ dataStatus: "verified-winner" }), /status/);
+});
+test("market-specific IDs isolate quotes shortlists and tests", () => {
+  const a = row({ identityKey: "shared" }),
+    b = row({ identityKey: "shared", market: "UK" });
+  const us = rank([a])[0];
+  const uk = rank(
+    [b],
+    {
+      [us.id]: {
+        shortlisted: true,
+        tests: [{ revenue: 40, spend: 1, purchases: 1 }],
+      },
+    },
+    { market: "UK" },
+  )[0];
+  assert.notEqual(us.id, uk.id);
+  assert.equal(uk.shortlisted, false);
+  assert.equal(uk.tests.length, 0);
+});
+test("legacy records migrate only when market is unambiguous", () => {
+  const source = row({ identityKey: "shared" });
+  const legacyId = createHash("sha256")
+    .update("shared")
+    .digest("hex")
+    .slice(0, 24);
+  const db = {
+    observations: [source],
+    records: {
+      [legacyId]: {
+        shortlisted: true,
+        quotes: [quote],
+        tests: [{ purchases: 1 }],
+      },
+    },
+  };
+  migrateEvidenceRecords(db);
+  assert.equal(db.records[productId("US", "shared")].quotes.length, 1);
+  assert.equal(db.records[productId("US", "shared")].shortlisted, true);
+  assert.ok(db.records[legacyId]);
+  const ambiguous = {
+    observations: [source, row({ identityKey: "shared", market: "UK" })],
+    records: { [legacyId]: { shortlisted: true } },
+  };
+  migrateEvidenceRecords(ambiguous);
+  assert.equal(ambiguous.records[productId("US", "shared")], undefined);
+  assert.equal(ambiguous.records[productId("UK", "shared")], undefined);
+});
+test("CSV tags normalize before storage and invalid tags reject", () => {
+  assert.deepEqual(row({ tags: "Christmas, pet,pet" }).tags, [
+    "Christmas",
+    "pet",
+  ]);
+  assert.equal(rank([row({ tags: "Christmas,pet" })]).length, 1);
+  assert.throws(() => row({ tags: { pet: true } }), /Tags/);
+});
+test("negative planning days cannot extend delivery beyond target", () => {
+  for (const k of ["contingencyDays", "testingDays"])
+    assert.throws(
+      () => delivery(quote, { season: "christmas-2026", [k]: -100 }, now),
+      /Planning days/,
+    );
+});
+test("nonseasonal research needs explicit delivery target", () => {
+  assert.equal(delivery(quote, {}, now).status, "unverified");
+  assert.equal(
+    delivery(quote, { season: "christmas-2026" }, now).target,
+    "2026-12-20",
+  );
+});
+test("structured platform constraints survive natural language", () =>
+  assert.deepEqual(
+    parseRequest("Find pet products", { requiredPlatforms: ["amazon"] })
+      .requiredPlatforms,
+    ["amazon"],
+  ));
+test("latest genuine zero replaces positive sales proof and surfaces change", () => {
+  const p = rank([row(), row({ dataAt: "2026-10-23", value: 0 })])[0];
+  assert.equal(p.dimensions.salesEvidence, null);
+  assert.ok(p.missing.some((x) => x.includes("conflicting")));
+});
+test("concurrent initialization and reads share a completed store", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "evidence-init-"));
+  try {
+    const s = createEvidenceStore({
+      EVIDENCE_FILE: join(dir, "nested", "store.json"),
+    });
+    const results = await Promise.all([s.init(), s.read(), s.read()]);
+    assert.equal(results[0], "file");
+    assert.deepEqual(results[1].observations, []);
+    assert.deepEqual(results[2].observations, []);
+    await s.close();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

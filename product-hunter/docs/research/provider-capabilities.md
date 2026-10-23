@@ -37,3 +37,7 @@ Configure credentials only in the existing Render service's environment settings
 - Google time-series visualization, query-level growth, supplier discovery adapter and quote verification.
 - Durable refresh jobs, caching/backoff across processes, retention/pagination and monitoring.
 - Reconcile remaining legacy ranking/scenario screens and all concierge actions with the new schema. Legacy Shopify draft/client brief exports are preserved but not migrated or verified through new evidence sessions.
+
+## Audit-fix update
+
+Evidence v2 adds market-scoped IDs, conservative legacy migration, status/tag normalization, latest comparable metrics, validated quote planning and input validation. General delivery targets are explicit; Christmas defaults apply only in that mode. Isolated Redis and production auth smoke tests are now executed. See `../qa/fix-and-release-report.md` for current release verification; the earlier audit remains historical evidence.

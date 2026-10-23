@@ -46,6 +46,8 @@ test("evidence API auth import filters save quotes tests refresh export", async 
       shortlisted: true,
       quote: {
         supplier: "Fixture supplier",
+        destination: "US",
+        currency: "USD",
         url: "https://example.com/supplier",
         variant: "ornament",
         quotedAt: new Date().toISOString(),
@@ -57,6 +59,8 @@ test("evidence API auth import filters save quotes tests refresh export", async 
     },
   });
   expect(save.status()).toBe(200);
+  expect((await request.post(`/api/research/products/${id}`,{data:{economics:{sellingPrice:40,shipping:-10}}})).status()).toBe(400);
+  expect((await request.post('/api/research/research',{data:{refresh:false,constraints:{market:'US',testingDays:-100}}})).status()).toBe(400);
   r = await run();
   expect(r.products[0].shortlisted).toBe(true);
   expect(r.products[0].quotes).toHaveLength(1);

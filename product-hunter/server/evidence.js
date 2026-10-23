@@ -1,11 +1,70 @@
 import { createHash } from "node:crypto";
-export const VERSION = "evidence-v1";
+export const VERSION = "evidence-v2";
 export const TTL_DAYS = { meta: 7, tiktok: 7, google: 14, amazon: 7 };
 export const finite = (v) =>
   v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v))
     ? Number(v)
     : null;
 const hash = (v) => createHash("sha256").update(v).digest("hex").slice(0, 24);
+export const productId = (market, identityKey) =>
+  hash(JSON.stringify([market, identityKey]));
+export function migrateEvidenceRecords(data) {
+  // Repair earlier accepted tag/status formats without discarding source history.
+  data.observations = (data.observations || []).map((o) => {
+    let tags = [],
+      status = "modeled";
+    try {
+      tags = normalizeTags(o.tags);
+    } catch {
+      /* Quarantine malformed legacy tags as no tags. */
+    }
+    try {
+      status = normalizeStatus({
+        ...o,
+        dataStatus: o.rawRecord?.dataStatus || o.dataStatus,
+      });
+    } catch {
+      /* Unknown legacy evidence never becomes proof. */
+    }
+    return { ...o, tags, dataStatus: status };
+  });
+  const markets = new Map();
+  for (const o of data.observations || []) {
+    if (!markets.has(o.identityKey)) markets.set(o.identityKey, new Set());
+    markets.get(o.identityKey).add(o.market);
+  }
+  for (const [identityKey, values] of markets) {
+    const legacyId = hash(identityKey),
+      legacy = data.records[legacyId];
+    if (!legacy || values.size !== 1) continue;
+    const market = [...values][0],
+      id = productId(market, identityKey);
+    if (!data.records[id])
+      data.records[id] = { ...legacy, market, migratedFrom: legacyId };
+  }
+  return data;
+}
+function normalizeStatus(raw) {
+  const value = String(raw.dataStatus || "")
+    .trim()
+    .toLowerCase();
+  if (["modeled", "estimated", "estimate"].includes(value)) return "modeled";
+  if (
+    value &&
+    !["manual", "observed", "live", "recent", "unavailable"].includes(value)
+  )
+    throw new Error("Unknown data status");
+  if (value === "unavailable")
+    throw new Error("Unavailable records cannot contain observed metrics");
+  return raw.collectionMethod === "api" ? "observed" : "manual";
+}
+function normalizeTags(tags) {
+  if (tags == null || tags === "") return [];
+  const list = typeof tags === "string" ? tags.split(",") : tags;
+  if (!Array.isArray(list) || list.some((t) => typeof t !== "string"))
+    throw new Error("Tags must be strings");
+  return [...new Set(list.map((t) => t.trim()).filter(Boolean))];
+}
 export function httpUrl(v) {
   try {
     const u = new URL(v);
@@ -41,6 +100,7 @@ export function observation(raw, now = new Date()) {
   const canonicalUrl = httpUrl(raw.canonicalUrl) || sourceUrl;
   return {
     ...raw,
+    tags: normalizeTags(raw.tags),
     platform,
     title,
     sourceUrl,
@@ -53,12 +113,7 @@ export function observation(raw, now = new Date()) {
     unit: String(raw.unit),
     provider: String(raw.provider || "manual"),
     collectionMethod: raw.collectionMethod || "manual",
-    dataStatus:
-      raw.dataStatus === "modeled"
-        ? "modeled"
-        : raw.collectionMethod === "api"
-          ? "observed"
-          : "manual",
+    dataStatus: normalizeStatus(raw),
     dataAt: new Date(dataAt).toISOString(),
     collectedAt,
     currency: raw.currency || null,
@@ -172,13 +227,16 @@ export function economics(input = {}) {
   };
 }
 export function delivery(quote = {}, constraints = {}, now = new Date()) {
-  const target = constraints.deliveryTarget || "2026-12-20",
+  const target =
+      constraints.deliveryTarget ||
+      (constraints.season === "christmas-2026" ? "2026-12-20" : null),
     days = ["processingDays", "transitDays", "personalizationDays"].map((k) =>
       finite(quote[k]),
     );
   const captured = Date.parse(quote.quotedAt),
     age = (+now - captured) / 86400000;
   if (
+    !target ||
     !httpUrl(quote.url) ||
     age < 0 ||
     age > 7 ||
@@ -194,6 +252,8 @@ export function delivery(quote = {}, constraints = {}, now = new Date()) {
     };
   const contingency = finite(constraints.contingencyDays) ?? 5,
     testDays = finite(constraints.testingDays) ?? 7;
+  if (contingency < 0 || testDays < 0 || contingency > 365 || testDays > 365)
+    throw new Error("Planning days must be between 0 and 365");
   const latest = new Date(
       Date.parse(target) -
         (days.reduce((a, b) => a + b, 0) + contingency) * 86400000,
@@ -226,9 +286,14 @@ export function parseRequest(text = "", base = {}) {
     margin = text.match(/(\d+(?:\.\d+)?)\s*%\s*(?:pre-ad\s*)?margin/i);
   if (cost) out.maxLandedCost = +cost[1];
   if (margin) out.minMargin = +margin[1];
-  out.requiredPlatforms = ["amazon", "tiktok", "meta", "google"].filter((p) =>
-    new RegExp(`\\b${p}\\b`, "i").test(text),
-  );
+  out.requiredPlatforms = [
+    ...new Set([
+      ...(base.requiredPlatforms || []),
+      ...["amazon", "tiktok", "meta", "google"].filter((p) =>
+        new RegExp(`\\b${p}\\b`, "i").test(text),
+      ),
+    ]),
+  ];
   out.exclude = [...(base.exclude || [])];
   if (/exclude[^.]*fragile/i.test(text)) out.exclude.push("fragile");
   if (/exclude[^.]*batter/i.test(text))
@@ -242,7 +307,8 @@ const STOP = new Set(
 );
 export function relevant(o, c) {
   if (o.market !== c.market) return false;
-  const hay = `${o.title} ${o.niche} ${(o.tags || []).join(" ")}`.toLowerCase();
+  const hay =
+    `${o.title} ${o.niche} ${normalizeTags(o.tags).join(" ")}`.toLowerCase();
   if ((c.exclude || []).some((s) => hay.includes(s))) return false;
   const words = String(c.query || "")
     .replace(/exclude[^.]*/gi, "")
@@ -273,17 +339,38 @@ export function rankEvidence(
   }
   const products = [];
   for (const [identityKey, rows] of groups) {
-    const id = hash(identityKey),
+    const id = productId(constraints.market, identityKey),
       record = records[id] || {},
       quotes = record.quotes || [],
       quote =
         quotes.find((q) => q.id === record.selectedQuoteId) || quotes[0] || {};
     const econ = economics({ ...record.economics, ...quote.economics }),
       ship = delivery(quote, constraints, now);
-    if (quote.destination && quote.destination !== constraints.market)
+    if (quote.destination !== constraints.market || quote.currency !== "USD") {
       ship.status = "unverified";
-    const freshRows = rows.filter(
-      (o) => o.freshness.status === "fresh" && o.dataStatus !== "modeled",
+      ship.reason =
+        "A quote for the selected destination and USD economics is required.";
+    }
+    const latest = new Map();
+    for (const o of rows) {
+      const key = JSON.stringify([
+        o.platform,
+        o.externalId,
+        o.metric,
+        o.period,
+        o.unit,
+        o.correlationKey,
+      ]);
+      if (
+        !latest.has(key) ||
+        Date.parse(o.dataAt) > Date.parse(latest.get(key).dataAt)
+      )
+        latest.set(key, o);
+    }
+    const freshRows = [...latest.values()].filter(
+      (o) =>
+        o.freshness.status === "fresh" &&
+        !["modeled", "estimated"].includes(String(o.dataStatus).toLowerCase()),
     );
     const sourcePlatform = new Map();
     for (const o of freshRows)
@@ -309,6 +396,29 @@ export function rankEvidence(
     const momentum = usable.filter((o) => o.metric === "growth_pct");
     const competition = usable.filter((o) => o.metric === "advertiser_count");
     const missing = [];
+    const conflicts = rows.filter((o) => {
+      const key = JSON.stringify([
+        o.platform,
+        o.externalId,
+        o.metric,
+        o.period,
+        o.unit,
+        o.correlationKey,
+      ]);
+      const recent = latest.get(key);
+      return (
+        recent &&
+        recent.id !== o.id &&
+        o.freshness.status === "fresh" &&
+        recent.value !== o.value &&
+        (recent.dataAt === o.dataAt ||
+          (["bought_count", "shop_sales", "purchases"].includes(o.metric) &&
+            recent.value === 0 &&
+            o.value > 0))
+      );
+    });
+    if (conflicts.length)
+      missing.push("Review changed or conflicting historical observations");
     if (!sales.length) missing.push("Recent product-level sales evidence");
     if (platforms.length < 2)
       missing.push("Independent cross-platform corroboration");
@@ -319,6 +429,7 @@ export function rankEvidence(
       (econ.complete && econ.contribution <= 0) || ship.status === "too late";
     const ready =
       !failed &&
+      !conflicts.length &&
       sales.length &&
       platforms.length >= 2 &&
       competition.length &&

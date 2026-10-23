@@ -1,3 +1,5 @@
+import {verifyProductionApi} from "./productionSmoke.js";
+import { evidenceStore } from "./evidenceStore.js";
 import { evidenceRouter } from "./evidenceRoutes.js";
 import { buildChristmasShortlist } from "./christmas.js";
 import dotenv from "dotenv";
@@ -33,6 +35,7 @@ const isProd = process.env.NODE_ENV === "production";
 const hasOpenAIKey = Boolean(String(process.env.OPENAI_API_KEY || "").trim());
 
 await initResearchStore();
+const evidenceStorage=await evidenceStore.init();
 
 const auth = createAuth({
   password: process.env.APP_PASSWORD,
@@ -62,6 +65,7 @@ app.use((err, _req, res, next) => {
 app.use(auth.middleware);
 app.use("/api/research", evidenceRouter);
 
+let productionVerification=null;
 let lastScout = { opportunities: [] };
 let lastHuntProducts = [];
 
@@ -72,6 +76,9 @@ app.get("/api/health", (_req, res) => {
     openai: hasOpenAIKey,
     authRequired: auth.enabled,
     label: "Signal Desk",
+    revision: process.env.RENDER_GIT_COMMIT || null,
+    researchStorage: evidenceStorage,
+    verification: productionVerification,
     dataMode: {
       freeSignals: true,
       keepaLiveKey: k.liveKeyConfigured,
@@ -413,6 +420,9 @@ app.get("/api/workspace/status", async (_req, res) => {
   const k = keepaStatus();
   res.json({
     label: "Signal Desk",
+    revision: process.env.RENDER_GIT_COMMIT || null,
+    researchStorage: evidenceStorage,
+    verification: productionVerification,
     version: "4.0",
     modules: {
       scout: true,
@@ -458,6 +468,7 @@ if (existsSync(clientDist)) {
 }
 
 app.listen(PORT, "0.0.0.0", () => {
+  if(isProd) verifyProductionApi(`http://127.0.0.1:${PORT}`,process.env.APP_PASSWORD).then(result=>{productionVerification=result;console.log("Authenticated startup smoke:",Object.values(result).every(Boolean)?"PASS":"FAIL");});
   console.log(`Signal Desk http://127.0.0.1:${PORT}`);
   console.log(`Auth: ${auth.enabled ? "password required" : "open (set APP_PASSWORD)"}`);
   console.log(`OpenAI: ${hasOpenAIKey ? "configured" : "seed fallback (OPENAI_API_KEY missing)"}`);

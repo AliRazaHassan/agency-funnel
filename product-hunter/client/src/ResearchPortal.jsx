@@ -45,11 +45,13 @@ const emptyObservation = {
 const money = (v) => (v == null ? "Unknown" : `$${v.toFixed(2)}`);
 export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
   const started = useRef(false);
+  const revision = useRef(0);
   const [query, setQuery] = useState(initialQuery),
     [market, setMarket] = useState("US"),
     [season, setSeason] = useState(
       /christmas/i.test(initialQuery) ? "christmas-2026" : "",
     ),
+    [deliveryTarget, setDeliveryTarget] = useState(""),
     [cost, setCost] = useState(""),
     [margin, setMargin] = useState(""),
     [result, setResult] = useState(null),
@@ -83,7 +85,21 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
     api("/api/research/state")
       .then((d) => {
         setSessions(d.sessions);
-        if (d.sessions.length) setResult(d.sessions.at(-1));
+        if (
+          d.sessions.length &&
+          revision.current === 0 &&
+          !autoResearch &&
+          !initialQuery
+        ) {
+          const last = d.sessions.at(-1);
+          setResult(last);
+          setQuery(last.constraints.query || "");
+          setMarket(last.constraints.market);
+          setSeason(last.constraints.season || "");
+          setCost(last.constraints.maxLandedCost ?? "");
+          setMargin(last.constraints.minMargin ?? "");
+          setDeliveryTarget(last.constraints.deliveryTarget || "");
+        }
       })
       .catch((e) => setError(e.message));
   }, []);
@@ -94,6 +110,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
     }
   }, []);
   async function run(refresh = true) {
+    const current = ++revision.current;
     setBusy(
       refresh
         ? "Collecting available providers and ranking evidence…"
@@ -108,12 +125,14 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           constraints: {
             market,
             season,
+            ...(deliveryTarget ? { deliveryTarget } : {}),
             ...(cost !== "" ? { maxLandedCost: +cost } : {}),
             ...(margin !== "" ? { minMargin: +margin } : {}),
           },
           refresh,
         },
       });
+      if (current !== revision.current) return;
       setResult(r);
       setSelected(null);
       setSessions((s) => [...s, r]);
@@ -133,7 +152,11 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         body,
       });
       const r = await run(false);
-      if (r) setSelected(r.products.find((p) => p.id === selected.id) || null);
+      if (r) {
+        const next = r.products.find((p) => p.id === selected.id) || null;
+        setSelected(next);
+        if (next) setEcon({ ...ECON, ...next.economics.inputs });
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -142,6 +165,20 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
   }
   function open(p) {
     setSelected(p);
+    setQuote({
+      supplier: "",
+      url: "",
+      variant: "",
+      quotedAt: "",
+      processingDays: "",
+      transitDays: "",
+      personalizationDays: 0,
+      moq: "",
+      origin: "",
+      warehouse: "",
+      service: "",
+      stockStatus: "unknown",
+    });
     setEcon({ ...ECON, ...p.economics.inputs });
   }
   async function importRows(rows) {
@@ -188,7 +225,11 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         </label>
         <label>
           Market
-          <select value={market} onChange={(e) => setMarket(e.target.value)}>
+          <select
+            aria-label="Market"
+            value={market}
+            onChange={(e) => setMarket(e.target.value)}
+          >
             {["US", "UK", "CA", "AU", "DE", "FR"].map((m) => (
               <option key={m}>{m}</option>
             ))}
@@ -196,10 +237,22 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         </label>
         <label>
           Season
-          <select value={season} onChange={(e) => setSeason(e.target.value)}>
+          <select
+            aria-label="Season"
+            value={season}
+            onChange={(e) => setSeason(e.target.value)}
+          >
             <option value="">Any season</option>
             <option value="christmas-2026">Christmas 2026</option>
           </select>
+        </label>
+        <label>
+          Customer delivery target
+          <input
+            type="date"
+            value={deliveryTarget}
+            onChange={(e) => setDeliveryTarget(e.target.value)}
+          />
         </label>
         <label>
           Maximum landed cost $
@@ -358,6 +411,10 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
                     setResult(s);
                     setQuery(s.constraints.query);
                     setMarket(s.constraints.market);
+                    setSeason(s.constraints.season || "");
+                    setCost(s.constraints.maxLandedCost ?? "");
+                    setMargin(s.constraints.minMargin ?? "");
+                    setDeliveryTarget(s.constraints.deliveryTarget || "");
                     setTab("products");
                   }}
                 >
@@ -584,6 +641,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
               save({
                 quote: {
                   ...quote,
+                  quotedAt: new Date(quote.quotedAt).toISOString(),
                   economics: econ,
                   destination: market,
                   currency: "USD",

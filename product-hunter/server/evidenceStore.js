@@ -1,3 +1,4 @@
+import { migrateEvidenceRecords } from "./evidence.js";
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import { dirname } from "node:path";
 const empty = () => ({ observations: [], records: {}, sessions: [], runs: [] });
@@ -5,12 +6,26 @@ export function createEvidenceStore(config = process.env) {
   let pool,
     redis,
     mode,
+    initialization,
     queue = Promise.resolve();
   const key = "product-hunter:evidence:v1",
     file =
       config.EVIDENCE_FILE ||
       new URL("./data/evidence-store.json", import.meta.url).pathname;
   async function init() {
+    if (initialization) return initialization;
+    initialization = initialize().catch(async (e) => {
+      mode = undefined;
+      initialization = undefined;
+      await pool?.end().catch(() => {});
+      pool = undefined;
+      redis?.disconnect();
+      redis = undefined;
+      throw e;
+    });
+    return initialization;
+  }
+  async function initialize() {
     if (mode) return mode;
     if (config.DATABASE_URL) {
       const { Pool } = await import("pg");
@@ -44,7 +59,6 @@ export function createEvidenceStore(config = process.env) {
         throw new Error(
           "Evidence storage requires DATABASE_URL or REDIS_URL in production",
         );
-      mode = "file";
       await mkdir(dirname(file), { recursive: true });
       try {
         await readFile(file);
@@ -52,6 +66,7 @@ export function createEvidenceStore(config = process.env) {
         if (e.code !== "ENOENT") throw e;
         await writeFile(file, JSON.stringify(empty()));
       }
+      mode = "file";
     }
     return mode;
   }
@@ -62,11 +77,13 @@ export function createEvidenceStore(config = process.env) {
         "SELECT payload FROM evidence_portal WHERE id=$1",
         [key],
       );
-      return r.rows[0].payload;
+      return migrateEvidenceRecords(r.rows[0].payload);
     }
     if (redis)
-      return JSON.parse((await redis.get(key)) || JSON.stringify(empty()));
-    return JSON.parse(await readFile(file, "utf8"));
+      return migrateEvidenceRecords(
+        JSON.parse((await redis.get(key)) || JSON.stringify(empty())),
+      );
+    return migrateEvidenceRecords(JSON.parse(await readFile(file, "utf8")));
   }
   async function mutate(fn) {
     const job = queue.then(async () => {
@@ -79,7 +96,7 @@ export function createEvidenceStore(config = process.env) {
             "SELECT payload FROM evidence_portal WHERE id=$1 FOR UPDATE",
             [key],
           );
-          const data = r.rows[0].payload,
+          const data = migrateEvidenceRecords(r.rows[0].payload),
             result = await fn(data);
           await c.query("UPDATE evidence_portal SET payload=$2 WHERE id=$1", [
             key,
@@ -97,8 +114,8 @@ export function createEvidenceStore(config = process.env) {
       if (redis) {
         for (let n = 0; n < 5; n++) {
           await redis.watch(key);
-          const data = JSON.parse(
-              (await redis.get(key)) || JSON.stringify(empty()),
+          const data = migrateEvidenceRecords(
+              JSON.parse((await redis.get(key)) || JSON.stringify(empty())),
             ),
             result = await fn(data);
           if (await redis.multi().set(key, JSON.stringify(data)).exec())

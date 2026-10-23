@@ -9,6 +9,9 @@ import {
   httpUrl,
   finite,
   VERSION,
+  economics,
+  delivery,
+  productId,
 } from "./evidence.js";
 import { collect, capabilities } from "./evidenceProviders.js";
 export const evidenceRouter = express.Router();
@@ -16,13 +19,11 @@ const wrap = (fn) => async (req, res) => {
   try {
     await fn(req, res);
   } catch (e) {
-    res
-      .status(400)
-      .json({
-        error: e.message?.includes("requires DATABASE_URL")
-          ? e.message
-          : "Evidence operation failed: " + e.message,
-      });
+    res.status(400).json({
+      error: e.message?.includes("requires DATABASE_URL")
+        ? e.message
+        : "Evidence operation failed: " + e.message,
+    });
   }
 };
 function mergeObservations(db, rows) {
@@ -73,15 +74,21 @@ evidenceRouter.post(
   "/research",
   wrap(async (req, res) => {
     if (active)
-      return res
-        .status(429)
-        .json({
-          error: "A collection is already running. Retry after it completes.",
-        });
+      return res.status(429).json({
+        error: "A collection is already running. Retry after it completes.",
+      });
     const constraints = parseRequest(
       String(req.body.query || ""),
       req.body.constraints || {},
     );
+    for (const k of ["contingencyDays", "testingDays"])
+      if (
+        constraints[k] != null &&
+        (finite(constraints[k]) === null ||
+          finite(constraints[k]) < 0 ||
+          finite(constraints[k]) > 365)
+      )
+        throw new Error("Planning days must be between 0 and 365");
     let runs = [];
     if (req.body.refresh !== false) {
       if (Date.now() - lastRun < 3000)
@@ -156,8 +163,27 @@ evidenceRouter.post(
   wrap(async (req, res) => {
     if (!/^[a-f0-9]{24}$/.test(req.params.id))
       throw new Error("Invalid product ID");
+    if (req.body.economics) economics(req.body.economics);
+    if (req.body.quote) {
+      const q = req.body.quote;
+      if (q.economics) economics(q.economics);
+      if (!q.destination || q.currency !== "USD")
+        throw new Error("Quote destination and USD currency required");
+      for (const k of ["processingDays", "transitDays", "personalizationDays"])
+        if (finite(q[k]) === null || finite(q[k]) < 0)
+          throw new Error(
+            "Quote processing, transit and personalization days must be nonnegative",
+          );
+      if (Date.parse(q.quotedAt) > Date.now())
+        throw new Error("Quote date cannot be in the future");
+    }
     const result = await evidenceStore.mutate((db) => {
+      const observed = db.observations.find(
+        (o) => productId(o.market, o.identityKey) === req.params.id,
+      );
+      if (!observed) throw new Error("Product not found");
       const r = (db.records[req.params.id] ??= {
+        market: observed.market,
         quotes: [],
         tests: [],
         history: [],

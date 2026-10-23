@@ -137,6 +137,7 @@ export default function App() {
   useEffect(()=>{const expired=()=>refreshAuth();window.addEventListener("signaldesk-session-expired",expired);return()=>window.removeEventListener("signaldesk-session-expired",expired);},[]);
   const [researchRequest,setResearchRequest] = useState("");
   const [view, setView] = useState("research"); // home | desk | radar | winners | validate | test | launch | settings
+  useEffect(()=>{window.scrollTo({top:0,left:0,behavior:"instant"});},[view]);
   const [projectId, setProjectId] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => localStorage.getItem("sd_onboarded") !== "1"

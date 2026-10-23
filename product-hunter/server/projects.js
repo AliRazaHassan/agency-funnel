@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIR = join(__dirname, "data", "projects");
+const DIR = process.env.PROJECTS_DIR || join(__dirname, "data", "projects");
 let pool = null;
 let ready = false;
 let attempted = false;

@@ -1,0 +1,37 @@
+{
+  "auditMode": "Current working tree; compare original published output in post-push-audit-reproduction.json",
+  "latestZeroRetainsPositiveSales": null,
+  "crossMarketRecordReuse": {
+    "sameId": false,
+    "shortlisted": false,
+    "inheritedTests": 0
+  },
+  "modeledUppercase": {
+    "status": "modeled",
+    "salesEvidence": null,
+    "confidence": 0
+  },
+  "negativePlanningDays": {
+    "rejected": true,
+    "reason": "Planning days must be between 0 and 365"
+  },
+  "nonSeasonalDeliveryTarget": null,
+  "explicitRequiredPlatformsLost": [
+    "amazon"
+  ],
+  "csvTags": "accepted",
+  "concurrentFileInitialization": [
+    {
+      "status": "fulfilled",
+      "error": null
+    },
+    {
+      "status": "fulfilled",
+      "error": null
+    },
+    {
+      "status": "fulfilled",
+      "error": null
+    }
+  ]
+}

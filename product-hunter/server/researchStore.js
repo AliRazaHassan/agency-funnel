@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname=dirname(fileURLToPath(import.meta.url));
-const FILE=join(__dirname,"data","research-store.json");
+const FILE=process.env.RESEARCH_FILE || join(__dirname,"data","research-store.json");
 let pgPool=null;
 let pgReady=false;
 let kvClient=null;

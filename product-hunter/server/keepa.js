@@ -1,3 +1,4 @@
+import { finite } from "./evidence.js";
 /**
  * Keepa — one-time snapshot OR optional live pull.
  * Default path: free signals + drop a Keepa JSON dump in data/keepa-snapshot.json
@@ -63,8 +64,9 @@ function normalizeEntry(raw = {}) {
     title,
     titleKey: title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(),
     niche: raw.niche || raw.category || null,
-    monthlySold: Number.isFinite(Number(monthlySold)) ? Number(monthlySold) : null,
-    salesRank: Number.isFinite(Number(salesRank)) && Number(salesRank) >= 0 ? Number(salesRank) : null,
+    monthlySold: finite(monthlySold),
+    boughtText: raw.boughtText || null,
+    salesRank: finite(salesRank) !== null && Number(salesRank) >= 0 ? Number(salesRank) : null,
     avgPriceUsd,
     buyBoxUsd,
     rating: Number.isFinite(Number(raw.rating ?? raw.csv?.[16]))
@@ -251,6 +253,7 @@ export function saveManualAmazonEntries(entries = []) {
         title: e.title || "",
         niche: e.niche || null,
         monthlySold,
+        boughtText: e.boughtText,
         salesRank: e.salesRank,
         buyBoxUsd: e.buyBoxUsd ?? e.priceUsd,
         avgPriceUsd: e.avgPriceUsd ?? e.priceUsd,

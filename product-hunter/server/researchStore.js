@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname=dirname(fileURLToPath(import.meta.url));
-const FILE=join(__dirname,"data","research-store.json");
+const FILE=process.env.RESEARCH_FILE || join(__dirname,"data","research-store.json");
 let pgPool=null;
 let pgReady=false;
 let kvClient=null;
@@ -11,6 +11,7 @@ let kvReady=false;
 const KV_KEY="product-hunter:research-store:v1";
 
 function ensureFile(){
+  if(process.env.NODE_ENV === "production") throw new Error("Persistent research storage required: configure DATABASE_URL or REDIS_URL");
   const dir=dirname(FILE);
   if(!existsSync(dir)) mkdirSync(dir,{recursive:true});
   if(!existsSync(FILE)) writeFileSync(FILE,JSON.stringify({products:{},snapshots:[],tests:[]},null,2),"utf8");
@@ -205,12 +206,13 @@ export async function getTrackedProduct(productId){
 }
 
 export function deriveSupplierEconomics(product={},verification={}){
+  const supplied = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
   const itemCostUsd=Number(verification.itemCostUsd);
   const shippingCostUsd=Number(verification.shippingCostUsd);
   const explicitLanded=Number(verification.landedCostUsd);
   const landedCostUsd=Number.isFinite(explicitLanded)&&explicitLanded>0
     ? explicitLanded
-    : (Number.isFinite(itemCostUsd)&&itemCostUsd>0 ? itemCostUsd + (Number.isFinite(shippingCostUsd)&&shippingCostUsd>=0 ? shippingCostUsd : 0) : NaN);
+    : (Number.isFinite(itemCostUsd)&&itemCostUsd>0 && supplied(verification.shippingCostUsd) && shippingCostUsd>=0 ? itemCostUsd + shippingCostUsd : NaN);
   const shippingDays=Number(verification.shippingDays);
   const sell=Number(product.estSellPriceUsd)||0;
   if(!Number.isFinite(landedCostUsd)||landedCostUsd<=0) throw new Error("Verified landed cost must be greater than 0");
@@ -224,6 +226,8 @@ export function deriveSupplierEconomics(product={},verification={}){
     landedCostUsd:+landedCostUsd.toFixed(2),
     shippingDays:Math.round(shippingDays),
     contributionUsd:+contributionUsd.toFixed(2),
+    paymentFeeUsd:+(sell*0.035).toFixed(2),
+    contributionAfterFeesUsd:+(contributionUsd-sell*0.035).toFixed(2),
     marginPct:+marginPct.toFixed(1),
     economicsPass:marginPct>=50&&contributionUsd>=8,
   };
@@ -246,6 +250,7 @@ export async function saveSupplierVerification(productId,input={}){
     warehouse:String(input.warehouse||"").trim()||null,
     moq:Number.isFinite(Number(input.moq))?Math.max(1,Math.round(Number(input.moq))):null,
     capturedAt:new Date().toISOString(),
+    processingDays: input.processingDays !== null && input.processingDays !== undefined && input.processingDays !== "" && Number.isFinite(Number(input.processingDays)) && Number(input.processingDays)>=0 ? Number(input.processingDays) : null,
     ...economics,
   };
   const updatedProduct={...product,supplierVerified:true,supplierVerification:verification};
@@ -299,7 +304,7 @@ export function deriveAdTestMetrics(metrics={},product={}){
 
   const supplier=product?.supplierVerification;
   const supplierVerified=Boolean(product?.supplierVerified===true&&supplier?.verified===true);
-  const verifiedContribution=supplierVerified?Number(supplier.contributionUsd):null;
+  const verifiedContribution=supplierVerified?Number(supplier.contributionUsd) - (Number(product.estSellPriceUsd)||0)*0.035:null;
   const estimatedContribution=Number(product?.estContributionUsd)||0;
   const contribution=supplierVerified&&Number.isFinite(verifiedContribution)?verifiedContribution:estimatedContribution;
   const verifiedMargin=Number(supplier?.marginPct);
@@ -346,3 +351,4 @@ export async function getAdTests(productId){
   const db=kvReady ? await readKvStore() : readFileStore();
   return db.tests.filter(x=>String(x.productId)===String(productId)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
 }
+

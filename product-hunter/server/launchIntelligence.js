@@ -8,12 +8,13 @@ function profitScenario(profitPerOrder, ordersPerDay){
 
 export function buildLaunchIntelligence(product = {}, opportunity = {}) {
   const sell = Number(product.estSellPriceUsd) || Number(product.estAovUsd) || 0;
-  const cost = Number(product.estCostUsd) || Number(product.sourceFrom?.unitCostUsd) || 0;
-  const shipping = Number(product.shippingBufferUsd) || 3;
+  const verified = product.supplierVerified === true && product.supplierVerification?.verified === true;
+  const cost = verified ? Number(product.supplierVerification.landedCostUsd) : Number(product.estCostUsd) || Number(product.sourceFrom?.unitCostUsd) || 0;
+  const shipping = verified ? 0 : Number(product.shippingBufferUsd ?? 3);
   const feesPct = 0.035;
   const fees = round2(sell * feesPct);
-  const contribution = round2(Math.max(0, sell - cost - shipping - fees));
-  const targetCpa = round2(contribution * 0.65);
+  const contribution = round2(sell - cost - shipping - fees);
+  const targetCpa = round2(Math.max(0, contribution) * 0.65);
   const targetRoas = targetCpa > 0 ? round2(sell / targetCpa) : null;
   const title = product.title || "product";
   const enc = q(title);
@@ -77,3 +78,4 @@ export function buildLaunchIntelligence(product = {}, opportunity = {}) {
 
   return { competitorIntel, creativeIntel, unitEconomics };
 }
+

@@ -75,12 +75,15 @@ export function Concierge({ product, products = [], onAction }) {
 
     document.addEventListener("contextmenu", onContextMenu);
     document.addEventListener("pointerdown", dismiss);
-    window.addEventListener("scroll", dismiss, true);
+    // Layout/focus scrolling after right-click must not immediately close the menu.
+    window.addEventListener("wheel", dismiss, {passive:true});
+    window.addEventListener("touchmove", dismiss, {passive:true});
     window.addEventListener("resize", dismiss);
     return () => {
       document.removeEventListener("contextmenu", onContextMenu);
       document.removeEventListener("pointerdown", dismiss);
-      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("wheel", dismiss);
+      window.removeEventListener("touchmove", dismiss);
       window.removeEventListener("resize", dismiss);
     };
   }, [product, products]);

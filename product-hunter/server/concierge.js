@@ -14,9 +14,7 @@ function operatorAction(question = "", context = {}) {
     ["eid", "Eid gifts · home decor · gift sets"]
   ];
   const match = events.find(([key]) => q.includes(key));
-  if (match && /(find|search|discover|show|research|product)/.test(q)) {
-    return { type: "discover", hint: match[1], label: `Research ${match[0]}` };
-  }
+  const eventAction = match && /(find|search|discover|show|research|product)/.test(q) ? { type:"discover", hint:String(question).trim(), label:`Research ${match[0]}` } : null;
   if (q.includes("watchlist") || q.includes("watch list")) return { type: "show_watchlist" };
   if ((q.includes("winner") || q.includes("top pick") || q.includes("strong")) && /(show|filter|find|only)/.test(q)) return { type: "show_winners" };
 
@@ -35,7 +33,11 @@ function operatorAction(question = "", context = {}) {
   const limitMatch = q.match(/(?:find|show|give me|shortlist)\s+(\d{1,2})\s+(?:products?|items?)/);
   if (limitMatch) filters.limit = Math.min(50, Math.max(1, Number(limitMatch[1])));
 
-  if (Object.keys(filters).length) return { type: "apply_filters", filters, label: "Applied AI product filters" };
+  if (eventAction) return {...eventAction, filters};
+  if (Object.keys(filters).length) {
+    if (/(find|search|discover|research)\b/.test(q)) return { type: "discover", hint: String(question).trim(), filters, label: "Discover and filter products" };
+    return { type: "apply_filters", filters, label: "Applied AI product filters" };
+  }
   if (/(find|search|discover|research)\b/.test(q) && /products?|items?|opportunit/.test(q)) {
     return { type: "discover", hint: String(question).trim(), label: "Run product discovery" };
   }
@@ -115,3 +117,4 @@ Return JSON: {"answer":"...", "chips":["...","...","..."]}.`,
   if (ai?.answer) return { ...ai, mode: "ai", action };
   return { ...fallbackAnswer(question, context), action };
 }
+

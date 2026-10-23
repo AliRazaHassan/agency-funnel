@@ -1,0 +1,35 @@
+export function parseEvidenceFile(text, name) {
+  if (!name.toLowerCase().endsWith(".csv")) {
+    const d = JSON.parse(text);
+    return Array.isArray(d) ? d : d.observations;
+  }
+  const rows = [];
+  let row = [],
+    field = "",
+    quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (quoted && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else quoted = !quoted;
+    } else if (c === "," && !quoted) {
+      row.push(field);
+      field = "";
+    } else if ((c === "\n" || c === "\r") && !quoted) {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      if (row.some((v) => v !== "")) rows.push(row);
+      row = [];
+      field = "";
+    } else field += c;
+  }
+  if (quoted) throw new Error("Unclosed CSV quote");
+  row.push(field);
+  if (row.some((v) => v !== "")) rows.push(row);
+  const headers = rows.shift() || [];
+  return rows.map((values) =>
+    Object.fromEntries(headers.map((h, i) => [h.trim(), values[i] ?? ""])),
+  );
+}

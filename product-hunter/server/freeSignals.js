@@ -133,7 +133,7 @@ async function fetchWikipediaInterest(niche) {
 /**
  * Soft Google Trends probe — often fails on Render/datacenter. Never throws.
  */
-async function fetchGoogleTrendsSoft(keyword, geo = "US") {
+export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
   try {
     const end = new Date();
     const start = new Date();
@@ -206,6 +206,7 @@ async function fetchGoogleTrendsSoft(keyword, geo = "US") {
       olderAvg: +olderAvg.toFixed(1),
       newerAvg: +newerAvg.toFixed(1),
       points: values.length,
+      dataAt: new Date(Number(series.default.timelineData.at(-1).time)*1000).toISOString(),
       note: "Interest = 3-month average; momentum = recent-half vs older-half movement. Both are relative Trends indices, not absolute search volume.",
       url: "https://trends.google.com/",
     };

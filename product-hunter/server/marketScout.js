@@ -159,6 +159,9 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
       list.push(s);
     }
   }
+  if (/christmas/i.test(nicheHint || "")) {
+    list.sort((a,b) => Number(b.seasonalEvent?.id === "christmas") - Number(a.seasonalEvent?.id === "christmas"));
+  }
   list = list.slice(0, 10);
 
   list = await Promise.all(
@@ -211,3 +214,4 @@ export async function scoutMarket({ regionFocus = "Global", budget, nicheHint } 
       "Shows 10 ranked Shopify product niches and blends upcoming commercial events into discovery. Agency service offers listed separately (not product imports).",
   };
 }
+

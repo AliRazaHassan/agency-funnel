@@ -1,3 +1,7 @@
+import {verifyProductionApi} from "./productionSmoke.js";
+import { evidenceStore } from "./evidenceStore.js";
+import { evidenceRouter } from "./evidenceRoutes.js";
+import { buildChristmasShortlist } from "./christmas.js";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -31,6 +35,7 @@ const isProd = process.env.NODE_ENV === "production";
 const hasOpenAIKey = Boolean(String(process.env.OPENAI_API_KEY || "").trim());
 
 await initResearchStore();
+const evidenceStorage=await evidenceStore.init();
 
 const auth = createAuth({
   password: process.env.APP_PASSWORD,
@@ -58,7 +63,9 @@ app.use((err, _req, res, next) => {
   return next(err);
 });
 app.use(auth.middleware);
+app.use("/api/research", evidenceRouter);
 
+let productionVerification=null;
 let lastScout = { opportunities: [] };
 let lastHuntProducts = [];
 
@@ -69,6 +76,9 @@ app.get("/api/health", (_req, res) => {
     openai: hasOpenAIKey,
     authRequired: auth.enabled,
     label: "Signal Desk",
+    revision: process.env.RENDER_GIT_COMMIT || null,
+    researchStorage: evidenceStorage,
+    verification: productionVerification,
     dataMode: {
       freeSignals: true,
       keepaLiveKey: k.liveKeyConfigured,
@@ -79,6 +89,22 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/keepa/status", (_req, res) => {
   res.json(keepaStatus());
+});
+
+app.get("/api/christmas/shortlist", async (req,res) => {
+  try { res.json(buildChristmasShortlist(await listTrackedProducts(), {market:String(req.query.market || "US")})); }
+  catch(err) { res.status(400).json({error:err.message}); }
+});
+
+app.post("/api/christmas/export", async (req,res) => {
+  try {
+    const list=buildChristmasShortlist(await listTrackedProducts(), {market:String(req.body?.market || "US")});
+    const cell=v=>'"'+String(v ?? "").replaceAll('"','""')+'"';
+    const rows=[["Priority","Product","Market","Verdict","Verified winner","Category evidence","Source","Data as of","Delivery status","Last order date","Next steps","Supplier search","Amazon research","Meta research"],...list.products.map(p=>[p.priority,p.title,p.market,p.verdict,p.verifiedWinner,p.evidence.summary,p.evidence.url,p.evidence.dataAsOf,p.delivery.status,p.delivery.latestOrderDate,p.nextSteps.join("; "),p.links.supplier,p.links.amazon,p.links.meta])];
+    res.setHeader("Content-Type","text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition",'attachment; filename="christmas-2026-shortlist.csv"');
+    res.send(rows.map(row=>row.map(cell).join(",")).join("\n"));
+  } catch(err) {res.status(400).json({error:err.message});}
 });
 
 app.get("/api/events/upcoming", (req, res) => {
@@ -167,15 +193,18 @@ app.post("/api/discovery/full", async (req,res)=>{
     const { regionFocus="Global", budget, query, limit=50 } = req.body || {};
     const scout = await scoutMarket({regionFocus,budget,nicheHint:query});
     lastScout = scout;
-    const selectedOpp = scout.opportunities?.[0];
+    const requestedEvent = /christmas/i.test(query || "") ? "christmas" : null;
+    const selectedOpp = requestedEvent ? scout.opportunities?.find(o => o.seasonalEvent?.id === requestedEvent) : scout.opportunities?.[0];
     if(!selectedOpp) return res.status(404).json({error:"No opportunity found for this request"});
-    const hunt = await huntProducts(selectedOpp,{limit});
+    const researchOpp = requestedEvent ? {...selectedOpp, niche:String(query), audience:`Christmas 2026 shoppers in ${regionFocus}`} : selectedOpp;
+    const hunt = await huntProducts(researchOpp,{limit});
+    if (!hunt.products?.length) return res.status(422).json({error:"No product-specific candidates could be researched. Check the AI/data connection or add verified observations; generic catalog padding is not used for this query."});
     lastHuntProducts = hunt.products || [];
     await trackProducts(lastHuntProducts,{opportunityId:selectedOpp.id,niche:selectedOpp.niche,market:selectedOpp.sellWhere?.geos?.[0]||regionFocus,query});
     res.json({scout,selectedOpp,hunt,summary:{
       detected:lastHuntProducts.length,
       accelerating:lastHuntProducts.filter(p=>p.trendStatus==="ACCELERATING").length,
-      winners:lastHuntProducts.filter(p=>p.winning?.verdict==="PASS"||p.winnerDecision?.verdict==="STRONG_CANDIDATE").length
+      winners:lastHuntProducts.filter(p=>p.winnerDecision?.verdict==="STRONG_CANDIDATE").length
     }});
   }catch(err){
     console.error(err);
@@ -391,6 +420,9 @@ app.get("/api/workspace/status", async (_req, res) => {
   const k = keepaStatus();
   res.json({
     label: "Signal Desk",
+    revision: process.env.RENDER_GIT_COMMIT || null,
+    researchStorage: evidenceStorage,
+    verification: productionVerification,
     version: "4.0",
     modules: {
       scout: true,
@@ -436,7 +468,9 @@ if (existsSync(clientDist)) {
 }
 
 app.listen(PORT, "0.0.0.0", () => {
+  if(isProd) verifyProductionApi(`http://127.0.0.1:${PORT}`,process.env.APP_PASSWORD).then(result=>{productionVerification=result;console.log("Authenticated startup smoke:",Object.values(result).every(Boolean)?"PASS":"FAIL");});
   console.log(`Signal Desk http://127.0.0.1:${PORT}`);
   console.log(`Auth: ${auth.enabled ? "password required" : "open (set APP_PASSWORD)"}`);
   console.log(`OpenAI: ${hasOpenAIKey ? "configured" : "seed fallback (OPENAI_API_KEY missing)"}`);
 });
+

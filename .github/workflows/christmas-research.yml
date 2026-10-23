@@ -1,0 +1,33 @@
+name: Christmas research validation
+on:
+  push:
+    branches: [codex/christmas-2026-research]
+    paths: ['product-hunter/**', '.github/workflows/christmas-research.yml']
+  pull_request:
+    paths: ['product-hunter/**', '.github/workflows/christmas-research.yml']
+permissions:
+  contents: read
+jobs:
+  christmas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: product-hunter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: product-hunter/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/e2e/christmas.spec.js --reporter=line
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: christmas-research-failure
+          path: product-hunter/test-results
+          if-no-files-found: ignore

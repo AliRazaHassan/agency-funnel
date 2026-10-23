@@ -1,0 +1,46 @@
+{
+  "auditedCommit": "4ed86d673e823352980bea14e31e0f552caae854",
+  "latestZeroRetainsPositiveSales": true,
+  "crossMarketRecordReuse": {
+    "sameId": true,
+    "shortlisted": true,
+    "inheritedTests": 1
+  },
+  "modeledUppercase": {
+    "status": "manual",
+    "salesEvidence": true,
+    "confidence": 35
+  },
+  "negativePlanningDays": {
+    "status": "on-time",
+    "target": "2026-12-20",
+    "latestOrderDate": "2027-03-27",
+    "testDeadline": "2027-07-05",
+    "quoteAgeDays": 1.5,
+    "assumptions": {
+      "processingDays": 1,
+      "transitDays": 2,
+      "personalizationDays": 0,
+      "contingencyDays": -100,
+      "testingDays": -100
+    },
+    "reason": "Planning calculation from supplier quote; not a carrier guarantee."
+  },
+  "nonSeasonalDeliveryTarget": "2026-12-20",
+  "explicitRequiredPlatformsLost": [],
+  "csvTags": "(o.tags || []).join is not a function",
+  "concurrentFileInitialization": [
+    {
+      "status": "fulfilled",
+      "error": null
+    },
+    {
+      "status": "rejected",
+      "error": "ENOENT"
+    },
+    {
+      "status": "rejected",
+      "error": "ENOENT"
+    }
+  ]
+}

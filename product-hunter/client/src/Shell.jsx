@@ -207,7 +207,8 @@ export function SettingsView() {
         </p>
         <p className="muted">{status?.keepa?.recommendation}</p>
         <p><strong>Research history:</strong> {status?.researchStore || "file"}</p><p><strong>Saved projects:</strong> {status?.projectStore || "file"}</p>
-        {(status?.researchStore !== "postgres" || status?.projectStore !== "postgres") ? <div className="honesty-banner"><strong>Persistence warning</strong><p>File mode on Render is not durable across service replacement/redeploys. Set Product Hunter DATABASE_URL before relying on saved projects or 7/14/30-day history.</p></div> : null}
+        {(status?.researchStore === "file" || status?.projectStore === "file") ? <div className="honesty-banner"><strong>Persistence warning</strong><p>File mode on Render is not durable across service replacement/redeploys. Set Product Hunter DATABASE_URL before relying on saved projects or 7/14/30-day history.</p></div> : null}
+        {(status?.researchStore === "keyvalue" || status?.projectStore === "keyvalue") ? <p className="muted">Key Value storage is active. App restarts retain its records; long-term retention depends on the Key Value service persistence and backups.</p> : null}
         <p><strong>Shopify:</strong> {status?.shopify?.configured ? `connected · ${status.shopify.store}` : "not connected"}</p>
         {!status?.shopify?.configured ? <p className="muted">Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN with write_products scope to enable one-click draft creation.</p> : null}
       </div>

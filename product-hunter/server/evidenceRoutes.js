@@ -14,6 +14,7 @@ import {
   productId,
 } from "./evidence.js";
 import { collect, capabilities } from "./evidenceProviders.js";
+import { apifyConfigured, normalizeTikTokExport, readApifyDataset } from "./apifyEvidence.js";
 export const evidenceRouter = express.Router();
 const wrap = (fn) => async (req, res) => {
   try {
@@ -44,6 +45,7 @@ evidenceRouter.get(
     } catch {}
     res.json({
       version: VERSION,
+      apify: { configured: apifyConfigured(), mode: "existing-dataset-only", startsActors: false },
       storage,
       providers: capabilities(),
       monitoring:
@@ -68,6 +70,20 @@ evidenceRouter.post(
     res.json({ ok: true, count: normalized.length });
   }),
 );
+// Import raw provider output without asking users to hand-build observation rows.
+evidenceRouter.post('/apify/sync', wrap(async (req, res) => {
+  const market = String(req.body.market || 'US').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(market)) throw new Error('Two-letter market required');
+  const options = { market, query: String(req.body.query || '').slice(0,200) };
+  const result = req.body.datasetId
+    ? await readApifyDataset(String(req.body.datasetId), options)
+    : normalizeTikTokExport(req.body.items, options);
+  await evidenceStore.mutate(db => {
+    mergeObservations(db, result.observations);
+    db.runs.push({platform:'tiktok', provider:'Apify dataset', status:result.observations.length ? 'success':'unavailable', completedAt:new Date().toISOString(), count:result.observations.length, rejected:result.rejected, reason:'Read-only sync; no Actor started and no paid subscription enabled.'});
+  });
+  res.json({ok:true, count:result.observations.length, acceptedVideos:result.acceptedVideos, rejected:result.rejected});
+}));
 let active = false,
   lastRun = 0;
 evidenceRouter.post(
@@ -141,6 +157,7 @@ evidenceRouter.post(
       createdAt: new Date().toISOString(),
       constraints,
       products,
+      discoveries: data.observations.filter(o => o.scope === "niche" && o.market === constraints.market && (!constraints.query || `${o.title} ${o.niche}`.toLowerCase().includes(constraints.query.toLowerCase()))).slice(-100),
       niches,
       providers: runs.map(({ observations, ...r }) => ({
         ...r,

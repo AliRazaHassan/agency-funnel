@@ -130,3 +130,22 @@ test('saved-session hydration cannot append to a newly entered research request'
  const input=page.getByLabel('Research request',{exact:true});await expect(input).toBeDisabled();release();await expect(input).toBeEnabled();await expect(input).toHaveValue('Previous research');
  await input.fill('Christmas pet');const response=page.waitForResponse(r=>r.url().endsWith('/api/research/research')&&r.request().method()==='POST');await page.getByRole('button',{name:'Filter saved evidence'}).click();const res=await response;expect(res.status()).toBe(200);expect(res.request().postDataJSON().query).toBe('Christmas pet');
 });
+
+test('TikTok native import rejects stale/unknown-market evidence and displays discovery without product promotion', async ({page, request}) => {
+  expect((await request.post('/api/research/apify/sync',{data:{items:[]}})).status()).toBe(401);
+  await request.post('/api/auth/login',{data:{password:'e2e-secret'}});
+  const video={id:'1234567890123456789',text:'Fresh TikTok test discovery',locationCreated:'US',createTimeISO:new Date().toISOString(),webVideoUrl:'https://www.tiktok.com/@fixture/video/1234567890123456789',playCount:100,shareCount:0};
+  const imported=await request.post('/api/research/apify/sync',{data:{market:'US',query:'Fresh TikTok test discovery',items:[video,{...video,createTimeISO:'2022-06-01'},{...video,locationCreated:null}]}});
+  expect(imported.status()).toBe(200);
+  const result=await imported.json(); expect(result.acceptedVideos).toBe(1);expect(result.count).toBe(2);expect(Object.keys(result.rejected)).toHaveLength(2);
+  const run=await request.post('/api/research/research',{data:{query:video.text,constraints:{market:'US'},refresh:false}});
+  const session=await run.json();expect(session.products).toHaveLength(0);expect(session.discoveries).toHaveLength(2);
+  await page.goto('/');
+  await page.addInitScript(() => localStorage.setItem('sd_onboarded', '1'));
+  await page.reload();
+  await page.getByLabel('Password').fill('e2e-secret');
+  await page.getByRole('button',{name:'Enter workspace'}).click();
+  await page.getByRole('button',{name:'Providers',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Sync existing dataset',exact:true})).toBeDisabled();
+  await expect(page.getByRole('link',{name:video.text,exact:true})).toHaveCount(2);
+});

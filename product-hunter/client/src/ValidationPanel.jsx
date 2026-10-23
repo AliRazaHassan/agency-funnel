@@ -115,7 +115,7 @@ export function ValidationPanel({ product, open, onClose, onStatusChange }) {
           <small>PRODUCT VALIDATION</small>
           <strong>{product.title}</strong>
         </div>
-        <button type="button" className="concierge-close" onClick={onClose}>×</button>
+        <button type="button" className="concierge-close" aria-label="Close validation panel" onClick={onClose}>×</button>
       </div>
 
       <div className="validation-flow">

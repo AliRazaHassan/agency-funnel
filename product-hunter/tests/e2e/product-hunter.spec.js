@@ -82,11 +82,8 @@ test("complete Product Hunter workflow", async ({ page }) => {
     timeout: 30000,
   });
 
-  await page
-    .getByRole("button", { name: "×" })
-    .first()
-    .click()
-    .catch(() => {});
+  await page.getByRole("button", {name:"Close AI analyst",exact:true}).click();
+  await expect(page.locator('.concierge-panel')).toHaveCount(0);
 
   const validateButton = page
     .locator(".radar-card")
@@ -120,16 +117,13 @@ test("complete Product Hunter workflow", async ({ page }) => {
   await fields.nth(5).fill("250");
   await page.getByRole("button", { name: "Save test & re-score" }).click();
 
-  await expect(page.locator(".proof-pill")).toBeVisible();
+  await expect(page.locator(".ad-test-card:not(.supplier-verify-card) .proof-pill")).toContainText("market proof");
   await expect(page.locator(".validation-flow button.on")).toContainText(
     "VALIDATED",
   );
 
-  await page
-    .getByRole("button", { name: "×" })
-    .first()
-    .click()
-    .catch(() => {});
+  await page.getByRole("button", {name:"Close validation panel",exact:true}).click();
+  await expect(page.locator('.validation-panel')).toHaveCount(0);
 
   await page
     .locator(".radar-card")
@@ -161,7 +155,7 @@ test("complete Product Hunter workflow", async ({ page }) => {
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByText(/Research store:/)).toBeVisible();
+  await expect(page.getByText(/Research history:/)).toBeVisible();
   await expect(page.getByText(/Shopify:/)).toBeVisible();
 });
 

@@ -34,3 +34,13 @@ Existing Render service: srv-dar80jbncjis73cg2c00. Existing Key Value: product-h
 ### Follow-up loading-state regression
 
 A full browser run exposed saved-session hydration racing with input entry, producing an appended query and detaching result cards. Research inputs now remain disabled until the initial saved-state read finishes; async restoration cannot overwrite an active request. A deterministic delayed-state browser test covers this exact trigger.
+
+## Final release outcome
+
+- Unit 70/70, isolated Redis/production-auth integration 2/2, full browser/API regression 11/11; zero failed/skipped/flaky checks in the final runs.
+- Both CI workflows green on 04ded449a63d7559f1befa63da5f1145a1348928: runs 39990606659 and 39990606658.
+- PR #7 merged; deployed commit 8429a745d6a5fd74508d9804fea48cf3916be8d6.
+- Existing Render deploy dep-dbdp3iui0phs73ba4obg became LIVE at 2026-10-23T16:57:25Z.
+- Production public health matches the deployed SHA, reports Key Value storage and all four authenticated startup checks true. Render logs independently report `Authenticated startup smoke: PASS`.
+
+The failed original audit and intermediate runs remain historical records. The final green suite includes supplier/ad-test/project workflows; it does not certify external product sales or provider access.

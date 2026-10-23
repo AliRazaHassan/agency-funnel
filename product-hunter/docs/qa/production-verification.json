@@ -1,0 +1,46 @@
+{
+  "/api/health": {
+    "status": 200,
+    "health": {
+      "ok": true,
+      "openai": true,
+      "authRequired": true,
+      "label": "Signal Desk",
+      "revision": "8429a745d6a5fd74508d9804fea48cf3916be8d6",
+      "researchStorage": "keyvalue",
+      "verification": {
+        "unauthenticatedBlocked": true,
+        "login": true,
+        "providerStatus": true,
+        "storedResearch": true
+      },
+      "dataMode": {
+        "freeSignals": true,
+        "keepaLiveKey": false,
+        "keepaSnapshot": {
+          "ok": false,
+          "mode": "snapshot",
+          "count": 0,
+          "meta": {
+            "capturedAt": null,
+            "domain": "com",
+            "count": 0,
+            "note": "Empty snapshot. Use UI \u201cAdd Amazon one-time data\u201d (paste from amazon.com) or npm run keepa:pull. Free Wikimedia works without this.",
+            "oneTime": true
+          }
+        }
+      }
+    }
+  },
+  "/api/research/state": {
+    "status": 401
+  },
+  "/api/research/status": {
+    "status": 401
+  },
+  "/": {
+    "status": 200,
+    "hasClientBundle": true,
+    "evidenceUiPresent": true
+  }
+}

@@ -20,3 +20,7 @@ The deterministic E2E ornament fixture is a synthetic test record on example.com
 Next requirement: provide working legitimate source access or dated original evidence imports and exact supplier quotes. Then run the same portal request again. Missing unit costs/shipping/fees/returns keep economics incomplete; strict cost/margin filters correctly exclude unknown inputs. Without those filters, dated product observations can appear as research candidates with missing-proof actions, rather than being called winners.
 
 This run was executed locally against real provider attempts and the checked-out snapshots. It was NOT an authenticated production research run. Production remains on commit `d6e23616ba2ccf5da48fd66b7243d5e61327e193`; no release was performed.
+
+## Release update — 23 October 2026
+
+The audit-fix release is now live on the existing service at commit 8429a745d6a5fd74508d9804fea48cf3916be8d6 (PR #7). The earlier production-baseline paragraph above describes the time of the original research run. This deployment does not change that run's honest outcome: no supported product shortlist or supplier quote was obtained. Current verification is in `../qa/research-portal-report.md`.

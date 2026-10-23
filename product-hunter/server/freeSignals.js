@@ -208,7 +208,7 @@ export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
       points: values.length,
       dataAt: new Date(Number(series.default.timelineData.at(-1).time)*1000).toISOString(),
       note: "Interest = 3-month average; momentum = recent-half vs older-half movement. Both are relative Trends indices, not absolute search volume.",
-      url: "https://trends.google.com/",
+      url: `https://trends.google.com/trends/explore?geo=${encodeURIComponent(geo)}&date=today%203-m&q=${encodeURIComponent(keyword)}`,
     };
   } catch {
     return null;

@@ -59,6 +59,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
     [status, setStatus] = useState(null),
     [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
+    [importMessage,setImportMessage] = useState(""),
     [tab, setTab] = useState("products"),
     [selected, setSelected] = useState(null),
     [econ, setEcon] = useState(ECON),
@@ -111,6 +112,16 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
       run(true);
     }
   }, []);
+  async function syncApify(payload) {
+    setBusy("Checking provider dates, market and original links…");
+    setError("");
+    try {
+      const response = await api("/api/research/apify/sync", { method: "POST", body: { ...payload, market, query } });
+      await run(false);
+      setTab("providers");
+      setImportMessage(`Imported ${response.acceptedVideos} recent videos (${response.count} metrics). Excluded: ${Object.entries(response.rejected).map(([reason,count]) => `${count} ${reason}`).join("; ") || "none"}. Videos are discovery signals; exact product and sales remain unverified.`);
+    } catch(e) { setError(e.message); } finally { setBusy(""); }
+  }
   async function run(refresh = true) {
     const current = ++revision.current;
     setBusy(
@@ -432,6 +443,24 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
       {tab === "providers" ? (
         <div className="viz-card">
           <h3>Provider health & configuration</h3>
+          <p>Free source research: <a target="_blank" rel="noreferrer" href={`https://trends.google.com/trends/explore?geo=${encodeURIComponent(market === "UK" ? "GB" : market)}&date=today%203-m&q=${encodeURIComponent(query)}`}>Google Trends</a> · <a target="_blank" rel="noreferrer" href={`https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${encodeURIComponent(market)}&q=${encodeURIComponent(query)}&search_type=keyword_unordered`}>Meta active ads</a> · <a target="_blank" rel="noreferrer" href="https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en">TikTok Creative Center</a>. Links open research tools; they are not evidence until a dated observation is saved.</p>
+          <h4>TikTok / Apify free-credit workflow</h4>
+          <p>Import an existing TikTok scraper export or sync a dataset. This action never starts an Actor or buys credits. Only videos published in the last 7 days with a matching source country are accepted. Creation country does not prove buyer location.</p>
+          <form onSubmit={e => { e.preventDefault(); const id = new FormData(e.currentTarget).get("datasetId"); syncApify({datasetId:id}); }}>
+            <label>Existing Apify dataset ID <input name="datasetId" required minLength={10} maxLength={40} disabled={!!busy || !status?.apify?.configured} /></label>
+            <button disabled={!!busy || !status?.apify?.configured}>Sync existing dataset</button>
+          </form>
+          <p>{status?.apify?.configured ? "Server connection available." : "Server token not configured. JSON export import works without a token."}</p>
+          <label>TikTok JSON export <input type="file" accept=".json,application/json" disabled={!!busy} onChange={async e => {
+            const file=e.target.files?.[0]; if(!file) return;
+            try { if(file.size > 2000000) throw new Error("Use a JSON export smaller than 2 MB"); const items=JSON.parse(await file.text()); await syncApify({items}); } catch(error) { setError(error.message); }
+            e.target.value="";
+          }} /></label>
+          {importMessage ? <p role="status">{importMessage}</p> : null}
+          <h4>Discovery evidence</h4>
+          <p>These are query/video signals, separate from verified exact products. Search indices and engagement are not sales.</p>
+          {(result?.discoveries || []).map(o => <p key={o.id}><a href={o.sourceUrl} target="_blank" rel="noreferrer">{o.title}</a> · {o.value} {o.unit} · {new Date(o.dataAt).toLocaleDateString()} · {Date.now()-Date.parse(o.dataAt)>(o.platform === "google" ? 14 : 7)*86400000 ? "Check freshness" : "Recent"}</p>)}
+
           <p>
             Storage: {status?.storage || "checking"} · {status?.monitoring}
           </p>

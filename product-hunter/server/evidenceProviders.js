@@ -27,8 +27,8 @@ export function capabilities() {
     {
       platform: "google",
       provider: "Google Trends",
-      configured: process.env.ENABLE_GOOGLE_TRENDS === "1",
-      note: "Opt-in relative interest only. No Wikipedia substitution. Import dated query-level exports if disabled.",
+      configured: process.env.ENABLE_GOOGLE_TRENDS !== "0",
+      note: "Free relative search interest; no API key. May be unavailable or rate limited. Set ENABLE_GOOGLE_TRENDS=0 to disable. No Wikipedia substitution.",
     },
   ];
 }

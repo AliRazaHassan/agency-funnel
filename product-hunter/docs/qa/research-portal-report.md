@@ -83,3 +83,9 @@ Implementation commit: `bc71b55` on `codex/evidence-research-portal` (local). Gi
 A later E2E retry initially found that the temporary Chromium binary had disappeared after the runtime changed. Chromium was re-created under the scratch workspace for repeatable local execution; this is a test-runtime issue, not a product test pass. The completed browser results and the five full-suite regressions above remain separately recorded.
 
 Final targeted rerun after recreating Chromium: `npm run test:evidence` completed **3 PASS, 0 FAIL**, covering the authenticated API workflow and 1440px/390px browser flows (9.0 seconds). This does not clear the five legacy full-suite regression failures.
+
+## Publication and follow-up audit — 23 October 2026
+
+The user explicitly approved pushing the branch. Shell authentication was unavailable; the connected GitHub app published the exact same tree as local 727e8cc in commit 4ed86d673e823352980bea14e31e0f552caae854. Draft PR #7 is open: https://github.com/AliRazaHassan/agency-funnel/pull/7 . The earlier approval blocker is resolved. Remote CI ran and failed at browser regression (4 passed / 5 failed). Production remains unchanged.
+
+See `post-push-audit.md` and `post-push-audit-reproduction.json` for eight newly reproduced correctness issues, including four P1 release blockers. The standalone script is `scripts/audit-evidence.mjs`. These findings are not claimed fixed.

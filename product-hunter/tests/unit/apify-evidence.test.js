@@ -19,3 +19,10 @@ test('dataset sync validates ID before any request and never starts an Actor',as
  assert.equal(calls,1);assert.equal(r.acceptedVideos,1);
  } finally {if(old===undefined)delete process.env.APIFY_TOKEN;else process.env.APIFY_TOKEN=old;}
 });
+
+test('Meta active observation uses run completion date and does not count repeated creatives as independent proof', async()=>{
+ const {normalizeMetaExport}=await import('../../server/apifyEvidence.js');
+ const r=normalizeMetaExport([{adArchiveID:'123',isActive:true,inputUrl:'https://www.facebook.com/ads/library/?country=US',snapshot:{body:{text:'Reusable remover'}},collationId:'same'}],{now,observedAt:'2026-10-24T11:00:00Z'});
+ assert.equal(r.observations.length,1);assert.equal(r.observations[0].scope,'niche');assert.equal(r.observations[0].correlationKey,'meta:same');
+ assert.equal(normalizeMetaExport([{adArchiveID:'123',isActive:true,inputUrl:'https://www.facebook.com/ads/library/?country=ALL'}],{now,observedAt:now.toISOString()}).observations.length,0);
+});

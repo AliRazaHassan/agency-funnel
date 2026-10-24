@@ -149,3 +149,25 @@ test('TikTok native import rejects stale/unknown-market evidence and displays di
   await expect(page.getByRole('button',{name:'Sync existing dataset',exact:true})).toBeDisabled();
   await expect(page.getByRole('link',{name:video.text,exact:true})).toHaveCount(2);
 });
+
+test('automatic hunting requires authentication and missing token fails before spending',async({request,page})=>{
+ expect((await request.post('/api/research/hunt/start',{data:{}})).status()).toBe(401);
+ await request.post('/api/auth/login',{data:{password:'e2e-secret'}});
+ const response=await request.post('/api/research/hunt/start',{data:{query:'pet brush',market:'US',requestId:'11111111-1111-1111-1111-111111111111'}});
+ expect(response.status()).toBe(400);expect((await response.json()).error).toContain('APIFY_TOKEN');
+ expect((await (await request.get('/api/research/state')).json()).hunts || []).toHaveLength(0);
+});
+
+test('automatic hunt button starts once, polls completion and refreshes evidence without manual import',async({page})=>{
+ let starts=0,refreshes=0;
+ await page.addInitScript(()=>localStorage.setItem('sd_onboarded','1'));
+ await page.route('**/api/research/status',route=>route.fulfill({json:{apify:{configured:true},storage:'file',providers:[]}}));
+ await page.route('**/api/research/hunt/start',route=>{starts++;const body=route.request().postDataJSON();expect(body.query).toBe('pet brush');expect(body.platform).toBe('tiktok');return route.fulfill({json:{id:'fixture-run',status:'RUNNING',query:'pet brush'}});});
+ await page.route('**/api/research/hunt/fixture-run',route=>route.fulfill({json:{id:'fixture-run',status:'SUCCEEDED',query:'pet brush',acceptedVideos:1,count:2,rejected:{}}}));
+ await page.route('**/api/research/research',route=>{refreshes++;expect(route.request().postDataJSON().refresh).toBe(true);return route.fulfill({json:{id:'fixture-session',createdAt:new Date().toISOString(),constraints:{query:'pet brush',market:'US'},products:[],niches:[],discoveries:[],providers:[],note:'No sales inferred'}});});
+ await page.goto('/');await page.getByLabel('Password').fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
+ await page.getByLabel('Research request',{exact:true}).fill('pet brush');
+ await page.getByRole('button',{name:'Start automatic hunt · free credits only',exact:true}).click();
+ await expect(page.getByText(/Automatic hunt finished: 1 accepted videos\/ads/)).toBeVisible();
+ expect(starts).toBe(1);expect(refreshes).toBe(1);
+});

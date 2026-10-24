@@ -48,9 +48,7 @@ test("complete Product Hunter workflow", async ({ page }) => {
   await expect(page.getByText(/Ranked opportunities/)).toBeVisible({
     timeout: 60000,
   });
-  const huntButton = page
-    .getByRole("button", { name: "Hunt products" })
-    .first();
+  const huntButton = page.locator(".opp-card").filter({has:page.getByRole("heading",{name:"Pet Supplies",exact:true})}).getByRole("button",{name:"Hunt products",exact:true});
   await expect(huntButton).toBeVisible();
   await huntButton.click();
 
@@ -183,7 +181,7 @@ test("center loader is a viewport-centered overlay and concierge avoids it", asy
   await expect(page.getByText(/Ranked opportunities/)).toBeVisible({
     timeout: 60000,
   });
-  await page.getByRole("button", { name: "Hunt products" }).first().click();
+  await page.locator(".opp-card").filter({has:page.getByRole("heading",{name:"Pet Supplies",exact:true})}).getByRole("button",{name:"Hunt products",exact:true}).click();
   await expect(page.getByText(/Products ·/)).toBeVisible({ timeout: 90000 });
   await page.getByRole("button", { name: "2 Radar", exact: true }).click();
 

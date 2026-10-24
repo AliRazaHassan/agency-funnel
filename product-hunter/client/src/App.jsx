@@ -865,9 +865,9 @@ export default function App() {
                           type="button"
                           className="btn copper"
                           onClick={() => runHunt(opp)}
-                          disabled={loading === "hunt"}
+                          disabled={loading === "hunt" || opp.isServiceOffer}
                         >
-                          {loading === "hunt" && selectedOpp?.id === opp.id
+                          {opp.isServiceOffer ? "Service opportunity" : loading === "hunt" && selectedOpp?.id === opp.id
                             ? "Hunting products…"
                             : "Hunt products"}
                         </button>
@@ -1119,7 +1119,7 @@ export default function App() {
                 <p className="muted" style={{ marginTop: "1rem" }}>
                   No products in this filter. Switch to All / PASS / WATCH / FAIL.
                 </p>
-              ) : null}
+              ) : <p role="status">No product evidence returned for this niche. Try another niche or use Evidence research to collect fresh sources.</p>}
             </div>
           ) : null}
         </section>

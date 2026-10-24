@@ -23,7 +23,7 @@ jobs:
           cache-dependency-path: product-hunter/package-lock.json
       - run: npm ci
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps --only-shell chromium
       - run: npx playwright test tests/e2e/christmas.spec.js --reporter=line
       - if: failure()
         uses: actions/upload-artifact@v4

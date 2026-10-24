@@ -119,14 +119,14 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
     }
   }, []);
   useEffect(() => {
-    if(huntJob?.status!=="RUNNING")return;
+    if(!["STARTING","RUNNING"].includes(huntJob?.status))return;
     let cancelled=false,timer;
     async function poll(){
       try {
         const job=await api(`/api/research/hunt/${huntJob.id}`);
         if(cancelled)return;
         setHuntJob(job);
-        if(job.status==="RUNNING"){timer=setTimeout(poll,3000);return;}
+        if(["STARTING","RUNNING"].includes(job.status)){timer=setTimeout(poll,3000);return;}
         if(job.status==="SUCCEEDED"){
           setImportMessage(`Automatic hunt finished: ${job.acceptedVideos} accepted videos/ads, ${job.count} metrics. Exclusions: ${JSON.stringify(job.rejected)}. No sales inferred.`);
           await run(true);

@@ -45,6 +45,10 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
   async function poll(id) {
     let job=(await store.read()).hunts?.find(h=>h.id===id);
     if(!job)throw new Error('Hunt not found');
+    if(job.status==='STARTING' && Date.now()-Date.parse(job.createdAt)>180000){
+      await store.mutate(db=>{const h=db.hunts.find(h=>h.id===id);if(h.status==='STARTING')Object.assign(h,{status:'UNKNOWN',reason:'Start lease expired; reconcile in Apify Runs before another launch.'});});
+      return (await store.read()).hunts.find(h=>h.id===id);
+    }
     if(job.status!=='RUNNING')return job;
     const run=await api(`actor-runs/${encodeURIComponent(job.runId)}`);
     if(!terminal.has(run.status))return job;

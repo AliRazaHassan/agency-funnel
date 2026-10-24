@@ -1,0 +1,11 @@
+# Automatic hunting
+
+Start automatic hunt in Evidence Research. Choose TikTok or Meta and provide a query/market. Server creates a real Apify Actor run, stores the run ID and request ID, polls its terminal status through the authenticated UI, imports validated fresh observations, and refreshes available Google/Meta adapters. Reloading resumes a saved running hunt. This is on-demand automation, not a scheduled daily monitor.
+
+Free-only policy: server verifies Apify FREE tier, isPaying=false, account usage cap no greater than included monthly credits, at least $0.50 available and no existing active Actor jobs. Each Actor start has maxTotalChargeUsd=0.5, timeout=120, ten results. Ledger reserves up to eight attempts per provider billing cycle (at most $4 of reservations); failed/uncertain starts retain their reservation. No plan upgrades, account-limit updates, schedules, or automatic retries of uncertain starts. An UNKNOWN start requires operator reconciliation against Apify Runs; it blocks new starts rather than risk another charge.
+
+TikTok: clockworks/tiktok-scraper searches the actual query with seven-day publication floor, excludes stale/invalid publication dates, mismatched/missing source country, mismatched ID/URL, and saves engagement as niche discovery. Creation country is not buyer geography. Meta: apify/facebook-ads-scraper requests active country-filtered ads; imports only active exact ad IDs with matching source filter and provider completion timestamp. Creatives sharing a collation key do not become independent signals. No video or ad is promoted to an exact SKU, sales or profitability proof.
+
+Required production connection: APIFY_TOKEN must be set in the existing Render service environment. Never put tokens in research queries, source files, screenshots, or chat. No production Actor execution can be verified until that account connection exists. Google Trends remains free but may be rate limited. Actor minimum charges/schema can change; failed requests are reported, never silently switched to a more expensive provider.
+
+Validation results are recorded in the release PR. Tests exercise free/paid/insufficient-credit guards, idempotent starts, ambiguous network failure, terminal import deduplication, Meta mapping and auth/no-token behavior. Provider mocks are not a claim of successful production collection.

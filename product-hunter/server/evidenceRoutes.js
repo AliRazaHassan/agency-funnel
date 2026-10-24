@@ -15,6 +15,8 @@ import {
 } from "./evidence.js";
 import { collect, capabilities } from "./evidenceProviders.js";
 import { apifyConfigured, normalizeTikTokExport, readApifyDataset } from "./apifyEvidence.js";
+import { createAutomaticHunter } from "./automaticHunt.js";
+const automaticHunter = createAutomaticHunter(evidenceStore);
 export const evidenceRouter = express.Router();
 const wrap = (fn) => async (req, res) => {
   try {
@@ -45,7 +47,7 @@ evidenceRouter.get(
     } catch {}
     res.json({
       version: VERSION,
-      apify: { configured: apifyConfigured(), mode: "existing-dataset-only", startsActors: false },
+      apify: { configured: apifyConfigured(), mode: "free-only-automatic", startsActors: true, maxRunUsd: 0.5, maxRunsPerCycle: 8 },
       storage,
       providers: capabilities(),
       monitoring:
@@ -70,6 +72,8 @@ evidenceRouter.post(
     res.json({ ok: true, count: normalized.length });
   }),
 );
+evidenceRouter.post('/hunt/start', wrap(async (req,res) => res.json(await automaticHunter.start(req.body))));
+evidenceRouter.get('/hunt/:id', wrap(async (req,res) => res.json(await automaticHunter.poll(req.params.id))));
 // Import raw provider output without asking users to hand-build observation rows.
 evidenceRouter.post('/apify/sync', wrap(async (req, res) => {
   const market = String(req.body.market || 'US').toUpperCase();

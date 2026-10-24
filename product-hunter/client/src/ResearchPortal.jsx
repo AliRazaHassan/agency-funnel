@@ -47,6 +47,9 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
   const started = useRef(false);
   const revision = useRef(0);
   const [hydrating,setHydrating]=useState(true);
+  const [huntJob,setHuntJob]=useState(null);
+  const [huntPlatform,setHuntPlatform]=useState("tiktok");
+  const requestId=useRef(null);
   const [query, setQuery] = useState(initialQuery),
     [market, setMarket] = useState("US"),
     [season, setSeason] = useState(
@@ -86,6 +89,8 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
       .catch((e) => setError(e.message));
     api("/api/research/state")
       .then((d) => {
+        const pendingHunt=(d.hunts || []).findLast(h=>["RUNNING","STARTING","UNKNOWN"].includes(h.status)) || null;
+        setHuntJob(pendingHunt);
         setSessions(current=>[...new Map([...d.sessions,...current].map(s=>[s.id,s])).values()]);
         if (
           d.sessions.length &&
@@ -102,6 +107,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           setMargin(last.constraints.minMargin ?? "");
           setDeliveryTarget(last.constraints.deliveryTarget || "");
         }
+        if(pendingHunt && revision.current===0){setQuery(pendingHunt.query);setMarket(pendingHunt.market);setHuntPlatform(pendingHunt.platform || "tiktok");}
       })
       .catch((e) => setError(e.message))
       .finally(()=>setHydrating(false));
@@ -112,6 +118,38 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
       run(true);
     }
   }, []);
+  useEffect(() => {
+    if(huntJob?.status!=="RUNNING")return;
+    let cancelled=false,timer;
+    async function poll(){
+      try {
+        const job=await api(`/api/research/hunt/${huntJob.id}`);
+        if(cancelled)return;
+        setHuntJob(job);
+        if(job.status==="RUNNING"){timer=setTimeout(poll,3000);return;}
+        if(job.status==="SUCCEEDED"){
+          setImportMessage(`Automatic hunt finished: ${job.acceptedVideos} accepted videos/ads, ${job.count} metrics. Exclusions: ${JSON.stringify(job.rejected)}. No sales inferred.`);
+          await run(true);
+          setTab("providers");
+        } else {
+          setError(job.reason || `Hunt ended: ${job.status}`);
+          await run(true);
+          setTab("providers");
+        }
+      }catch(e){if(!cancelled){setError(e.message);timer=setTimeout(poll,10000);}}
+    }
+    poll();return()=>{cancelled=true;clearTimeout(timer);};
+  },[huntJob?.id,huntJob?.status]);
+  async function startAutomaticHunt(){
+    setError("");setBusy("Checking free credits and starting automatic hunt…");
+    if(huntJob && !["RUNNING","STARTING","UNKNOWN"].includes(huntJob.status))requestId.current=null;
+    requestId.current ||= crypto.randomUUID();
+    try {
+      const job=await api("/api/research/hunt/start",{method:"POST",body:{query,market,platform:huntPlatform,requestId:requestId.current}});
+      setHuntJob(job);setTab("providers");
+      if(!["RUNNING","STARTING","UNKNOWN"].includes(job.status))requestId.current=null;
+    }catch(e){setError(e.message);}finally{setBusy("");}
+  }
   async function syncApify(payload) {
     setBusy("Checking provider dates, market and original links…");
     setError("");
@@ -227,7 +265,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           run(true);
         }}
       >
-        <fieldset disabled={hydrating} className="research-query-fieldset">
+        <fieldset disabled={hydrating || huntJob?.status === "RUNNING"} className="research-query-fieldset">
         <label className="wide">
           Research request / concierge
           <input
@@ -300,6 +338,10 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         </button>
         </fieldset>
       </form>
+      <div className="btn-row"><label>Automatic source <select aria-label="Automatic source" value={huntPlatform} onChange={e=>setHuntPlatform(e.target.value)} disabled={!!busy || huntJob?.status==="RUNNING"}><option value="tiktok">TikTok discovery</option><option value="meta">Meta active ads</option></select></label><button className="btn" onClick={startAutomaticHunt} disabled={hydrating || !!busy || !query.trim() || !status?.apify?.configured || ["RUNNING","STARTING","UNKNOWN"].includes(huntJob?.status)}>Start automatic hunt · free credits only</button></div>
+      <p>Checks FREE account and remaining credits; at most $0.50 reserved per hunt, 8 hunts per billing cycle, 10 videos or ads, 120-second provider timeout. Google/Meta collection follows automatically when the run completes. Missing credentials or unavailable sources are reported.</p>
+      {!status?.apify?.configured ? <p>Automatic hunting needs APIFY_TOKEN connected in Render. Your token stays on the server; do not paste it into a query.</p> : null}
+      {huntJob ? <p role="status">Hunt: {huntJob.status} · {huntJob.query} {huntJob.reason || ""}</p> : null}
       {busy ? <p role="status">{busy}</p> : null}
       {error ? (
         <p role="alert" className="error">

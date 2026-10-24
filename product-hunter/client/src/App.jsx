@@ -865,9 +865,9 @@ export default function App() {
                           type="button"
                           className="btn copper"
                           onClick={() => runHunt(opp)}
-                          disabled={loading === "hunt"}
+                          disabled={loading === "hunt" || opp.isServiceOffer}
                         >
-                          {loading === "hunt" && selectedOpp?.id === opp.id
+                          {opp.isServiceOffer ? "Service opportunity" : loading === "hunt" && selectedOpp?.id === opp.id
                             ? "Hunting products…"
                             : "Hunt products"}
                         </button>

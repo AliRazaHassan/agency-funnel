@@ -1119,7 +1119,7 @@ export default function App() {
                 <p className="muted" style={{ marginTop: "1rem" }}>
                   No products in this filter. Switch to All / PASS / WATCH / FAIL.
                 </p>
-              ) : null}
+              ) : <p role="status">No product evidence returned for this niche. Try another niche or use Evidence research to collect fresh sources.</p>}
             </div>
           ) : null}
         </section>

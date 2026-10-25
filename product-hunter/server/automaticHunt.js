@@ -38,7 +38,7 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
       const input={searchQueries:[query],resultsPerPage:10,oldestPostDateUnified:new Date(Date.now()-7*86400000).toISOString().slice(0,10),shouldDownloadVideos:false,shouldDownloadCovers:false,shouldDownloadAvatars:false,shouldDownloadSubtitles:false,scrapeRelatedVideos:false};
       const actor=platform==='google' ? 'apify~google-trends-scraper' : platform==='meta' ? 'apify~facebook-ads-scraper' : 'clockworks~tiktok-scraper';
       const actorInput=platform==='google' ? {searchTerms:[query],geo:market==='UK'?'GB':market,timeRange:'today 3-m',maxItems:1,maxConcurrency:1,maxRequestRetries:1,pageLoadTimeoutSecs:45,skipDebugScreen:true} : platform==='meta' ? {startUrls:[{url:`https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${market}&q=${encodeURIComponent(query)}&search_type=keyword_unordered`}],resultsLimit:10,activeStatus:'active'} : input;
-      const run=await api(`acts/${actor}/runs?timeout=120&memory=4096&maxTotalChargeUsd=0.5`,{method:'POST',body:JSON.stringify(actorInput)});
+      const run=await api(`acts/${actor}/runs?timeout=${platform==='google'?360:120}&memory=4096&maxTotalChargeUsd=0.5`,{method:'POST',body:JSON.stringify(actorInput)});
       if(!run?.id)throw new Error('Run response did not contain an ID.');
       await store.mutate(db=>Object.assign(db.hunts.find(h=>h.id===job.id),{runId:run.id,status:'RUNNING'}));
     } catch (error) {

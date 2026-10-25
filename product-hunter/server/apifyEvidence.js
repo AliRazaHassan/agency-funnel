@@ -30,7 +30,7 @@ export async function readApifyDataset(datasetId, options = {}, request = fetch)
   const response = await request(`https://api.apify.com/v2/datasets/${datasetId}/items?clean=true&format=json&limit=1000`, { headers:{Authorization:`Bearer ${process.env.APIFY_TOKEN}`}, signal:AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error(`Apify dataset unavailable (HTTP ${response.status}); verify dataset access.`);
   const data = await response.json();
-  return options.platform === "meta" ? normalizeMetaExport(data, options) : normalizeTikTokExport(data, options);
+  return options.platform === "google" ? normalizeGoogleTrendsExport(data, options) : options.platform === "meta" ? normalizeMetaExport(data, options) : normalizeTikTokExport(data, options);
 }
 
 export function normalizeMetaExport(items,{market='US',query='',now=new Date(),observedAt}={}){
@@ -44,6 +44,25 @@ export function normalizeMetaExport(items,{market='US',query='',now=new Date(),o
     const title=p.snapshot?.body?.text || p.snapshot?.title || p.pageName;
     if(!title)continue;
     observations.push(observation({platform:'meta',provider:'Apify / Facebook Ads Library',externalId:id,title:String(title).slice(0,500),scope:'niche',niche:query,market,metric:'active_ads',value:1,unit:'active ad',dataAt:observedAt,sourceUrl:`https://www.facebook.com/ads/library/?id=${id}`,collectionMethod:'api',correlationKey:`meta:${p.collationId || id}`,limitations:'Ad observed active in a country-filtered library search. Neither sales nor profitability verified. Multiple creatives may belong to one advertiser.'},now));
+  }
+  return {observations,rejected,acceptedVideos:new Set(observations.map(o=>o.externalId)).size};
+}
+
+export function normalizeGoogleTrendsExport(items,{market='US',query='',now=new Date(),observedAt}={}) {
+  if(!Array.isArray(items)||items.length>1000)throw new Error('Provide at most 1000 Trends records');
+  const observations=[],rejected={};
+  for(const p of items){
+    // Only the fixed Actor run's query/country and completed timestamp establish provenance.
+    if(!observedAt || !Number.isFinite(Date.parse(observedAt)) || Date.parse(observedAt)>+now || +now-Date.parse(observedAt)>7*86400000 || p?.searchTerm?.trim().toLowerCase()!==query.trim().toLowerCase()){
+      rejected['invalid query or run date']=(rejected['invalid query or run date']||0)+1;continue;
+    }
+    const points=(p.interestOverTime_timelineData || []).filter(t=>t.hasData?.[0]===true && !t.isPartial && typeof t.value?.[0]==='number' && Number.isFinite(t.value[0]) && t.value[0]>=0 && t.value[0]<=100 && Number.isFinite(Number(t.time)) && Number(t.time)>0 && Number(t.time)*1000<=+now).sort((a,b)=>Number(a.time)-Number(b.time));
+    const latest=points.at(-1);
+    if(!latest || +now-Number(latest.time)*1000>14*86400000){rejected['missing or stale time series']=(rejected['missing or stale time series']||0)+1;continue;}
+    const avg=xs=>xs.reduce((n,t)=>n+t.value[0],0)/xs.length;
+    const metrics=[['interest',avg(points),'relative index']];
+    if(points.length>=4){const half=Math.floor(points.length/2),older=avg(points.slice(0,half));if(older>0)metrics.push(['growth_pct',(avg(points.slice(half))/older-1)*100,'%']);}
+    for(const [metric,value,unit] of metrics) observations.push(observation({platform:'google',provider:'Apify / Google Trends',externalId:query,title:query,market,scope:'niche',niche:query,metric,value:Math.round(value*10)/10,unit,dataAt:new Date(Number(latest.time)*1000).toISOString(),period:'3 months',sourceUrl:`https://trends.google.com/trends/explore?geo=${market==='UK'?'GB':market}&date=today%203-m&q=${encodeURIComponent(query)}`,collectionMethod:'api',correlationKey:`google:${market}:${query.toLowerCase()}`,limitations:'Relative search interest, not search volume or sales. Country and query come from the fixed provider input. Incomplete periods excluded.'},now));
   }
   return {observations,rejected,acceptedVideos:new Set(observations.map(o=>o.externalId)).size};
 }

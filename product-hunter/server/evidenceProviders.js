@@ -1,6 +1,6 @@
 import { loadKeepaSnapshot } from "./keepa.js";
 import { fetchSocialTrends } from "./socialTrends.js";
-import { fetchGoogleTrendsSoft } from "./freeSignals.js";
+import { fetchGoogleTrendsSoft, googleTrendsFailure } from "./freeSignals.js";
 import { observation } from "./evidence.js";
 export function capabilities() {
   return [
@@ -125,7 +125,7 @@ export async function collect({ market = "US", query = "" }, now = new Date()) {
                 );
           reason = rows.length
             ? ""
-            : "Google Trends unavailable or rate limited";
+            : googleTrendsFailure(query, market === "UK" ? "GB" : market);
         }
       } else {
         const data = await (socialPromise ??= fetchSocialTrends({

@@ -128,7 +128,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         setHuntJob(job);
         if(["STARTING","RUNNING"].includes(job.status)){timer=setTimeout(poll,3000);return;}
         if(job.status==="SUCCEEDED"){
-          setImportMessage(`Automatic hunt finished: ${job.acceptedVideos} accepted videos/ads, ${job.count} metrics. Exclusions: ${JSON.stringify(job.rejected)}. No sales inferred.`);
+          setImportMessage(`Automatic hunt finished: ${job.acceptedVideos} accepted source records, ${job.count} metrics. Exclusions: ${JSON.stringify(job.rejected)}. No sales inferred.`);
           await run(true);
           setTab("providers");
         } else {
@@ -338,8 +338,8 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         </button>
         </fieldset>
       </form>
-      <div className="btn-row"><label>Automatic source <select aria-label="Automatic source" value={huntPlatform} onChange={e=>setHuntPlatform(e.target.value)} disabled={!!busy || huntJob?.status==="RUNNING"}><option value="tiktok">TikTok discovery</option><option value="meta">Meta active ads</option></select></label><button className="btn" onClick={startAutomaticHunt} disabled={hydrating || !!busy || !query.trim() || !status?.apify?.configured || ["RUNNING","STARTING","UNKNOWN"].includes(huntJob?.status)}>Start automatic hunt · free credits only</button></div>
-      <p>Checks FREE account and remaining credits; at most $0.50 reserved per hunt, 8 hunts per billing cycle, 10 videos or ads, 120-second provider timeout. Google/Meta collection follows automatically when the run completes. Missing credentials or unavailable sources are reported.</p>
+      <div className="btn-row"><label>Automatic source <select aria-label="Automatic source" value={huntPlatform} onChange={e=>setHuntPlatform(e.target.value)} disabled={!!busy || huntJob?.status==="RUNNING"}><option value="tiktok">TikTok discovery</option><option value="meta">Meta active ads</option><option value="google">Google Trends</option></select></label><button className="btn" onClick={startAutomaticHunt} disabled={hydrating || !!busy || !query.trim() || !status?.apify?.configured || ["RUNNING","STARTING","UNKNOWN"].includes(huntJob?.status)}>Start automatic hunt · free credits only</button></div>
+      <p>Checks FREE account and remaining credits; at most $0.50 reserved per hunt, 8 hunts per billing cycle, 10 videos/ads or 1 Google Trends query, 120-second provider timeout. Available direct providers refresh after completion. Choose Google Trends for a capped credit-backed collection. Missing credentials or unavailable sources are reported.</p>
       {!status?.apify?.configured ? <p>Automatic hunting needs APIFY_TOKEN connected in Render. Your token stays on the server; do not paste it into a query.</p> : null}
       {huntJob ? <p role="status">Hunt: {huntJob.status} · {huntJob.query} {huntJob.reason || ""}</p> : null}
       {busy ? <p role="status">{busy}</p> : null}

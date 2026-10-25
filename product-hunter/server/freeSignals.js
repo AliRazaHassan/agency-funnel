@@ -133,7 +133,11 @@ async function fetchWikipediaInterest(niche) {
 /**
  * Soft Google Trends probe — often fails on Render/datacenter. Never throws.
  */
+const trendsFailures = new Map();
+export const googleTrendsFailure = (keyword, geo='US') => trendsFailures.get(`${geo}:${keyword}`) || 'No current time series returned';
 export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
+  const key=`${geo}:${keyword}`;
+  const failure=reason=>{trendsFailures.set(key,reason);if(trendsFailures.size>100)trendsFailures.delete(trendsFailures.keys().next().value);return null;};
   try {
     const end = new Date();
     const start = new Date();
@@ -157,11 +161,11 @@ export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
         signal: AbortSignal.timeout(5000),
       }
     );
-    if (!explore.ok) return null;
+    if (!explore.ok) return failure(`Explore HTTP ${explore.status}; select Google Trends automatic source to use connected free credits`);
     const raw = await explore.text();
     const json = JSON.parse(raw.replace(/^\)\]\}',?\n?/, ""));
     const widget = (json.widgets || []).find((w) => w.id === "TIMESERIES");
-    if (!widget) return null;
+    if (!widget) return failure('Google response has no time-series widget');
 
     const dataParams = new URLSearchParams({
       hl: "en-US",
@@ -179,13 +183,13 @@ export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
         signal: AbortSignal.timeout(5000),
       }
     );
-    if (!seriesRes.ok) return null;
+    if (!seriesRes.ok) return failure(`Time-series HTTP ${seriesRes.status}`);
     const seriesRaw = await seriesRes.text();
     const series = JSON.parse(seriesRaw.replace(/^\)\]\}',?\n?/, ""));
     const values = (series.default?.timelineData || [])
       .map((t) => Number(t.value?.[0]))
       .filter((n) => Number.isFinite(n));
-    if (!values.length) return null;
+    if (!values.length) return failure('Google returned no numeric time-series points');
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
     const half = Math.max(1, Math.floor(values.length / 2));
     const older = values.slice(0, half);
@@ -210,8 +214,8 @@ export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
       note: "Interest = 3-month average; momentum = recent-half vs older-half movement. Both are relative Trends indices, not absolute search volume.",
       url: `https://trends.google.com/trends/explore?geo=${encodeURIComponent(geo)}&date=today%203-m&q=${encodeURIComponent(keyword)}`,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    return failure(error.name === "TimeoutError" ? "Direct Google request timed out after 5 seconds; select Google Trends automatic source to use connected free credits" : "Direct Google request failed or returned invalid JSON");
   }
 }
 

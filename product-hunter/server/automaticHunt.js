@@ -11,7 +11,7 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
   }
   async function start({query,market='US',requestId,platform='tiktok'}) {
     query=String(query||'').trim();
-    if(!['tiktok','meta'].includes(platform)) throw new Error('Select TikTok or Meta');
+    if(!['tiktok','meta','google'].includes(platform)) throw new Error('Select TikTok, Meta or Google Trends');
     if(!query || query.length>160 || !/^[A-Z]{2}$/.test(market) || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId||'')) throw new Error('A query, two-letter market and unique request ID are required.');
     // Stable request ID prevents double click/retry from spending twice, including restarts.
     const old=(await store.read()).hunts?.find(h=>h.requestId===requestId);
@@ -31,8 +31,8 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
     if(!job.launch)return job;
     try {
       const input={searchQueries:[query],resultsPerPage:10,oldestPostDateUnified:new Date(Date.now()-7*86400000).toISOString().slice(0,10),shouldDownloadVideos:false,shouldDownloadCovers:false,shouldDownloadAvatars:false,shouldDownloadSubtitles:false,scrapeRelatedVideos:false};
-      const actor=platform==='meta' ? 'apify~facebook-ads-scraper' : 'clockworks~tiktok-scraper';
-      const actorInput=platform==='meta' ? {startUrls:[{url:`https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${market}&q=${encodeURIComponent(query)}&search_type=keyword_unordered`}],resultsLimit:10,activeStatus:'active'} : input;
+      const actor=platform==='google' ? 'apify~google-trends-scraper' : platform==='meta' ? 'apify~facebook-ads-scraper' : 'clockworks~tiktok-scraper';
+      const actorInput=platform==='google' ? {searchTerms:[query],geo:market==='UK'?'GB':market,timeRange:'today 3-m',maxItems:1,maxConcurrency:1,maxRequestRetries:0,skipDebugScreen:true} : platform==='meta' ? {startUrls:[{url:`https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${market}&q=${encodeURIComponent(query)}&search_type=keyword_unordered`}],resultsLimit:10,activeStatus:'active'} : input;
       const run=await api(`acts/${actor}/runs?timeout=120&memory=4096&maxTotalChargeUsd=0.5`,{method:'POST',body:JSON.stringify(actorInput)});
       if(!run?.id)throw new Error('Run response did not contain an ID.');
       await store.mutate(db=>Object.assign(db.hunts.find(h=>h.id===job.id),{runId:run.id,status:'RUNNING'}));

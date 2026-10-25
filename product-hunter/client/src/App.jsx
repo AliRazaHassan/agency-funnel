@@ -69,6 +69,7 @@ function ScoreBar({ label, value }) {
 
 function Login({ onSuccess }) {
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -92,17 +93,36 @@ function Login({ onSuccess }) {
         <h1>Signal Desk</h1>
         <p>Private research workspace. Enter the access password to continue.</p>
         {error ? <div className="error">{error}</div> : null}
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
-            autoFocus
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
-        </label>
+        <div className="field">
+          <label htmlFor="workspace-password">Password</label>
+          <div style={{ position: "relative" }}>
+            <input
+              id="workspace-password"
+              type={showPassword ? "text" : "password"}
+              autoFocus
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              style={{ width: "100%", paddingRight: 52 }}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              aria-controls="workspace-password"
+              title={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((visible) => !visible)}
+              style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, display: "grid", placeItems: "center", background: "transparent", color: "inherit", border: 0, borderRadius: 6, cursor: "pointer" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="3" />
+                {showPassword ? <path d="m3 3 18 18" /> : null}
+              </svg>
+            </button>
+          </div>
+        </div>
         <button className="btn" type="submit" disabled={loading || !password}>
           {loading ? "Checking…" : "Enter workspace"}
         </button>

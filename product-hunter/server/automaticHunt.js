@@ -6,7 +6,12 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
   async function api(path, options={}) {
     if (!env.APIFY_TOKEN) throw new Error('Connect APIFY_TOKEN in the server environment to enable automatic hunting.');
     const r=await request(`https://api.apify.com/v2/${path}`,{...options,headers:{Authorization:`Bearer ${env.APIFY_TOKEN}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(20000)});
-    if(!r.ok) throw new Error(`Apify request failed (HTTP ${r.status}).`);
+    if(!r.ok) {
+      const detail=await r.json().catch(()=>({}));
+      const error=new Error(`Apify HTTP ${r.status}: ${String(detail.error?.message || detail.error?.type || 'request rejected').split(env.APIFY_TOKEN).join('[redacted]').slice(0,300)}`);
+      error.definiteRejection=r.status>=400 && r.status<500 && r.status!==408 && r.status!==429;
+      throw error;
+    }
     return (await r.json()).data;
   }
   async function start({query,market='US',requestId,platform='tiktok'}) {
@@ -36,9 +41,9 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
       const run=await api(`acts/${actor}/runs?timeout=120&memory=4096&maxTotalChargeUsd=0.5`,{method:'POST',body:JSON.stringify(actorInput)});
       if(!run?.id)throw new Error('Run response did not contain an ID.');
       await store.mutate(db=>Object.assign(db.hunts.find(h=>h.id===job.id),{runId:run.id,status:'RUNNING'}));
-    } catch {
+    } catch (error) {
       // A lost response might follow a successful start. Never automatically start again.
-      await store.mutate(db=>Object.assign(db.hunts.find(h=>h.id===job.id),{status:'UNKNOWN',reason:'Start could not be confirmed. Check Apify Runs before retrying; reservation retained to avoid duplicate charges.'}));
+      await store.mutate(db=>Object.assign(db.hunts.find(h=>h.id===job.id),{status:error.definiteRejection?'FAILED':'UNKNOWN',reason:error.definiteRejection?error.message:'Start could not be confirmed. Check Apify Runs before retrying; reservation retained to avoid duplicate charges.'}));
     }
     return (await store.read()).hunts.find(h=>h.id===job.id);
   }
@@ -48,6 +53,14 @@ export function createAutomaticHunter(store, request = fetch, env = process.env,
     if(job.status==='STARTING' && Date.now()-Date.parse(job.createdAt)>180000){
       await store.mutate(db=>{const h=db.hunts.find(h=>h.id===id);if(h.status==='STARTING')Object.assign(h,{status:'UNKNOWN',reason:'Start lease expired; reconcile in Apify Runs before another launch.'});});
       return (await store.read()).hunts.find(h=>h.id===id);
+    }
+    if(job.status==='UNKNOWN') {
+      const actor=job.platform==='google'?'apify~google-trends-scraper':job.platform==='meta'?'apify~facebook-ads-scraper':'clockworks~tiktok-scraper';
+      const recent=await api(`acts/${actor}/runs?limit=100&desc=1`);
+      if(Array.isArray(recent?.items) && recent.items.every(r=>Number.isFinite(Date.parse(r.startedAt)) && Date.parse(r.startedAt)<Date.parse(job.createdAt)-1000)) {
+        await store.mutate(db=>Object.assign(db.hunts.find(h=>h.id===id),{status:'FAILED',reason:'Reconciled provider run history: no run started for this attempt. Credit reservation retained.'}));
+        job=(await store.read()).hunts.find(h=>h.id===id);
+      }
     }
     if(job.status!=='RUNNING')return job;
     const run=await api(`actor-runs/${encodeURIComponent(job.runId)}`);

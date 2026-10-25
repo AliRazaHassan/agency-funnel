@@ -119,7 +119,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
     }
   }, []);
   useEffect(() => {
-    if(!["STARTING","RUNNING"].includes(huntJob?.status))return;
+    if(!["STARTING","RUNNING","UNKNOWN"].includes(huntJob?.status))return;
     let cancelled=false,timer;
     async function poll(){
       try {

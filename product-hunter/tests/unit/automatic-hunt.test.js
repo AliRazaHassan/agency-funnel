@@ -7,6 +7,7 @@ function setup({paid=false,remaining=5,lost=false}={}){
  const request=async(url,opts)=>{
   if(url.endsWith('/users/me'))return {ok:true,json:async()=>({data:{isPaying:paid,plan:{tier:paid?'STARTER':'FREE',monthlyUsageCreditsUsd:5}}})};
   if(url.endsWith('/users/me/limits'))return {ok:true,json:async()=>({data:{monthlyUsageCycle:{startAt:'2026-10-01T00:00:00Z'},limits:{maxMonthlyUsageUsd:5},current:{monthlyUsageUsd:5-remaining,activeActorJobCount:0}}})};
+  if(url.includes('/runs?') && !opts.method)return {ok:true,json:async()=>({data:{items:[]}})};
   if(url.includes('/runs?')){starts++;assert.ok(url.includes('maxTotalChargeUsd=0.5'));assert.ok(url.includes('timeout=120'));const input=JSON.parse(opts.body);if(url.includes('google-trends-scraper')){assert.equal(input.maxItems,1);assert.equal(input.geo,'US');assert.equal(input.timeRange,'today 3-m');assert.deepEqual(input.searchTerms,['pet hair remover']);}else assert.equal(input.resultsPerPage || input.resultsLimit,10);if(lost)throw Error('timeout');return {ok:true,json:async()=>({data:{id:'run123'}})};}
   return {ok:true,json:async()=>({data:{status:'SUCCEEDED',defaultDatasetId:'dataset123456'}})};
  };
@@ -21,3 +22,5 @@ test('Meta uses capped country-filtered active ad collection',async()=>{const t=
 test('interrupted start lease expires to UNKNOWN without launching again',async()=>{const t=setup();t.db.hunts.push({id:'interrupted',status:'STARTING',createdAt:'2020-01-01T00:00:00Z'});assert.equal((await t.hunter.poll('interrupted')).status,'UNKNOWN');assert.equal(t.starts(),0);});
 
 test('Google Trends uses one-query capped collection with verified country',async()=>{const t=setup();const job=await t.hunter.start({...input,platform:'google'});assert.equal(job.platform,'google');assert.equal(t.starts(),1);assert.equal((await t.hunter.poll(job.id)).status,'SUCCEEDED');});
+
+test('unknown launch reconciles read-only history without creating another run',async()=>{const t=setup({lost:true});const job=await t.hunter.start(input);assert.equal((await t.hunter.poll(job.id)).status,'FAILED');assert.equal(t.starts(),1);assert.equal(t.db.hunts[0].reservedUsd,0.5);});

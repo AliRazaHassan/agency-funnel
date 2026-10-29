@@ -2,6 +2,22 @@ import { observation } from './evidence.js';
 
 // Reading an existing dataset consumes no Actor runs. Never start paid Actors here.
 export const apifyConfigured = () => !!process.env.APIFY_TOKEN;
+export async function verifyApifyConnection(request = fetch, token = process.env.APIFY_TOKEN) {
+  if (!token) return { configured: false, valid: false, reason: 'APIFY_TOKEN is not connected.' };
+  try {
+    const response = await request('https://api.apify.com/v2/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (response.ok) return { configured: true, valid: true, reason: '' };
+    if (response.status === 401 || response.status === 403) {
+      return { configured: true, valid: false, reason: 'APIFY_TOKEN is invalid or expired. Reconnect it in Render before starting a hunt.' };
+    }
+    return { configured: true, valid: null, reason: `Apify connection check returned HTTP ${response.status}; hunt safety checks will run before launch.` };
+  } catch {
+    return { configured: true, valid: null, reason: 'Apify connection check is temporarily unavailable; hunt safety checks will run before launch.' };
+  }
+}
 export function normalizeTikTokExport(items, { market = 'US', query = '', now = new Date() } = {}) {
   if (!Array.isArray(items) || items.length > 1000) throw new Error('Provide at most 1000 TikTok records');
   const observations = [], rejected = {};

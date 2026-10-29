@@ -16,7 +16,7 @@ import {
   relevant,
 } from "./evidence.js";
 import { collect, capabilities } from "./evidenceProviders.js";
-import { apifyConfigured, normalizeTikTokExport, readApifyDataset } from "./apifyEvidence.js";
+import { normalizeTikTokExport, readApifyDataset, verifyApifyConnection } from "./apifyEvidence.js";
 import { createAutomaticHunter } from "./automaticHunt.js";
 const automaticHunter = createAutomaticHunter(evidenceStore);
 export const evidenceRouter = express.Router();
@@ -44,12 +44,13 @@ evidenceRouter.get(
   "/status",
   wrap(async (_req, res) => {
     let storage = "unavailable";
+    const apify = await verifyApifyConnection();
     try {
       storage = await evidenceStore.init();
     } catch {}
     res.json({
       version: VERSION,
-      apify: { configured: apifyConfigured(), mode: "free-only-automatic", startsActors: true, maxRunUsd: 0.5, maxRunsPerCycle: 8 },
+      apify: { ...apify, mode: "free-only-automatic", startsActors: true, maxRunUsd: 0.5, maxRunsPerCycle: 8 },
       storage,
       providers: capabilities(),
       monitoring:

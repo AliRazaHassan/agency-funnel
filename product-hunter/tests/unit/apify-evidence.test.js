@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeTikTokExport, readApifyDataset } from '../../server/apifyEvidence.js';
+import { normalizeTikTokExport, readApifyDataset, verifyApifyConnection } from '../../server/apifyEvidence.js';
 const now = new Date('2026-10-24T12:00:00Z');
 const video = {id:'123456789', text:'Reusable hair remover', locationCreated:'US', createTimeISO:'2026-10-23T12:00:00Z', webVideoUrl:'https://www.tiktok.com/@brand/video/123456789',playCount:1000,diggCount:0};
 test('recent exact video preserves zero and remains niche discovery, never sales',()=>{
@@ -18,6 +18,15 @@ test('dataset sync validates ID before any request and never starts an Actor',as
  const r=await readApifyDataset('abcDEF123456',{now},async(url,opts)=>{calls++;assert.ok(url.includes('/datasets/'));assert.ok(!url.includes('test-secret'));assert.equal(opts.headers.Authorization,'Bearer test-secret');return {ok:true,json:async()=>[video]};});
  assert.equal(calls,1);assert.equal(r.acceptedVideos,1);
  } finally {if(old===undefined)delete process.env.APIFY_TOKEN;else process.env.APIFY_TOKEN=old;}
+});
+
+test('connection status distinguishes missing, valid, invalid and temporarily unknown tokens without exposing secrets',async()=>{
+ assert.deepEqual(await verifyApifyConnection(()=>{throw Error('must not call')},''),{configured:false,valid:false,reason:'APIFY_TOKEN is not connected.'});
+ assert.deepEqual(await verifyApifyConnection(async()=>({ok:true,status:200}),'secret'),{configured:true,valid:true,reason:''});
+ const invalid=await verifyApifyConnection(async()=>({ok:false,status:401}),'secret');
+ assert.equal(invalid.valid,false);assert.match(invalid.reason,/invalid or expired/);assert.ok(!invalid.reason.includes('secret'));
+ const unknown=await verifyApifyConnection(async()=>{throw Error('offline')},'secret');
+ assert.equal(unknown.valid,null);assert.match(unknown.reason,/temporarily unavailable/);
 });
 
 test('Meta active observation uses run completion date and does not count repeated creatives as independent proof', async()=>{

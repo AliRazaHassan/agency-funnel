@@ -361,9 +361,10 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         </button>
         </fieldset>
       </form>
-      <div className="btn-row"><label>Automatic source <select aria-label="Automatic source" value={huntPlatform} onChange={e=>setHuntPlatform(e.target.value)} disabled={!!busy || huntJob?.status==="RUNNING"}><option value="tiktok">TikTok discovery</option><option value="meta">Meta active ads</option><option value="google">Google Trends</option></select></label><button className="btn" onClick={startAutomaticHunt} disabled={hydrating || !!busy || !query.trim() || !status?.apify?.configured || ["RUNNING","STARTING","UNKNOWN"].includes(huntJob?.status)}>Start automatic hunt · free credits only</button></div>
+      <div className="btn-row"><label>Automatic source <select aria-label="Automatic source" value={huntPlatform} onChange={e=>setHuntPlatform(e.target.value)} disabled={!!busy || huntJob?.status==="RUNNING"}><option value="tiktok">TikTok discovery</option><option value="meta">Meta active ads</option><option value="google">Google Trends</option></select></label><button className="btn" onClick={startAutomaticHunt} disabled={hydrating || !!busy || !query.trim() || !status?.apify?.configured || status?.apify?.valid===false || ["RUNNING","STARTING","UNKNOWN"].includes(huntJob?.status)}>Start automatic hunt · free credits only</button></div>
       <p>Checks FREE account and remaining credits; at most $0.50 reserved per hunt, 8 hunts per billing cycle, 10 videos/ads or 1 Google Trends query, 120-second video/ad timeout; Google Trends up to 6 minutes. Available direct providers refresh after completion. Choose Google Trends for a capped credit-backed collection. Missing credentials or unavailable sources are reported.</p>
       {!status?.apify?.configured ? <p>Automatic hunting needs APIFY_TOKEN connected in Render. Your token stays on the server; do not paste it into a query.</p> : null}
+      {status?.apify?.configured && status?.apify?.valid===false ? <p role="alert" className="error">Automatic hunting is blocked: {status.apify.reason}</p> : null}
       {huntJob ? <p role="status">Hunt: {huntJob.status} · {huntJob.query} {huntJob.reason || ""}</p> : null}
       {busy ? <p role="status">{busy}</p> : null}
       {error ? (
@@ -515,10 +516,10 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           <h4>TikTok / Apify free-credit workflow</h4>
           <p>Import an existing TikTok scraper export or sync a dataset. This action never starts an Actor or buys credits. Only videos published in the last 7 days with a matching source country are accepted. Creation country does not prove buyer location.</p>
           <form onSubmit={e => { e.preventDefault(); const id = new FormData(e.currentTarget).get("datasetId"); syncApify({datasetId:id}); }}>
-            <label>Existing Apify dataset ID <input name="datasetId" required minLength={10} maxLength={40} disabled={!!busy || !status?.apify?.configured} /></label>
-            <button disabled={!!busy || !status?.apify?.configured}>Sync existing dataset</button>
+            <label>Existing Apify dataset ID <input name="datasetId" required minLength={10} maxLength={40} disabled={!!busy || !status?.apify?.configured || status?.apify?.valid===false} /></label>
+            <button disabled={!!busy || !status?.apify?.configured || status?.apify?.valid===false}>Sync existing dataset</button>
           </form>
-          <p>{status?.apify?.configured ? "Server connection available." : "Server token not configured. JSON export import works without a token."}</p>
+          <p>{status?.apify?.valid===true ? "Server connection verified." : status?.apify?.configured ? status.apify.reason : "Server token not configured. JSON export import works without a token."}</p>
           <label>TikTok JSON export <input type="file" accept=".json,application/json" disabled={!!busy} onChange={async e => {
             const file=e.target.files?.[0]; if(!file) return;
             try { if(file.size > 2000000) throw new Error("Use a JSON export smaller than 2 MB"); const items=JSON.parse(await file.text()); await syncApify({items}); } catch(error) { setError(error.message); }

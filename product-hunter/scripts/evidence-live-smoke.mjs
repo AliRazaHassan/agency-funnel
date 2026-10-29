@@ -2,7 +2,7 @@ import { collect, capabilities } from "../server/evidenceProviders.js";
 import { rankEvidence } from "../server/evidence.js";
 const constraints = {
   market: "US",
-  query: "Christmas",
+  query: process.argv.slice(2).join(" ").trim() || "Christmas pet",
   season: "christmas-2026",
   maxLandedCost: 15,
   minMargin: 60,

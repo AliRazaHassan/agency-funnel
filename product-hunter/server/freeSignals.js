@@ -135,6 +135,14 @@ async function fetchWikipediaInterest(niche) {
  */
 const trendsFailures = new Map();
 export const googleTrendsFailure = (keyword, geo='US') => trendsFailures.get(`${geo}:${keyword}`) || 'No current time series returned';
+export function completeTrendsPoints(timeline, now = new Date()) {
+  return (Array.isArray(timeline) ? timeline : []).filter(t =>
+    t && !t.isPartial && t.hasData?.[0] === true &&
+    typeof t.value?.[0] === 'number' && Number.isFinite(t.value[0]) &&
+    t.value[0] >= 0 && t.value[0] <= 100 &&
+    Number.isFinite(Number(t.time)) && Number(t.time) > 0 && Number(t.time) * 1000 <= +now
+  ).sort((a,b) => Number(a.time) - Number(b.time));
+}
 export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
   const key=`${geo}:${keyword}`;
   const failure=reason=>{trendsFailures.set(key,reason);if(trendsFailures.size>100)trendsFailures.delete(trendsFailures.keys().next().value);return null;};
@@ -186,9 +194,8 @@ export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
     if (!seriesRes.ok) return failure(`Time-series HTTP ${seriesRes.status}`);
     const seriesRaw = await seriesRes.text();
     const series = JSON.parse(seriesRaw.replace(/^\)\]\}',?\n?/, ""));
-    const values = (series.default?.timelineData || [])
-      .map((t) => Number(t.value?.[0]))
-      .filter((n) => Number.isFinite(n));
+    const points = completeTrendsPoints(series.default?.timelineData);
+    const values = points.map(t => t.value[0]);
     if (!values.length) return failure('Google returned no numeric time-series points');
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
     const half = Math.max(1, Math.floor(values.length / 2));
@@ -210,7 +217,7 @@ export async function fetchGoogleTrendsSoft(keyword, geo = "US") {
       olderAvg: +olderAvg.toFixed(1),
       newerAvg: +newerAvg.toFixed(1),
       points: values.length,
-      dataAt: new Date(Number(series.default.timelineData.at(-1).time)*1000).toISOString(),
+      dataAt: new Date(Number(points.at(-1).time)*1000).toISOString(),
       note: "Interest = 3-month average; momentum = recent-half vs older-half movement. Both are relative Trends indices, not absolute search volume.",
       url: `https://trends.google.com/trends/explore?geo=${encodeURIComponent(geo)}&date=today%203-m&q=${encodeURIComponent(keyword)}`,
     };

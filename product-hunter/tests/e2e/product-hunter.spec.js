@@ -5,7 +5,7 @@ async function login(page) {
   await expect(
     page.getByRole("heading", { name: "Signal Desk" }),
   ).toBeVisible();
-  await page.getByLabel("Password").fill("e2e-secret");
+  await page.getByLabel("Password", { exact: true }).fill("e2e-secret");
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(
     page.getByText("Product Hunter AI", { exact: false }),
@@ -21,11 +21,11 @@ test("auth rejects wrong password then accepts valid password", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByLabel("Password").fill("wrong-password");
+  await page.getByLabel("Password", { exact: true }).fill("wrong-password");
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(page.getByText("Wrong password")).toBeVisible();
 
-  await page.getByLabel("Password").fill("e2e-secret");
+  await page.getByLabel("Password", { exact: true }).fill("e2e-secret");
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(
     page.getByRole("heading", {

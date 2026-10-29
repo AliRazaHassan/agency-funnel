@@ -83,7 +83,7 @@ for (const width of [1440, 390])
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() => localStorage.setItem("sd_onboarded", "1"));
     await page.goto("/");
-    await page.getByLabel("Password").fill("e2e-secret");
+    await page.getByLabel("Password", { exact: true }).fill("e2e-secret");
     await page.getByRole("button", { name: "Enter workspace" }).click();
     await expect(
       page.getByRole("heading", {
@@ -126,7 +126,7 @@ test('saved-session hydration cannot append to a newly entered research request'
  let release;const pending=new Promise(resolve=>release=resolve);
  await page.route('**/api/research/state',async route=>{await pending;await route.fulfill({json:{observations:[],records:{},runs:[],sessions:[{id:'saved-hydration',createdAt:new Date().toISOString(),constraints:{market:'US',query:'Previous research'},products:[],count:0}]}});});
  await page.addInitScript(()=>localStorage.setItem('sd_onboarded','1'));
- await page.goto('/');await page.getByLabel('Password').fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
+ await page.goto('/');await page.getByLabel('Password', { exact: true }).fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
  const input=page.getByLabel('Research request',{exact:true});await expect(input).toBeDisabled();release();await expect(input).toBeEnabled();await expect(input).toHaveValue('Previous research');
  await input.fill('Christmas pet');const response=page.waitForResponse(r=>r.url().endsWith('/api/research/research')&&r.request().method()==='POST');await page.getByRole('button',{name:'Filter saved evidence'}).click();const res=await response;expect(res.status()).toBe(200);expect(res.request().postDataJSON().query).toBe('Christmas pet');
 });
@@ -143,7 +143,7 @@ test('TikTok native import rejects stale/unknown-market evidence and displays di
   await page.goto('/');
   await page.addInitScript(() => localStorage.setItem('sd_onboarded', '1'));
   await page.reload();
-  await page.getByLabel('Password').fill('e2e-secret');
+  await page.getByLabel('Password', { exact: true }).fill('e2e-secret');
   await page.getByRole('button',{name:'Enter workspace'}).click();
   await page.getByRole('button',{name:'Providers',exact:true}).click();
   await expect(page.getByRole('button',{name:'Sync existing dataset',exact:true})).toBeDisabled();
@@ -165,9 +165,43 @@ test('automatic hunt button starts once, polls completion and refreshes evidence
  await page.route('**/api/research/hunt/start',route=>{starts++;const body=route.request().postDataJSON();expect(body.query).toBe('pet brush');expect(body.platform).toBe('tiktok');return route.fulfill({json:{id:'fixture-run',status:'RUNNING',query:'pet brush'}});});
  await page.route('**/api/research/hunt/fixture-run',route=>route.fulfill({json:{id:'fixture-run',status:'SUCCEEDED',query:'pet brush',acceptedVideos:1,count:2,rejected:{}}}));
  await page.route('**/api/research/research',route=>{refreshes++;expect(route.request().postDataJSON().refresh).toBe(true);return route.fulfill({json:{id:'fixture-session',createdAt:new Date().toISOString(),constraints:{query:'pet brush',market:'US'},products:[],niches:[],discoveries:[],providers:[],note:'No sales inferred'}});});
- await page.goto('/');await page.getByLabel('Password').fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
+ await page.goto('/');await page.getByLabel('Password', { exact: true }).fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
  await page.getByLabel('Research request',{exact:true}).fill('pet brush');
  await page.getByRole('button',{name:'Start automatic hunt · free credits only',exact:true}).click();
- await expect(page.getByText(/Automatic hunt finished: 1 accepted videos\/ads/)).toBeVisible();
+ await expect(page.getByText(/Automatic hunt finished: 1 accepted source records, 2 metrics/)).toBeVisible();
  expect(starts).toBe(1);expect(refreshes).toBe(1);
+});
+
+for (const width of [1440, 390]) test(`discovery match preserves evidence and opens supplier costing at ${width}px`,async({page,request})=>{
+  expect((await request.post('/api/research/match',{data:{}})).status()).toBe(401);
+  await request.post('/api/auth/login',{data:{password:'e2e-secret'}});
+  const video={id:`123456789012345${width}`,text:`Christmas pet matching ${width}`,locationCreated:'US',createTimeISO:new Date().toISOString(),webVideoUrl:`https://www.tiktok.com/@fixture/video/123456789012345${width}`,playCount:321,shareCount:0};
+  await request.post('/api/research/apify/sync',{data:{market:'US',query:video.text,items:[video]}});
+  await page.setViewportSize({width,height:900});
+  await page.addInitScript(()=>localStorage.setItem('sd_onboarded','1'));
+  await page.goto('/');await page.getByLabel('Password',{exact:true}).fill('e2e-secret');await page.getByRole('button',{name:'Enter workspace'}).click();
+  await page.getByLabel('Research request',{exact:true}).fill(video.text);
+  await page.getByRole('button',{name:'Filter saved evidence'}).click();
+  await page.getByRole('button',{name:'Providers',exact:true}).click();
+  await page.getByRole('button',{name:'Match exact product',exact:true}).first().click();
+  const form=page.getByRole('form',{name:'Match discovery to exact product'});
+  await form.getByLabel('Matched product title').fill(video.text);
+  await form.getByLabel('Exact supplier listing URL').fill(`https://example.com/supplier/${width}`);
+  await form.getByLabel('Exact variant / size / pack').fill('Red / single');
+  await form.getByRole('checkbox').check();
+  await form.getByRole('button',{name:'Save product match'}).click();
+  const detail=page.getByRole('region',{name:'Product research detail'});
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('321 views',{exact:true})).toBeVisible();
+  await expect(detail.getByText(/Recent product-level sales evidence/).first()).toBeVisible();
+  expect(await detail.getByLabel('Advertising CPA $').inputValue()).toBe('');
+  await expect(detail.getByLabel('url',{exact:true})).toHaveValue(`https://example.com/supplier/${width}`);
+  await expect(detail.getByLabel('variant',{exact:true})).toHaveValue('Red / single');
+  const state=await (await request.get('/api/research/state')).json();
+  const matched=state.observations.filter(o=>o.productMatch?.listingUrl===`https://example.com/supplier/${width}`);
+  expect(matched).toHaveLength(2);expect(matched.every(o=>o.dataStatus==='manual'&&o.scope==='product')).toBe(true);
+  expect(matched.every(o=>!['purchases','shop_sales','bought_count'].includes(o.metric))).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(page.locator('.global-progress')).toHaveCount(0);
+  await page.screenshot({path:`test-results/match-${width}.png`,fullPage:true});
 });

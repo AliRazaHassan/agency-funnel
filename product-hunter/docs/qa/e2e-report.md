@@ -70,8 +70,79 @@ Screenshots contain synthetic fixtures only, never real sales proof:
 - Desktop and mobile screenshots: generated as `test-results/match-1440.png` and `test-results/match-390.png`; inspected locally. CI uploads screenshots as workflow artifacts.
 - [Actual direct-provider smoke output](live-source-smoke-2026-10-29.json)
 
-## Deployment
+## Deployment and post-release validation
 
-Production remains on `5412179f5b49a8b82465e468ccd62f5a28ee0d23`. Automatic approval review rejected a direct push to main because it would trigger production deployment without explicit authorization for that action. Changes are prepared on `codex/signal-desk-audit-20261029` for a reviewable PR. Merge/deploy and authenticated production browser research remain pending. Local GitHub HTTPS push also lacks credentials; the connected GitHub API is used for the non-production PR branch.
+PR #10 was explicitly approved by the user for merge/deploy with validation, merged as `15bd89e4aec514388815477ca964829d0295520c`, and deployed to the existing Render service.
 
-After the full 16/16 browser run, the final supplier-prefill change was checked with 2/2 focused desktop/mobile match tests.
+- Deployment: `dep-dbhh2nss728c73d37bb0`, **LIVE** at 2026-10-29T09:27:40Z (14:27 PKT).
+- Merged-commit CI: [run 40849704562](https://github.com/AliRazaHassan/agency-funnel/actions/runs/40849704562), **SUCCESS**. Actual job logs confirm **87 unit**, **2 isolated Redis/production integration**, and **16 Playwright** tests passed; no unit/integration failures or skips. Logic and production build passed.
+- Production HTTP validation at 2026-10-29T09:29:37Z: **all executed checks passed**. Public health revision matches the merge commit; homepage and compiled frontend asset return 200; the deployed bundle contains the new matching and after-ad profit UI.
+- Six research endpoints reject unauthenticated reads/writes with 401, including the new match endpoint, import, research, export, state and provider status.
+- All four internally authenticated startup checks true: auth wall, valid login, provider-status/storage read and saved-research read. Render logs independently report `Authenticated startup smoke: PASS`.
+- No application error logs returned for the queried post-rollout window starting 2026-10-29T09:27:25Z. This is an immediate release check, not a long-term stability claim.
+- Production storage connection reports Key Value. Its backup/durability limitations remain unchanged.
+
+### Still not validated
+
+A fresh production browser check still displays the password screen. The previous secure sign-in request timed out; authenticated browser research remains blocked by login. The internal startup checks validate authentication and reads, **not** a live external provider hunt. The production Amazon snapshot is empty. No new verified-product shortlist, supplier quote, competitor price, ad campaign or profit claim is certified by this release. The saved direct-provider smoke remains the actual pre-release source result (0 observations / 0 candidates).
+
+### Public production validation evidence
+
+```json
+{
+  "at": "2026-10-29T09:29:37Z",
+  "expectedRevision": "15bd89e4aec514388815477ca964829d0295520c",
+  "health": {
+    "ok": true,
+    "openai": true,
+    "authRequired": true,
+    "label": "Signal Desk",
+    "revision": "15bd89e4aec514388815477ca964829d0295520c",
+    "researchStorage": "keyvalue",
+    "verification": {
+      "unauthenticatedBlocked": true,
+      "login": true,
+      "providerStatus": true,
+      "storedResearch": true
+    },
+    "dataMode": {
+      "freeSignals": true,
+      "keepaLiveKey": false,
+      "keepaSnapshot": {
+        "ok": false,
+        "mode": "snapshot",
+        "count": 0,
+        "meta": {
+          "capturedAt": null,
+          "domain": "com",
+          "count": 0,
+          "note": "Empty snapshot. Use UI “Add Amazon one-time data” (paste from amazon.com) or npm run keepa:pull. Free Wikimedia works without this.",
+          "oneTime": true
+        }
+      }
+    }
+  },
+  "checks": {
+    "health_http_200": true,
+    "deployed_revision_matches": true,
+    "persistent_storage_connected": true,
+    "authenticated_startup_checks": {
+      "unauthenticatedBlocked": true,
+      "login": true,
+      "providerStatus": true,
+      "storedResearch": true
+    },
+    "GET /api/research/state blocks unauthenticated": true,
+    "GET /api/research/status blocks unauthenticated": true,
+    "POST /api/research/match blocks unauthenticated": true,
+    "POST /api/research/import blocks unauthenticated": true,
+    "POST /api/research/research blocks unauthenticated": true,
+    "POST /api/research/export blocks unauthenticated": true,
+    "homepage_http_200": true,
+    "frontend_asset_http_200": true,
+    "deployed UI includes Match exact product": true,
+    "deployed UI includes Estimated profit after ads": true,
+    "deployed UI includes Save product match": true
+  }
+}
+```

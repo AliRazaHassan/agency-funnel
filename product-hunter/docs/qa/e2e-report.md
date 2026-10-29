@@ -1,5 +1,24 @@
 # Signal Desk execution audit — 29 October 2026
 
+## Authenticated production source validation — 29 October 2026, 14:36 PKT
+
+Secure password sign-in succeeded in the live browser after the earlier handoff errors. A real US `Christmas pet` research refresh completed at `2026-10-29T09:36:54Z`. The cost and margin fields were empty, so missing economics filters did not cause the empty list.
+
+| Source | Actual result |
+|---|---|
+| Amazon | No dated ASIN observations in the snapshot |
+| Meta direct | Configuration required; no exact dated structured observations |
+| TikTok direct | No exact dated structured observations |
+| Google Trends direct | Explore HTTP **429** |
+| Existing Apify connection | Automatic-hunt attempt rejected with HTTP **401**: user not found or authentication token invalid |
+| Product results | **0 candidates**; no invented candidates inserted |
+
+The Apify 401 was returned during account/credit verification, before the Actor-launch step in `createAutomaticHunter.start`; no Actor was launched by this attempt. Selecting other Apify-backed platforms cannot repair the shared authentication failure, so those launches were not repeated. No new subscription, paid credit purchase, real ad purchase or Shopify write was performed.
+
+**Required next action:** replace/reconnect the existing `APIFY_TOKEN` with a valid token for the intended free Apify account in the existing Render service's environment. Keep the token out of chat, source code, logs and screenshots. Then rerun the free-account/remaining-credit checks and real collection. Google's direct 429 remains a separate source-availability issue; the bounded automatic adapter can only be tested after authentication is repaired.
+
+**Acceptance verdict:** software deployment and regression checks PASS; the promised live winning-product research acceptance currently **FAILS because no usable live product evidence was returned**. Real supplier quotes, destination shipping, exact competitor variants and profit remain unverified. This supersedes earlier statements that the live browser hunt was only blocked by login.
+
 ## Release verdict
 
 Software regression: passing. Automated verified-product discovery: **not proven**. The direct free-source smoke executed here returned **0 observations / 0 products**. This is a failed product-discovery acceptance outcome, not a verified list of winners. No sales, supplier shipping cost, or profit has been fabricated or uploaded to production.
@@ -17,7 +36,7 @@ Existing production service: `srv-dar80jbncjis73cg2c00`, workspace `tea-d8i12bsm
 | Real Redis integration | 2 PASS, 0 FAIL, 0 skipped | Local Redis 7.2.6, isolated DBs 14/15: concurrent writers, reconnect, production auth/startup |
 | Live direct free-source hunt | 0 observations, 0 candidates | US Christmas pet, maximum landed cost $15, minimum pre-ad margin 60%; source availability NOT PASS |
 | Existing production health before release | PASS | HTTP 200; revision 5412179; Key Value mode; auth wall/login/provider-state/read startup flags true |
-| Production authenticated browser hunt | NOT RUN | Current browser is at the workspace password screen; credentials not available to this audit |
+| Production authenticated browser hunt | EXECUTED — source acceptance FAIL | US Christmas pet: 0 product candidates; direct Google HTTP 429; automatic Apify authentication HTTP 401 |
 
 The automatic provider browser test uses deterministic responses. It checks the UI request/poll/import/refresh chain and does not certify live Apify, TikTok, Meta, or Google access. The legacy workflow uses local fallback mode with no production API keys. External Shopify creation and real advertising purchases were not performed.
 

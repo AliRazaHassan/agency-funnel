@@ -7,10 +7,21 @@ on:
       - "product-hunter/**"
       - ".github/workflows/product-hunter-e2e.yml"
   workflow_dispatch:
+  pull_request:
+    paths: ["product-hunter/**", ".github/workflows/product-hunter-e2e.yml"]
+
+permissions:
+  contents: read
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
     defaults:
       run:
         working-directory: product-hunter
@@ -21,11 +32,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: product-hunter/package-lock.json
-      - run: npm install
+      - run: npm ci
       - run: npm run build
+      - run: node --test tests/integration/*.test.js
+        env:
+          TEST_REDIS_URL: redis://127.0.0.1:6379/15
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e:ci
-      - if: failure()
+      - run: npm run test:e2e:ci -- --reporter=line,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/results.xml
+      - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: product-hunter-playwright-artifacts

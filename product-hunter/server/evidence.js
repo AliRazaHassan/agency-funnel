@@ -151,6 +151,38 @@ export function freshness(o, now = new Date()) {
     expiresAfterDays: TTL_DAYS[o.platform],
   };
 }
+// Matching is an explicit user assertion about a listing and variant. Keep the
+// original engagement metrics and dates; matching never manufactures sales.
+export function matchDiscovery(rows, input, now = new Date()) {
+  const source = rows.find((o) => o.id === input.observationId);
+  const listingUrl = httpUrl(input.listingUrl);
+  const title = String(input.title || "").trim();
+  const variant = String(input.variant || "").trim();
+  if (!source || source.scope !== "niche" || !["tiktok", "meta"].includes(source.platform))
+    throw new Error("Select a TikTok video or Meta ad discovery to match");
+  if (!listingUrl || !title || !variant || input.confirmed !== true)
+    throw new Error("Exact listing URL, product title, variant and match confirmation required");
+  const listing = new URL(listingUrl);
+  listing.hash = "";
+  const identityKey = `listing:${listing.href}:${variant.toLowerCase()}`;
+  return rows.filter((o) => o.scope === "niche" && o.platform === source.platform &&
+    o.market === source.market && o.externalId === source.externalId).map((o) => {
+    const matched = observation({
+      platform: o.platform, provider: o.provider, externalId: o.externalId,
+      title, market: o.market, scope: "product", metric: o.metric, value: o.value,
+      unit: o.unit, dataAt: o.dataAt, sourceUrl: o.sourceUrl,
+      canonicalUrl: o.canonicalUrl, correlationKey: o.correlationKey,
+      identityKey, niche: o.niche, tags: o.tags, period: o.period,
+      currency: o.currency, dataStatus: o.dataStatus === "modeled" ? "modeled" : "manual",
+      collectionMethod: "manual", matchedFrom: o.id,
+      productMatch: { listingUrl: listing.href, variant, confirmedAt: now.toISOString(), method: "user-confirmed" },
+      limitations: `${o.limitations} Product/variant match is user supplied. Original engagement is not sales; supplier costs and delivery require a separate quote.`,
+    }, now);
+    // A matched assertion must coexist with its original niche observation.
+    matched.id = hash(JSON.stringify([o.id, identityKey, "user-match"]));
+    return matched;
+  });
+}
 export function economics(input = {}) {
   const fields = [
     "sellingPrice",
@@ -425,8 +457,10 @@ export function rankEvidence(
     if (!competition.length) missing.push("Competition observations");
     if (!econ.complete) missing.push("Complete supplier quote and economics");
     if (ship.status === "unverified") missing.push("Fresh delivery quote");
+    if (econ.complete && econ.profitAfterAds <= 0)
+      missing.push("Positive estimated profit after advertising costs");
     const failed =
-      (econ.complete && econ.contribution <= 0) || ship.status === "too late";
+      (econ.complete && econ.profitAfterAds <= 0) || ship.status === "too late";
     const ready =
       !failed &&
       !conflicts.length &&
@@ -438,7 +472,7 @@ export function rankEvidence(
       ship.status === "on-time";
     const validTests = (record.tests || []).filter(
       (t) =>
-        finite(t.purchases) > 0 &&
+        Number.isInteger(finite(t.purchases)) && finite(t.purchases) > 0 &&
         finite(t.spend) !== null &&
         finite(t.revenue) !== null &&
         econ.complete &&
@@ -470,6 +504,8 @@ export function rankEvidence(
       market: constraints.market,
       observations: rows,
       quotes,
+      selectedQuoteId: record.selectedQuoteId || null,
+      productMatch: rows.find((o) => o.productMatch)?.productMatch || null,
       economics: econ,
       delivery: ship,
       verdict,
@@ -541,6 +577,10 @@ export function csv(products) {
       "Landed cost",
       "Pre-ad contribution",
       "Margin %",
+      "Estimated profit after ads",
+      "Break-even CPA",
+      "Supplier listing",
+      "Supplier variant",
       "Delivery",
       "Sources",
       "Missing proof",
@@ -554,6 +594,10 @@ export function csv(products) {
       p.economics.landedCost,
       p.economics.contribution,
       p.economics.marginPct,
+      p.economics.profitAfterAds,
+      p.economics.breakEvenCpa,
+      p.quotes.find((q) => q.id === p.selectedQuoteId)?.url || p.quotes[0]?.url,
+      p.quotes.find((q) => q.id === p.selectedQuoteId)?.variant || p.quotes[0]?.variant,
       p.delivery.status,
       p.observations
         .map(

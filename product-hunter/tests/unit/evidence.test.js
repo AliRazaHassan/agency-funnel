@@ -352,3 +352,30 @@ test("concurrent initialization and reads share a completed store", async () => 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("negative profit after ads blocks readiness despite high pre-ad margin", () => {
+  const rows = [row({identityKey:'loss'}), row({identityKey:'loss',platform:'tiktok',metric:'views'}), row({identityKey:'loss',platform:'meta',metric:'advertiser_count'})];
+  const id = rank(rows)[0].id;
+  const result = rank(rows, {[id]:{economics:{...costs,adCpa:30},quotes:[quote]}})[0];
+  assert.equal(result.economics.profitAfterAds,-3.4);
+  assert.equal(result.verdict,'Avoid / fails economics or delivery');
+});
+
+import {matchDiscovery} from '../../server/evidence.js';
+test('explicit discovery match retains original metrics dates and manual provenance',()=>{
+  const source=row({platform:'tiktok',scope:'niche',metric:'views',value:900});
+  const input={observationId:source.id,title:'Christmas pet ornament',listingUrl:'https://supplier.example/item/1',variant:'red single',confirmed:true};
+  const matched=matchDiscovery([source],input,now);
+  assert.equal(matched.length,1);
+  assert.notEqual(matched[0].id,source.id);
+  assert.equal(matched[0].dataAt,source.dataAt);
+  assert.equal(matched[0].value,900);
+  assert.equal(matched[0].metric,'views');
+  assert.equal(matched[0].dataStatus,'manual');
+  assert.equal(source.scope,'niche');
+  assert.equal(rank([source,...matched])[0].dimensions.salesEvidence,null);
+  assert.equal(matchDiscovery([source],input,now)[0].id,matched[0].id);
+  assert.notEqual(matchDiscovery([source],{...input,variant:'blue single'},now)[0].identityKey,matched[0].identityKey);
+  assert.throws(()=>matchDiscovery([source],{...input,confirmed:false},now));
+  assert.throws(()=>matchDiscovery([row({scope:'niche',platform:'google'})],input,now));
+});

@@ -12,6 +12,8 @@ import {
   economics,
   delivery,
   productId,
+  matchDiscovery,
+  relevant,
 } from "./evidence.js";
 import { collect, capabilities } from "./evidenceProviders.js";
 import { apifyConfigured, normalizeTikTokExport, readApifyDataset } from "./apifyEvidence.js";
@@ -73,6 +75,14 @@ evidenceRouter.post(
   }),
 );
 evidenceRouter.post('/hunt/start', wrap(async (req,res) => res.json(await automaticHunter.start(req.body))));
+evidenceRouter.post('/match', wrap(async (req, res) => {
+  const result = await evidenceStore.mutate(db => {
+    const rows = matchDiscovery(db.observations, req.body);
+    mergeObservations(db, rows);
+    return { count: rows.length, productId: productId(rows[0].market, rows[0].identityKey) };
+  });
+  res.json({ ok: true, ...result });
+}));
 evidenceRouter.get('/hunt/:id', wrap(async (req,res) => res.json(await automaticHunter.poll(req.params.id))));
 // Import raw provider output without asking users to hand-build observation rows.
 evidenceRouter.post('/apify/sync', wrap(async (req, res) => {
@@ -161,7 +171,7 @@ evidenceRouter.post(
       createdAt: new Date().toISOString(),
       constraints,
       products,
-      discoveries: data.observations.filter(o => o.scope === "niche" && o.market === constraints.market && (!constraints.query || `${o.title} ${o.niche}`.toLowerCase().includes(constraints.query.toLowerCase()))).slice(-100),
+      discoveries: data.observations.filter(o => o.scope === "niche" && relevant(o, constraints)).slice(-100),
       niches,
       providers: runs.map(({ observations, ...r }) => ({
         ...r,
@@ -244,6 +254,8 @@ evidenceRouter.post(
             throw new Error(
               "Test spend, revenue and purchases must be non-negative numbers",
             );
+        if (!Number.isInteger(Number(req.body.test.purchases)))
+          throw new Error("Test purchases must be a whole number");
         r.tests.push({
           ...req.body.test,
           recordedAt: new Date().toISOString(),

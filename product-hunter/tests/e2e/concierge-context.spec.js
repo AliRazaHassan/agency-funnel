@@ -32,7 +32,7 @@ test("right-click product statistic keeps analyst menu and sends selected contex
   );
   await page.addInitScript(() => localStorage.setItem("sd_onboarded", "1"));
   await page.goto("/");
-  await page.getByLabel("Password").fill("e2e-secret");
+  await page.getByLabel("Password", { exact: true }).fill("e2e-secret");
   await page.getByRole("button", { name: "Enter workspace" }).click();
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await page

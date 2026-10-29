@@ -12,7 +12,7 @@ const ECON = {
   feeFixed: 0,
   packaging: 0,
   returnsPct: 5,
-  adCpa: 0,
+  adCpa: "",
 };
 const LABELS = {
   sellingPrice: "Selling price $",
@@ -49,6 +49,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
   const [hydrating,setHydrating]=useState(true);
   const [huntJob,setHuntJob]=useState(null);
   const [huntPlatform,setHuntPlatform]=useState("tiktok");
+  const [matchSource,setMatchSource]=useState(null);
   const requestId=useRef(null);
   const [query, setQuery] = useState(initialQuery),
     [market, setMarket] = useState("US"),
@@ -132,8 +133,8 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           await run(true);
           setTab("providers");
         } else {
-          setError(job.reason || `Hunt ended: ${job.status}`);
           await run(true);
+          setError(job.reason || `Hunt ended: ${job.status}`);
           setTab("providers");
         }
       }catch(e){if(!cancelled){setError(e.message);timer=setTimeout(poll,10000);}}
@@ -159,6 +160,28 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
       setTab("providers");
       setImportMessage(`Imported ${response.acceptedVideos} recent videos (${response.count} metrics). Excluded: ${Object.entries(response.rejected).map(([reason,count]) => `${count} ${reason}`).join("; ") || "none"}. Videos are discovery signals; exact product and sales remain unverified.`);
     } catch(e) { setError(e.message); } finally { setBusy(""); }
+  }
+  async function saveMatch(e) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    setError(""); setBusy("Saving exact product match…");
+    try {
+      const saved = await api("/api/research/match", { method: "POST", body: {
+        observationId: matchSource.id, title: form.get("title"),
+        listingUrl: form.get("listingUrl"), variant: form.get("variant"), confirmed: form.get("confirmed") === "on",
+      }});
+      setMatchSource(null);
+      // Unknown costs cannot satisfy a cost/margin filter. Clear those filters
+      // visibly while opening the newly matched candidate for quote entry.
+      const r = await api("/api/research/research", { method: "POST", body: {
+        query, constraints: { market, season, ...(deliveryTarget ? {deliveryTarget} : {}) }, refresh: false,
+      }});
+      setCost(""); setMargin("");
+      setResult(r); setSessions(s => [...s, r]); setTab("products");
+      const product = r.products.find(p => p.id === saved.productId);
+      if (product) open(product);
+      setImportMessage("Product match saved as user supplied. Add an exact supplier quote and advertising CPA before assessing profit.");
+    } catch (e) { setError(e.message); } finally { setBusy(""); }
   }
   async function run(refresh = true) {
     const current = ++revision.current;
@@ -218,8 +241,8 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
     setSelected(p);
     setQuote({
       supplier: "",
-      url: "",
-      variant: "",
+      url: p.productMatch?.listingUrl || "",
+      variant: p.productMatch?.variant || "",
       quotedAt: "",
       processingDays: "",
       transitDays: "",
@@ -348,6 +371,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           {error}
         </p>
       ) : null}
+      {importMessage ? <p role="status">{importMessage}</p> : null}
       <nav className="btn-row" aria-label="Research sections">
         {[
           "products",
@@ -420,6 +444,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
                     {p.economics.marginPct ?? "Unknown"}% · delivery{" "}
                     {p.delivery.status}
                   </p>
+                  <p>Estimated profit after ads {money(p.economics.profitAfterAds)} · break-even CPA {money(p.economics.breakEvenCpa)}</p>
                   <p>{p.mainRisk}</p>
                   <button className="btn" onClick={() => open(p)}>
                     Compare evidence & economics
@@ -498,10 +523,20 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
             try { if(file.size > 2000000) throw new Error("Use a JSON export smaller than 2 MB"); const items=JSON.parse(await file.text()); await syncApify({items}); } catch(error) { setError(error.message); }
             e.target.value="";
           }} /></label>
-          {importMessage ? <p role="status">{importMessage}</p> : null}
           <h4>Discovery evidence</h4>
           <p>These are query/video signals, separate from verified exact products. Search indices and engagement are not sales.</p>
-          {(result?.discoveries || []).map(o => <p key={o.id}><a href={o.sourceUrl} target="_blank" rel="noreferrer">{o.title}</a> · {o.value} {o.unit} · {new Date(o.dataAt).toLocaleDateString()} · {Date.now()-Date.parse(o.dataAt)>(o.platform === "google" ? 14 : 7)*86400000 ? "Check freshness" : "Recent"}</p>)}
+          {(result?.discoveries || []).map(o => <div key={o.id}><p><a href={o.sourceUrl} target="_blank" rel="noreferrer">{o.title}</a> · {o.value} {o.unit} · {new Date(o.dataAt).toLocaleDateString()} · {Date.now()-Date.parse(o.dataAt)>(o.platform === "google" ? 14 : 7)*86400000 ? "Check freshness" : "Recent"}</p>{["tiktok","meta"].includes(o.platform) ? <button className="ghost" disabled={!!busy} onClick={()=>setMatchSource(o)}>Match exact product</button> : null}</div>)}
+          {matchSource ? <form className="research-query" onSubmit={saveMatch} aria-label="Match discovery to exact product">
+            <h4>Match discovery to exact product</h4>
+            <p>Inspect the original video/ad and supplier listing. Match the same item and variant. This records your assertion and preserves the original signal; it does not verify sales.</p>
+            <a href={matchSource.sourceUrl} target="_blank" rel="noreferrer">Inspect original discovery</a>
+            <label>Matched product title<input name="title" required maxLength={300} /></label>
+            <label>Exact supplier listing URL<input name="listingUrl" type="url" required /></label>
+            <label>Exact variant / size / pack<input name="variant" required maxLength={300} /></label>
+            <label><input name="confirmed" type="checkbox" required />I checked that this is the same item and variant</label>
+            <button className="btn" disabled={!!busy}>Save product match</button>
+            <button type="button" className="ghost" onClick={()=>setMatchSource(null)}>Cancel match</button>
+          </form> : null}
 
           <p>
             Storage: {status?.storage || "checking"} · {status?.monitoring}
@@ -641,6 +676,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           </p>
           <p>{selected.nextAction}</p>
           <p>{selected.conditions}</p>
+          {selected.productMatch ? <p>User-confirmed match: <a href={selected.productMatch.listingUrl} target="_blank" rel="noreferrer">Supplier listing</a> · {selected.productMatch.variant}. Costs and delivery still require a quote.</p> : null}
           <h4>Original observations</h4>
           <div className="research-table">
             <table>

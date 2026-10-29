@@ -278,10 +278,18 @@ export async function huntProducts(opportunity, { limit = 50 } = {}) {
       crossPlatform: Math.round((demand + marketing) / 2),
       confidence: amazonVerified ? 78 : source === "seed" ? 30 : 48,
     };
+    const socialStatus = (evidence, hasSignal) => {
+      if (evidence?.status && ["LIVE", "RECENT", "MANUAL"].includes(String(evidence.status).toUpperCase()))
+        return evidence.status;
+      if (evidence?.status === "SEED" || /seed/i.test(String(evidence?.source || "")))
+        return "SEED";
+      if (hasSignal) return "ESTIMATED";
+      return evidence?.status || "UNAVAILABLE";
+    };
     const dataStatus = {
       amazon: amazonVerified ? amazonEvidenceStatus(p) : "UNAVAILABLE",
-      tiktok: p.socialSignals?.tiktok ? "ESTIMATED" : (tiktokEvidence?.status || "ESTIMATED"),
-      meta: p.socialSignals?.meta ? "ESTIMATED" : (metaEvidence?.status || "ESTIMATED"),
+      tiktok: socialStatus(tiktokEvidence, Boolean(p.socialSignals?.tiktok)),
+      meta: socialStatus(metaEvidence, Boolean(p.socialSignals?.meta)),
       google: hasGoogleMomentum(free) ? "RECENT" : "UNAVAILABLE",
     };
     const dataScope = {

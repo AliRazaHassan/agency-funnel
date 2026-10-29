@@ -55,11 +55,19 @@ function socialEvidenceForOpportunity(opportunity = {}, trends = {}) {
     });
     if (!matches.length) return null;
     matches.sort((a,b) => {
-      const quality = (x) => x.dataStatus === "RECENT" ? 3 : x.source === "manual-paste" ? 2 : 1;
+      const quality = (x) =>
+        x.dataStatus === "RECENT" || x.dataStatus === "LIVE" ? 3
+        : x.source === "manual-paste" ? 2
+        : x.dataStatus === "SEED" ? 0
+        : 1;
       return quality(b) - quality(a) || Number(a.rank || 999) - Number(b.rank || 999);
     });
     const item = matches[0];
-    const status = item.dataStatus === "RECENT" ? "RECENT" : item.source === "manual-paste" ? "MANUAL" : "ESTIMATED";
+    const status =
+      item.dataStatus === "RECENT" || item.dataStatus === "LIVE" ? (item.dataStatus === "LIVE" ? "LIVE" : "RECENT")
+      : item.source === "manual-paste" ? "MANUAL"
+      : item.dataStatus === "SEED" || /seed/i.test(String(item.source || "")) ? "SEED"
+      : "ESTIMATED";
     let score = item.trendSignal === "high" ? 72 : item.trendSignal === "medium" ? 58 : item.trendSignal === "low" ? 42 : 65;
     if (status === "RECENT" && Number.isFinite(Number(item.rank))) score = Math.max(55, 78 - (Number(item.rank)-1)*2);
     return {

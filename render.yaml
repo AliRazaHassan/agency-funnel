@@ -3,6 +3,7 @@ services:
     name: signal-desk
     runtime: node
     plan: free
+    region: oregon
     rootDir: product-hunter
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -16,3 +17,28 @@ services:
         generateValue: true
       - key: OPENAI_API_KEY
         sync: false
+      # Wires to existing product-hunter-kv (or Blueprint-managed twin). Does not delete
+      # secrets omitted from this file — only listed keys are managed by Blueprint sync.
+      - key: REDIS_URL
+        fromService:
+          name: product-hunter-kv
+          type: keyvalue
+          property: connectionString
+      - key: APIFY_TOKEN
+        sync: false
+      - key: META_AD_LIBRARY_TOKEN
+        sync: false
+      - key: KEEPA_API_KEY
+        sync: false
+      # Opt-in direct Google Trends (desk freeSignals + evidence). Prefer Apify on Render.
+      - key: ENABLE_GOOGLE_TRENDS
+        sync: false
+
+  - type: keyvalue
+    name: product-hunter-kv
+    plan: free
+    region: oregon
+    maxmemoryPolicy: noeviction
+    # Internal-only. Free plan has no disk persistence — turn persistence ON in the
+    # Render Dashboard (may require a paid KV plan). Blueprint cannot flip that switch.
+    ipAllowList: []

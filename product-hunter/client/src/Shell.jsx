@@ -201,14 +201,33 @@ export function SettingsView() {
           Keepa snapshot:{" "}
           <strong>
             {status?.keepa?.snapshot?.ok
-              ? `${status.keepa.snapshot.count} ASINs`
-              : "empty — use Amazon manual paste"}
+              ? `${status.keepa.snapshot.count} ASINs · LIVE`
+              : "empty · UNAVAILABLE — use Amazon manual paste"}
           </strong>
         </p>
         <p className="muted">{status?.keepa?.recommendation}</p>
         <p><strong>Research history:</strong> {status?.researchStore || "file"}</p><p><strong>Saved projects:</strong> {status?.projectStore || "file"}</p>
-        {(status?.researchStore === "file" || status?.projectStore === "file") ? <div className="honesty-banner"><strong>Persistence warning</strong><p>File mode on Render is not durable across service replacement/redeploys. Set Product Hunter DATABASE_URL before relying on saved projects or 7/14/30-day history.</p></div> : null}
-        {(status?.researchStore === "keyvalue" || status?.projectStore === "keyvalue") ? <p className="muted">Key Value storage is active. App restarts retain its records; long-term retention depends on the Key Value service persistence and backups.</p> : null}
+        {(status?.researchStore === "file" || status?.projectStore === "file") ? <div className="honesty-banner"><strong>Persistence warning</strong><p>File mode on Render is not durable across service replacement/redeploys. Set REDIS_URL (Key Value) or DATABASE_URL before relying on saved projects or 7/14/30-day history.</p></div> : null}
+        {(status?.researchStore === "keyvalue" || status?.projectStore === "keyvalue") ? <p className="muted">Key Value storage is active. App restarts retain its records; long-term retention depends on the Key Value service persistence and backups — flip persistence ON in the Render Dashboard (Blueprint cannot).</p> : null}
+        {status?.sourceModes ? (
+          <div className="honesty-banner" style={{ marginTop: "0.75rem" }}>
+            <strong>Top-products source modes</strong>
+            <p>
+              {["amazon","tiktok","meta","google"].map((k) => (
+                <span key={k} style={{ marginRight: "0.75rem" }}>
+                  {k}:{" "}
+                  <span className={`source-status ${String(status.sourceModes[k] || "UNAVAILABLE").toLowerCase()}`}>
+                    {status.sourceModes[k] || "UNAVAILABLE"}
+                  </span>
+                </span>
+              ))}
+            </p>
+            <p className="muted">
+              Apify: {status?.apify?.configured ? "configured" : "missing"} · Google Trends direct:{" "}
+              {status?.googleTrends?.directEnabled ? "ON" : "OFF"}
+            </p>
+          </div>
+        ) : null}
         <p><strong>Shopify:</strong> {status?.shopify?.configured ? `connected · ${status.shopify.store}` : "not connected"}</p>
         {!status?.shopify?.configured ? <p className="muted">Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN with write_products scope to enable one-click draft creation.</p> : null}
       </div>

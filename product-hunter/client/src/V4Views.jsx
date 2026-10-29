@@ -41,6 +41,9 @@ export function EvidencePanel({ product }) {
         <div><strong>{label}</strong><small>{note||"—"}</small></div>
         <b>{typeof value==="number"?Math.round(value*10)/10:(value??"—")}</b>
         <span className={`source-status ${statusClass(status)}`}>{status||"UNAVAILABLE"}</span>
+        {["SEED","UNAVAILABLE","ESTIMATED"].includes(String(status||"").toUpperCase()) && typeof value==="number" ? (
+          <small className="muted">Score is not live proof</small>
+        ) : null}
       </div>)}
     </div>
     {(product.discoveryEvidence?.evidence||[]).length?<details><summary>Discovery evidence trail</summary>

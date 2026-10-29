@@ -9,7 +9,7 @@ function pillar(product,id){
 function evidenceQuality(product){
   const statuses=["amazon","tiktok","meta","google"].map(k=>String(product.dataStatus?.[k]||"UNAVAILABLE").toUpperCase());
   if(!statuses.length)return 0;
-  return clamp(statuses.reduce((s,x)=>s+(x==="LIVE"?100:x==="RECENT"?85:x==="MANUAL"?70:x==="ESTIMATED"?35:0),0)/statuses.length);
+  return clamp(statuses.reduce((s,x)=>s+(x==="LIVE"?100:x==="RECENT"?85:x==="MANUAL"?70:x==="ESTIMATED"?35:x==="SEED"?20:0),0)/statuses.length);
 }
 
 export function buildWinnerDecision(product={}){

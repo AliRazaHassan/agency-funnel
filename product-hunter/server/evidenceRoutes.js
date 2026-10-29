@@ -47,11 +47,26 @@ evidenceRouter.get(
     try {
       storage = await evidenceStore.init();
     } catch {}
+    const providers = capabilities();
     res.json({
       version: VERSION,
-      apify: { configured: apifyConfigured(), mode: "free-only-automatic", startsActors: true, maxRunUsd: 0.5, maxRunsPerCycle: 8 },
+      apify: {
+        configured: apifyConfigured(),
+        mode: "free-only-automatic",
+        startsActors: true,
+        maxRunUsd: 0.5,
+        maxRunsPerCycle: 8,
+        preferredWhenPresent: true,
+      },
       storage,
-      providers: capabilities(),
+      providers,
+      sourceModes: Object.fromEntries(
+        providers.map((p) => [p.platform, p.mode]),
+      ),
+      googleTrends: {
+        directEnabled: process.env.ENABLE_GOOGLE_TRENDS === "1",
+        semantics: 'opt-in: ENABLE_GOOGLE_TRENDS must be "1" for desk freeSignals and evidence direct collect; otherwise prefer Apify Automatic hunt',
+      },
       monitoring:
         "Manual refresh only. No scheduled/background monitor configured.",
     });
@@ -179,8 +194,10 @@ evidenceRouter.post(
       })),
       count: products.length,
       note: products.length
-        ? "Ranked from dated exact observations. No guaranteed winners."
-        : "No relevant product-level evidence. Import dated records or configure providers; no invented candidates added.",
+        ? "Ranked from dated exact observations. No guaranteed winners. LIVE observations only — SEED boards are excluded."
+        : runs.length && runs.every((r) => r.status !== "success")
+          ? "All providers UNAVAILABLE or empty. Configure META_*/APIFY_TOKEN/Keepa snapshot/ENABLE_GOOGLE_TRENDS, use Automatic hunt, or import dated rows. SEED boards are not top products."
+          : "No relevant product-level evidence. Import dated records or configure providers; no invented candidates added.",
     };
     await evidenceStore.mutate((db) => {
       db.sessions.push(session);

@@ -278,7 +278,7 @@ function seedBoard(regionKey, nicheHint) {
       researchUrl: t.platform === "tiktok" ? links.tiktokTopProducts : links.metaAdLibrary,
       links,
       note: "Not live sold units — open research URL to validate trending creatives",
-      dataStatus: "ESTIMATED",
+      dataStatus: "SEED",
       capturedAt: null,
     };
   });
@@ -317,17 +317,22 @@ export async function fetchSocialTrends({ regionFocus = "Global", nicheHint } = 
   const tiktok = pick("tiktok", liveTikTok);
   const meta = pick("meta", liveMeta);
 
+  const tiktokMode = liveTikTok?.length ? "LIVE" : "SEED";
+  const metaMode = liveMeta?.length ? "LIVE" : "SEED";
+
   return {
     region: map.label,
     regionFocus: regionKey,
     nicheHint: nicheHint || null,
     honesty:
-      "TikTok/Meta here = trending creatives & research links. NOT official shop GMV. Live Creative Center often blocked on cloud IPs — then curated board + deep links. Paste manual rows anytime.",
+      "TikTok/Meta here = trending creatives & research links. NOT official shop GMV. LIVE = API/Creative Center rows; SEED = curated board (not live tops). Paste manual rows anytime.",
     sources: {
       tiktok: liveTikTok?.length ? "tiktok-creative-center" : "seed + deep links",
       meta: liveMeta?.length ? "meta-ad-library-api" : "seed + Ad Library links",
       manual: manual.length,
+      modes: { tiktok: tiktokMode, meta: metaMode, amazon: "see-keepa", google: "see-trends-flag" },
     },
+    modes: { tiktok: tiktokMode, meta: metaMode },
     hubs: {
       tiktokCreativeCenter: `https://ads.tiktok.com/business/creativecenter/inspiration/popular/product/pc/en?countryCode=${map.tiktok}`,
       metaAdLibrary: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${map.meta}&media_type=all`,

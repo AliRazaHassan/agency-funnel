@@ -15,7 +15,7 @@ const fixture = {
 };
 test("supplier catalog imports persist without becoming demand evidence", async ({ request }) => {
   await request.post("/api/auth/login", { data: { password: "e2e-secret" } });
-  const supplier = { ...fixture, platform: "supplier", externalId: "SUPPLIER-CATALOG-FIXTURE", title: "Supplier catalog regression", metric: "catalog_price", value: 15.99, unit: "USD retail", identityKey: "supplier-regression" };
+  const supplier = { ...fixture, platform: "supplier", externalId: "SUPPLIER-CATALOG-FIXTURE", title: "Supplier catalog regression", niche: "Catalog regression", metric: "catalog_price", value: 15.99, unit: "USD retail", identityKey: "supplier-regression" };
   expect((await request.post("/api/research/import", { data: { observations: [supplier] } })).status()).toBe(200);
   expect((await request.post("/api/research/import", { data: { observations: [{ ...supplier, metric: "shop_sales" }] } })).status()).toBe(400);
   const result = await (await request.post("/api/research/research", { data: { query: "catalog regression", constraints: { market: "US" }, refresh: false } })).json();

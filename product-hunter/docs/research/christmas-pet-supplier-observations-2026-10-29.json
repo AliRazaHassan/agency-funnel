@@ -1,0 +1,85 @@
+{
+  "observations": [
+    {
+      "platform": "supplier",
+      "market": "US",
+      "scope": "product",
+      "metric": "catalog_price",
+      "unit": "USD retail price",
+      "currency": "USD",
+      "niche": "Christmas pet gifts",
+      "tags": [
+        "Christmas",
+        "pet",
+        "dropshipping",
+        "validation-pending"
+      ],
+      "provider": "Manual primary supplier page audit",
+      "dataStatus": "manual",
+      "collectionMethod": "manual",
+      "dataAt": "2026-10-28T00:00:00Z",
+      "title": "SodaPup Christmas Tree pet treat dispenser \u2014 Large / Green",
+      "externalId": "mkb-christmas-tree-durable-rubber-chew-toy-treat-dispenser-large-green",
+      "sourceUrl": "https://sodapup.com/products/mkb-christmas-tree-durable-rubber-chew-toy-treat-dispenser-large-green",
+      "canonicalUrl": "https://sodapup.com/products/mkb-christmas-tree-durable-rubber-chew-toy-treat-dispenser-large-green",
+      "value": 15.99,
+      "variant": "Large / Green / natural rubber",
+      "identityKey": "supplier:mkb-christmas-tree-durable-rubber-chew-toy-treat-dispenser-large-green:large / green / natural rubber",
+      "limitations": "Public supplier catalog snapshot retrieved 2026-10-29; conservative underlying date 2026-10-28 because some indexed page snapshots were crawled yesterday. Market US is the research target, not verified customer location. This is a RETAIL reference price, not wholesale cost, landed cost, sales, recent demand or a shipping quote. Exact wholesale cost, US shipping, payment fees, returns, CPA and recent sales are unknown; HOLD for launch. Supplier lists large size for dogs 30\u201360 lb. Dropshipping routes confirmed on https://sodapup.com/pages/become-a-wholesaler?view=sp-dropship through Collective, TopDawg, Doba or ShopDot. Retail shipping policy: Colorado warehouse, usually 1\u20132 business day processing, transit varies; these are NOT account-specific dropship terms. Stock not independently verified."
+    },
+    {
+      "platform": "supplier",
+      "market": "US",
+      "scope": "product",
+      "metric": "catalog_price",
+      "unit": "USD retail price",
+      "currency": "USD",
+      "niche": "Christmas pet gifts",
+      "tags": [
+        "Christmas",
+        "pet",
+        "dropshipping",
+        "validation-pending"
+      ],
+      "provider": "Manual primary supplier page audit",
+      "dataStatus": "manual",
+      "collectionMethod": "manual",
+      "dataAt": "2026-10-28T00:00:00Z",
+      "title": "SodaPup Christmas Candy Cane pet chew toy \u2014 Red / Nylon",
+      "externalId": "sp-candy-cane-chew-toy-red",
+      "sourceUrl": "https://sodapup.com/products/sp-candy-cane-chew-toy-red",
+      "canonicalUrl": "https://sodapup.com/products/sp-candy-cane-chew-toy-red",
+      "value": 12.99,
+      "variant": "Red / Candy Cane Nylon Chew Toy",
+      "identityKey": "supplier:sp-candy-cane-chew-toy-red:red / candy cane nylon chew toy",
+      "limitations": "Public supplier catalog snapshot retrieved 2026-10-29; conservative underlying date 2026-10-28 because some indexed page snapshots were crawled yesterday. Market US is the research target, not verified customer location. This is a RETAIL reference price, not wholesale cost, landed cost, sales, recent demand or a shipping quote. Exact wholesale cost, US shipping, payment fees, returns, CPA and recent sales are unknown; HOLD for launch. Supplier page has both Sold out text and Add to cart in extracted content: stock remains UNKNOWN pending a live variant inventory check. Recommended dogs 15\u201380 lb. Supplier-level dropshipping route confirmed at https://sodapup.com/pages/become-a-wholesaler?view=sp-dropship. No exact stock or delivery quote."
+    },
+    {
+      "platform": "supplier",
+      "market": "US",
+      "scope": "product",
+      "metric": "catalog_price",
+      "unit": "USD retail price",
+      "currency": "USD",
+      "niche": "Christmas pet gifts",
+      "tags": [
+        "Christmas",
+        "pet",
+        "dropshipping",
+        "validation-pending"
+      ],
+      "provider": "Manual primary supplier page audit",
+      "dataStatus": "manual",
+      "collectionMethod": "manual",
+      "dataAt": "2026-10-28T00:00:00Z",
+      "title": "As You Wish Christmas pet bandana \u2014 Scribble Merry Christmas / Black / S",
+      "externalId": "66-25-15-SMBK",
+      "sourceUrl": "https://asyouwishapparel.com/products/christmas-dog-bandana-scribble-merry-38473",
+      "canonicalUrl": "https://asyouwishapparel.com/products/christmas-dog-bandana-scribble-merry-38473",
+      "value": 8,
+      "variant": "Black / S / 66-25-15 SMBK",
+      "identityKey": "supplier:66-25-15-SMBK:black / s / 66-25-15 smbk",
+      "limitations": "Public supplier catalog snapshot retrieved 2026-10-29; conservative underlying date 2026-10-28 because some indexed page snapshots were crawled yesterday. Market US is the research target, not verified customer location. This is a RETAIL reference price, not wholesale cost, landed cost, sales, recent demand or a shipping quote. Exact wholesale cost, US shipping, payment fees, returns, CPA and recent sales are unknown; HOLD for launch. Cotton tie-on bandana, small fits necks up to 15 inches per supplier. Public variant table shows Black / S at $8. Page extraction includes Sold out and Add to cart, so stock remains UNKNOWN. Supplier account-specific dropshipping and US processing/transit terms remain unverified."
+    }
+  ]
+}

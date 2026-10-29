@@ -74,6 +74,36 @@ test("observation validates exact provenance and genuine zero", () => {
 });
 test("new collection cannot refresh old underlying evidence", () =>
   assert.equal(freshness(row({ dataAt: "2026-08-01" }), now).status, "stale"));
+test("supplier catalog facts cannot manufacture demand or cross-platform corroboration", () => {
+  const catalog = row({ platform: "supplier", metric: "catalog_price", value: 15.99, unit: "USD retail", identityKey: "catalog-test" });
+  const only = rank([catalog])[0];
+  assert.equal(only.verdict, "Supplier catalog only · validation pending");
+  assert.equal(only.confidence, 0);
+  assert.equal(only.dimensions.platformCoverage, 0);
+  assert.equal(only.dimensions.independentSources, 0);
+  assert.equal(only.dimensions.catalogSources, 1);
+  assert.equal(only.dimensions.salesEvidence, null);
+  assert.equal(only.economics.complete, false);
+  const amazon = row({ identityKey: "catalog-test" });
+  const combined = rank([amazon, catalog], {
+    [productId("US", "catalog-test")]: { economics: costs, quotes: [{ ...quote, currency: "USD", destination: "US" }] },
+  })[0];
+  assert.equal(combined.dimensions.platformCoverage, 1);
+  assert.ok(combined.missing.includes("Independent cross-platform corroboration"));
+  assert.equal(combined.verdict, "Research candidate");
+  // Defense in depth for already-stored / legacy supplier rows with misleading metrics.
+  const legacy = rank([{ ...catalog, metric: "shop_sales", value: 9999 }])[0];
+  assert.equal(legacy.dimensions.salesEvidence, null);
+  assert.equal(legacy.confidence, 0);
+});
+test("supplier input rejects sales claims, niche scope, negative price and fractional reviews", () => {
+  for (const extra of [
+    { metric: "shop_sales" }, { metric: "views" },
+    { metric: "catalog_price", scope: "niche" },
+    { metric: "catalog_price", value: -1 },
+    { metric: "rating_count", value: 1.5 },
+  ]) assert.throws(() => row({ platform: "supplier", ...extra }), /Supplier records/);
+});
 test("missing shipping remains unknown", () =>
   assert.deepEqual(economics({ ...costs, shipping: null }).missing, [
     "shipping",

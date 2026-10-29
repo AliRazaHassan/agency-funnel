@@ -1,16 +1,10 @@
-function config(){
-  const raw=String(process.env.SHOPIFY_STORE_DOMAIN||"").trim();
-  const store=raw.replace(/^https?:\/\//,"").replace(/\/$/,"");
-  const token=String(process.env.SHOPIFY_ADMIN_TOKEN||"").trim();
-  return {store,token,configured:Boolean(store&&token)};
-}
-export function shopifyStatus(){
-  const c=config();
-  return {configured:c.configured,store:c.store||null,apiVersion:"2026-07",requiredScopes:["write_products"]};
-}
+import { createShopifyConnection } from './shopifyConnection.js';
+const connection = createShopifyConnection();
+export const shopifyStatus = connection.status;
+export const verifyShopifyConnection = connection.verify;
 export async function createShopifyDraft(product={}){
-  const c=config();
-  if(!c.configured) throw new Error("Shopify is not connected. Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN.");
+  const c=connection.status();
+  if(!c.configured) throw new Error("Shopify is not connected. Install the Signal Desk app and configure its credentials in Render.");
   if(!product.title) throw new Error("Product title required");
   const kit=product.launchKit||{};
   const descriptionText=String(kit.description||product.problemSolved||product.pdpBullets?.join(". ")||"Product candidate from Product Hunter AI").replace(/[<>]/g,"");
@@ -39,13 +33,7 @@ export async function createShopifyDraft(product={}){
       userErrors { field message }
     }
   }`;
-  const res=await fetch(`https://${c.store}/admin/api/2026-07/graphql.json`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json","X-Shopify-Access-Token":c.token},
-    body:JSON.stringify({query,variables:{product:input}})
-  });
-  const body=await res.json().catch(()=>({}));
-  if(!res.ok) throw new Error(`Shopify API failed (${res.status})`);
+  const body=await connection.graphql(query,{product:input});
   const errors=body?.data?.productCreate?.userErrors||[];
   if(errors.length) throw new Error(errors.map(x=>x.message).join("; "));
   const created=body?.data?.productCreate?.product;
@@ -61,18 +49,14 @@ export async function createShopifyDraft(product={}){
         userErrors { field message }
       }
     }`;
-    const priceRes=await fetch(`https://${c.store}/admin/api/2026-07/graphql.json`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json","X-Shopify-Access-Token":c.token},
-      body:JSON.stringify({query:updateQuery,variables:{productId:created.id,variants:[{
+    const priceBody=await connection.graphql(updateQuery,{productId:created.id,variants:[{
         id:variantId,
         price:Number(price.toFixed(2)),
         ...(compareAt>price ? {compareAtPrice:Number(compareAt.toFixed(2))} : {})
-      }]}})
+      }]
     });
-    const priceBody=await priceRes.json().catch(()=>({}));
     const priceErrors=priceBody?.data?.productVariantsBulkUpdate?.userErrors||[];
-    if(!priceRes.ok||priceErrors.length) throw new Error(priceErrors.map(x=>x.message).join("; ")||`Shopify price update failed (${priceRes.status})`);
+    if(priceErrors.length) throw new Error(`Product draft ${created.id} was created but pricing failed: ${priceErrors.map(x=>x.message).join("; ")}. Review this draft before importing again.`);
     created.variants={nodes:priceBody?.data?.productVariantsBulkUpdate?.productVariants||created.variants.nodes};
   }
   return {ok:true,product:created,store:c.store,note:"Created as DRAFT with launch copy and pricing when available. Review inventory, image licensing, supplier variant mapping and claims before publishing."};

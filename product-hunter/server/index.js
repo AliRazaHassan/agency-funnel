@@ -20,7 +20,7 @@ import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligen
 import { answerConcierge } from "./concierge.js";
 import { buildValidationPlan } from "./validation.js";
 import { initResearchStore, researchStoreMode, trackProducts, listTrackedProducts, getHistory, updateValidationStatus, addAdTest, getAdTests, saveSupplierVerification, getSupplierVerification } from "./researchStore.js";
-import { shopifyStatus, createShopifyDraft } from "./shopify.js";
+import { shopifyStatus, createShopifyDraft, verifyShopifyConnection } from "./shopify.js";
 import { getUpcomingEvents } from "./seasonal.js";
 import { discoverProductsLive } from "./liveDiscovery.js";
 import { buildLaunchKit } from "./launchKit.js";
@@ -332,6 +332,10 @@ app.post("/api/launch-kit", async (req,res)=>{
 });
 
 app.get("/api/shopify/status", (_req,res)=>res.json(shopifyStatus()));
+app.post("/api/shopify/verify", async (_req,res)=>{
+  try{res.json(await verifyShopifyConnection());}
+  catch(err){res.status(400).json({error:err.message||"Shopify verification failed"});}
+});
 app.post("/api/shopify/products", async (req,res)=>{
   try{res.json(await createShopifyDraft(req.body?.product||req.body||{}));}
   catch(err){res.status(400).json({error:err.message||"Shopify create failed"});}

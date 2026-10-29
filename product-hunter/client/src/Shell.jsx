@@ -154,6 +154,8 @@ export function HomeView({ onOpenDesk, onOpenProject, onSeasonalSearch, region =
 export function SettingsView() {
   const [status, setStatus] = useState(null);
   const [error, setError] = useState("");
+  const [shopifyCheck, setShopifyCheck] = useState(null);
+  const [checkingShopify, setCheckingShopify] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -209,8 +211,15 @@ export function SettingsView() {
         <p><strong>Research history:</strong> {status?.researchStore || "file"}</p><p><strong>Saved projects:</strong> {status?.projectStore || "file"}</p>
         {(status?.researchStore === "file" || status?.projectStore === "file") ? <div className="honesty-banner"><strong>Persistence warning</strong><p>File mode on Render is not durable across service replacement/redeploys. Set Product Hunter DATABASE_URL before relying on saved projects or 7/14/30-day history.</p></div> : null}
         {(status?.researchStore === "keyvalue" || status?.projectStore === "keyvalue") ? <p className="muted">Key Value storage is active. App restarts retain its records; long-term retention depends on the Key Value service persistence and backups.</p> : null}
-        <p><strong>Shopify:</strong> {status?.shopify?.configured ? `connected · ${status.shopify.store}` : "not connected"}</p>
-        {!status?.shopify?.configured ? <p className="muted">Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_TOKEN with write_products scope to enable one-click draft creation.</p> : null}
+        <p><strong>Shopify:</strong> {shopifyCheck?.verified ? `verified · ${shopifyCheck.store}` : status?.shopify?.configured ? `configured; verification needed · ${status.shopify.store}` : `not connected${status?.shopify?.store ? ` · ${status.shopify.store}` : ""}`}</p>
+        <p className="muted">Signal Desk creates product drafts. Supplier imports, stock synchronization and order fulfillment need a connected dropshipping supplier app.</p>
+        {!status?.shopify?.configured ? <p className="muted">Install the Signal Desk app on this store and add its client ID and client secret in Render. Keep credentials out of research fields and chat.</p> : null}
+        <button className="btn" disabled={checkingShopify || !status?.shopify?.configured} onClick={async()=>{
+          setError(""); setShopifyCheck(null); setCheckingShopify(true);
+          try { setShopifyCheck(await api("/api/shopify/verify",{method:"POST",body:{}})); }
+          catch(e) {setError(e.message);} finally {setCheckingShopify(false);}
+        }}>{checkingShopify ? "Verifying Shopify…" : "Verify Shopify connection"}</button>
+        {shopifyCheck?.verified ? <p role="status">Verified {shopifyCheck.name} · {shopifyCheck.currency} · product-write access confirmed. No product was created by this check.</p> : null}
       </div>
     </div>
   );

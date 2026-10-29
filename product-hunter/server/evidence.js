@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-export const VERSION = "evidence-v2";
-export const TTL_DAYS = { meta: 7, tiktok: 7, google: 14, amazon: 7 };
+export const VERSION = "evidence-v3";
+export const TTL_DAYS = { meta: 7, tiktok: 7, google: 14, amazon: 7, supplier: 7 };
 export const finite = (v) =>
   v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v))
     ? Number(v)
@@ -76,7 +76,7 @@ export function httpUrl(v) {
 export function observation(raw, now = new Date()) {
   const platform = String(raw.platform || "").toLowerCase();
   if (!TTL_DAYS[platform])
-    throw new Error("Platform must be meta, tiktok, google or amazon");
+    throw new Error("Platform must be meta, tiktok, google, amazon or supplier");
   const title = String(raw.title || "").trim(),
     sourceUrl = httpUrl(raw.sourceUrl),
     dataAt = raw.dataAt || raw.observedAt;
@@ -96,6 +96,10 @@ export function observation(raw, now = new Date()) {
     value = finite(raw.value);
   if (!metric || value === null || !String(raw.unit || "").trim())
     throw new Error("Metric, numeric value (including zero) and unit required");
+  if (platform === "supplier" && (scope !== "product" ||
+      !["catalog_price", "rating_count"].includes(metric) || value < 0 ||
+      (metric === "rating_count" && !Number.isInteger(value))))
+    throw new Error("Supplier records require an exact product and non-negative catalog_price or integer rating_count; catalog facts are not demand evidence");
   const collectedAt = now.toISOString();
   const canonicalUrl = httpUrl(raw.canonicalUrl) || sourceUrl;
   return {
@@ -404,11 +408,14 @@ export function rankEvidence(
         o.freshness.status === "fresh" &&
         !["modeled", "estimated"].includes(String(o.dataStatus).toLowerCase()),
     );
+    // Catalog facts never establish sales or independent demand corroboration.
+    const catalogRows = freshRows.filter((o) => o.platform === "supplier");
+    const demandRows = freshRows.filter((o) => o.platform !== "supplier");
     const sourcePlatform = new Map();
-    for (const o of freshRows)
+    for (const o of demandRows)
       if (!sourcePlatform.has(o.correlationKey))
         sourcePlatform.set(o.correlationKey, o.platform);
-    const usable = freshRows.filter(
+    const usable = demandRows.filter(
       (o) => sourcePlatform.get(o.correlationKey) === o.platform,
     );
     const independent = [...new Set(usable.map((o) => o.correlationKey))],
@@ -485,6 +492,8 @@ export function rankEvidence(
         ? "Validated by recorded test"
         : ready
           ? "Ready for controlled test"
+          : !usable.length && catalogRows.length
+            ? "Supplier catalog only · validation pending"
           : usable.length
             ? "Research candidate"
             : "Insufficient evidence";
@@ -528,6 +537,7 @@ export function rankEvidence(
           ship.status === "unverified" ? "unverified" : "dated quote",
         independentSources: independent.length,
         platformCoverage: platforms.length,
+        catalogSources: new Set(catalogRows.map((o) => o.correlationKey)).size,
       },
       missing,
       mainRisk:

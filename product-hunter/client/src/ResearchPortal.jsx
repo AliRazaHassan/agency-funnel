@@ -277,7 +277,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
         <div className="hero-kicker">SIGNAL DESK · EVIDENCE RESEARCH</div>
         <h2>Find evidence. Compare products. Plan a test.</h2>
         <p>
-          Research the US market by default. Every candidate starts with an
+          Research the US market by default. Supplier catalog facts are not demand proof. Every candidate starts with an
           exact, dated source observation.
         </p>
       </div>
@@ -437,8 +437,9 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
                   <strong>{p.verdict}</strong>
                   <p>
                     Research confidence {p.confidence}/100 ·{" "}
-                    {p.dimensions.platformCoverage} platforms
+                    {p.dimensions.platformCoverage} demand platforms
                   </p>
+                  {p.dimensions.catalogSources ? <p>Supplier catalog saved · retail prices are not landed costs or shipping quotes.</p> : null}
                   <p>
                     Contribution {money(p.economics.contribution)} · margin{" "}
                     {p.economics.marginPct ?? "Unknown"}% · delivery{" "}
@@ -569,6 +570,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
             link the same exact variant across platforms; leave blank when
             unsure.
           </p>
+          <p>For supplier pages choose supplier and use catalog_price (USD retail price) or rating_count (cumulative reviews). These records never count as sales, attention or cross-platform demand. Keep exact variant and shipping limitations in the imported limitations field.</p>
           <form
             className="research-query"
             onSubmit={(e) => {
@@ -594,9 +596,11 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
                 {k === "platform" ? (
                   <select
                     value={obs[k]}
-                    onChange={(e) => setObs({ ...obs, [k]: e.target.value })}
+                    onChange={(e) => setObs({ ...obs, [k]: e.target.value,
+                      ...(e.target.value === "supplier" ? { scope: "product", metric: "catalog_price", unit: "USD retail price" } : {}),
+                    })}
                   >
-                    {["amazon", "meta", "tiktok", "google"].map((x) => (
+                    {["amazon", "meta", "tiktok", "google", "supplier"].map((x) => (
                       <option key={x}>{x}</option>
                     ))}
                   </select>
@@ -726,7 +730,7 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
               Version {selected.scoreVersion}. Confidence weights: 15 per fresh
               platform (max 4), 20 for observed positive sales, 10 each for
               competition, complete economics and dated delivery; cap 100.
-              Modeled and stale records excluded. No competition metric means
+              Supplier catalog facts, modeled and stale records excluded from demand scoring. No competition metric means
               unknown competition.
             </p>
           </details>

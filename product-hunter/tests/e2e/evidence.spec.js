@@ -13,6 +13,20 @@ const fixture = {
   sourceUrl: "https://example.com/fixture-ornament",
   niche: "Pet gifts",
 };
+test("supplier catalog imports persist without becoming demand evidence", async ({ request }) => {
+  await request.post("/api/auth/login", { data: { password: "e2e-secret" } });
+  const supplier = { ...fixture, platform: "supplier", externalId: "SUPPLIER-CATALOG-FIXTURE", title: "Supplier catalog regression", metric: "catalog_price", value: 15.99, unit: "USD retail", identityKey: "supplier-regression" };
+  expect((await request.post("/api/research/import", { data: { observations: [supplier] } })).status()).toBe(200);
+  expect((await request.post("/api/research/import", { data: { observations: [{ ...supplier, metric: "shop_sales" }] } })).status()).toBe(400);
+  const result = await (await request.post("/api/research/research", { data: { query: "catalog regression", constraints: { market: "US" }, refresh: false } })).json();
+  expect(result.products).toHaveLength(1);
+  expect(result.products[0].verdict).toBe("Supplier catalog only · validation pending");
+  expect(result.products[0].confidence).toBe(0);
+  expect(result.products[0].dimensions.platformCoverage).toBe(0);
+  expect(result.products[0].dimensions.salesEvidence).toBeNull();
+  const saved = await (await request.get("/api/research/state")).json();
+  expect(saved.observations.find(o => o.externalId === supplier.externalId).dataStatus).toBe("manual");
+});
 test("evidence API auth import filters save quotes tests refresh export", async ({
   request,
 }) => {

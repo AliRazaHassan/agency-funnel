@@ -6,7 +6,7 @@
 |--------|------|----------------|
 | **Wikimedia Pageviews** | $0 | Live public interest |
 | **Cited industry totals** | $0 | Modeled niche $ (labeled) |
-| **Google Trends** | $0 opt-in (`ENABLE_GOOGLE_TRENDS=1`) | Relative search interest |
+| **Google Trends** | $0 opt-in (`ENABLE_GOOGLE_TRENDS=1` for desk **and** evidence; else prefer Apify) | Relative search interest |
 
 No monthly Keepa required for Scout / Hunt / Winning scorecard.
 

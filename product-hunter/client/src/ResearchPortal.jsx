@@ -542,19 +542,32 @@ export function ResearchPortal({ initialQuery = "", autoResearch = false }) {
           <p>
             Storage: {status?.storage || "checking"} · {status?.monitoring}
           </p>
+          {status?.googleTrends ? (
+            <p className="muted">
+              Google Trends direct: {status.googleTrends.directEnabled ? "ON (ENABLE_GOOGLE_TRENDS=1)" : "OFF"} · {status.googleTrends.semantics}
+            </p>
+          ) : null}
           {status?.providers.map((p) => (
             <div key={p.platform}>
               <h4>
                 {p.platform.toUpperCase()} ·{" "}
+                <span className={`source-status ${String(p.mode || "UNAVAILABLE").toLowerCase()}`}>
+                  {p.mode || "UNAVAILABLE"}
+                </span>
+                {" · "}
                 {p.configured ? "adapter available" : "configuration required"}
               </h4>
               <p>{p.note}</p>
+              {p.preferredPath ? <p className="muted">Preferred path: {p.preferredPath}</p> : null}
               {result?.providers
                 ?.filter((r) => r.platform === p.platform)
                 .map((r) => (
                   <p key={r.platform}>
-                    {r.status}: {r.reason || `${r.count} observations`} ·{" "}
-                    {r.completedAt}
+                    <span className={`source-status ${String(r.mode || r.status || "unavailable").toLowerCase()}`}>
+                      {r.mode || r.status}
+                    </span>
+                    {": "}
+                    {r.reason || `${r.count} observations`} · {r.completedAt}
                   </p>
                 ))}
             </div>

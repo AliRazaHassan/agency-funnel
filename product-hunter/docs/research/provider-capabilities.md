@@ -7,7 +7,7 @@ Reviewed 23 October 2026 (Pakistan). This is an implementation and capability in
 | Amazon | Keepa snapshot, optional API pull script, manual observations | Requires dated ASIN records. Bought wording remains separate from modeled monthly sales. Original URLs and market retained. No automatic paid pull. | Empty snapshot; production health also reports no Keepa key. |
 | Meta | Optional Ad Library token integration, otherwise curated research links | Preserves exact ad ID, advertiser and creative URL from successful active-ad responses. Active ads are attention, not purchases. Seeds and search links excluded. | No usable structured observations locally. Production token status not read. |
 | TikTok | Best-effort public Creative Center response, curated fallback | Accepts only exact IDs, numeric metrics, units and underlying dates. Legacy category/seed prose cannot become SKU sales proof. | No usable structured observations. |
-| Google | Opt-in Trends endpoint; Wikipedia proxy separately exists in legacy code | Trends query records remain niche scoped. Uses last underlying time-series date. No Wikipedia demand substitution in evidence ranking. | Disabled locally. Production setting not read. |
+| Google | **Unified opt-in:** `ENABLE_GOOGLE_TRENDS=1` for desk freeSignals **and** evidence direct collect. Unset/≠1 = off. Prefer Apify Automatic hunt on Render. Wikipedia remains desk-only freeSignals, never evidence ranking. | Trends query records remain niche scoped. Uses last underlying time-series date. No Wikipedia demand substitution. | Direct often 429 on cloud; Apify preferred when `APIFY_TOKEN` set. |
 
 ## Import and identity
 
@@ -28,6 +28,18 @@ The new evidence store uses existing `DATABASE_URL` (Postgres) or `REDIS_URL`. I
 Refresh is manual, rate limited to one active run and three seconds between starts. Provider failures are isolated. Existing source integrations have bounded request timeouts. There is no scheduled monitor, provider retry/backoff scheduler, or automatic credential setup. No new paid infrastructure was provisioned. Production datastore connectivity has NOT been verified in this change. Redis/Postgres integration tests remain required.
 
 Configure credentials only in the existing Render service's environment settings or an approved secrets interface. Never put secret values in this document or chat. Existing Render tooling exposed service/deploy/log reads and environment updates, but no secret-reading operation was used. Current production OpenAI availability and empty Amazon snapshot were established through public health, not secret inspection.
+
+## Honesty modes (LIVE / SEED / UNAVAILABLE)
+
+`/api/health` `dataMode.sourceModes` and `/api/research/status` `sourceModes` label each of Amazon, Meta, TikTok, Google as:
+
+| Mode | Meaning |
+|------|---------|
+| **LIVE** | Configured path can return structured observations (token, Apify, or non-empty Keepa snapshot). |
+| **SEED** | Desk curated social board only — **not** evidence / not live tops. |
+| **UNAVAILABLE** | Empty or disabled; collect fails with an explicit reason (prefer Apify when token present). |
+
+Radar hides numeric platform scores when status is not LIVE/RECENT/MANUAL.
 
 ## Remaining integration work
 

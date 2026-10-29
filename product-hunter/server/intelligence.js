@@ -57,7 +57,7 @@ export function saturation({demandGrowth=0,advertiserGrowth=null}={}){
 
 export function evidenceConfidence(dataStatus={}){
   const keys=["amazon","tiktok","meta","google"];
-  const weights={LIVE:100,RECENT:85,MANUAL:70,ESTIMATED:35,UNAVAILABLE:0};
+  const weights={LIVE:100,RECENT:85,MANUAL:70,ESTIMATED:35,SEED:20,UNAVAILABLE:0};
   const values=keys.map(k=>weights[String(dataStatus?.[k]||"UNAVAILABLE").toUpperCase()] ?? 0);
   return Math.round(avg(values));
 }

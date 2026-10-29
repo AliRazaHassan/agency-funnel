@@ -1262,8 +1262,9 @@ tr.row-active td {
 .source-status{display:block!important;margin-top:.12rem;font-size:.48rem!important;font-weight:800;letter-spacing:.04em;line-height:1.1}
 .source-status.live,.source-status.recent{color:#17643a}
 .source-status.manual{color:#245a9b}
-.source-status.estimated{color:#8a5a10}
-.source-status.unavailable{color:#8a949b}
+.source-status.estimated,.source-status.seed{color:#8a5a10}
+.source-status.unavailable,.source-status.failed{color:#8a949b}
+.source-status.seed{letter-spacing:.06em}
 
 .proof-pill.pending{background:#fff4e8;color:#8a5a10;border-color:#ead7b8}
 .supplier-verify-card .ad-test-form{margin-top:.65rem}

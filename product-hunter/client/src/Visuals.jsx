@@ -795,6 +795,8 @@ export function SocialTrendsBoard({ trends, onUseNiche }) {
   const tiktok = trends.tiktok || [];
   const meta = trends.meta || [];
   const manual = trends.manual || [];
+  const tiktokMode = trends.modes?.tiktok || (String(trends.sources?.tiktok || "").includes("seed") ? "SEED" : "LIVE");
+  const metaMode = trends.modes?.meta || (String(trends.sources?.meta || "").includes("seed") ? "SEED" : "LIVE");
 
   return (
     <div className="viz-board social-trends">
@@ -803,9 +805,10 @@ export function SocialTrendsBoard({ trends, onUseNiche }) {
         <p className="muted">{trends.honesty}</p>
       </div>
       <div className="honesty-banner">
-        <strong>Creatives ≠ sold units</strong>
+        <strong>Creatives ≠ sold units · SEED is not live tops</strong>
         <p>
-          Sources: TikTok {trends.sources?.tiktok} · Meta {trends.sources?.meta}
+          Sources: TikTok <span className={`source-status ${String(tiktokMode).toLowerCase()}`}>{tiktokMode}</span> {trends.sources?.tiktok}
+          {" · "}Meta <span className={`source-status ${String(metaMode).toLowerCase()}`}>{metaMode}</span> {trends.sources?.meta}
           {manual.length ? ` · ${manual.length} manual` : ""}. Open hub links to verify live charts.
         </p>
         <div className="link-row" style={{ marginTop: "0.5rem" }}>
@@ -823,8 +826,8 @@ export function SocialTrendsBoard({ trends, onUseNiche }) {
       </div>
 
       <div className="viz-grid two" style={{ marginTop: "0.75rem" }}>
-        <TrendColumn title="TikTok" items={tiktok} onUseNiche={onUseNiche} />
-        <TrendColumn title="Meta / Facebook" items={meta} onUseNiche={onUseNiche} />
+        <TrendColumn title={`TikTok · ${tiktokMode}`} items={tiktok} mode={tiktokMode} onUseNiche={onUseNiche} />
+        <TrendColumn title={`Meta / Facebook · ${metaMode}`} items={meta} mode={metaMode} onUseNiche={onUseNiche} />
       </div>
 
       {manual.length ? (
@@ -838,12 +841,12 @@ export function SocialTrendsBoard({ trends, onUseNiche }) {
   );
 }
 
-function TrendColumn({ title, items, onUseNiche }) {
+function TrendColumn({ title, items, mode, onUseNiche }) {
   return (
     <div className="viz-card">
       <div className="viz-head">
         <h3>{title}</h3>
-        <p className="muted">{items.length} ideas · click research link</p>
+        <p className="muted">{items.length} ideas · {mode || "—"} · click research link</p>
       </div>
       <ul className="trend-list">
         {items.map((t, i) => (
@@ -852,6 +855,9 @@ function TrendColumn({ title, items, onUseNiche }) {
               <strong>
                 #{t.rank || i + 1} {t.title}
               </strong>
+              <span className={`source-status ${String(t.dataStatus || mode || "UNAVAILABLE").toLowerCase()}`}>
+                {t.dataStatus || mode || "UNAVAILABLE"}
+              </span>
               <span className={`win-badge ${t.platform === "tiktok" ? "watch" : "pass"}`}>
                 {t.platform}
               </span>

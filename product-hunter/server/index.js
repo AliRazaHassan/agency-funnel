@@ -14,6 +14,9 @@ import { productsToMatrixifyCsv } from "./exportShopify.js";
 import { createAuth } from "./auth.js";
 import { keepaStatus, saveManualAmazonEntries } from "./keepa.js";
 import { fetchSocialTrends, saveManualSocialTrends } from "./socialTrends.js";
+import { capabilities } from "./evidenceProviders.js";
+import { apifyConfigured } from "./apifyEvidence.js";
+import { googleTrendsDirectEnabled } from "./freeSignals.js";
 import { listProjects, getProject, saveProject, deleteProject, projectStoreMode } from "./projects.js";
 import { buildClientBrief } from "./clientBrief.js";
 import { buildIntelligence, searchIntelligence, whyTrending } from "./intelligence.js";
@@ -71,6 +74,7 @@ let lastHuntProducts = [];
 
 app.get("/api/health", (_req, res) => {
   const k = keepaStatus();
+  const providers = capabilities();
   res.json({
     ok: true,
     openai: hasOpenAIKey,
@@ -83,6 +87,15 @@ app.get("/api/health", (_req, res) => {
       freeSignals: true,
       keepaLiveKey: k.liveKeyConfigured,
       keepaSnapshot: k.snapshot,
+      apifyConfigured: apifyConfigured(),
+      googleTrendsDirect: googleTrendsDirectEnabled(),
+      sourceModes: Object.fromEntries(providers.map((p) => [p.platform, p.mode])),
+      providers: providers.map((p) => ({
+        platform: p.platform,
+        mode: p.mode,
+        configured: p.configured,
+        preferredPath: p.preferredPath,
+      })),
     },
   });
 });
@@ -456,6 +469,15 @@ app.get("/api/workspace/status", async (_req, res) => {
     researchStore: researchStoreMode(),
     projectStore: await projectStoreMode(),
     shopify: shopifyStatus(),
+    apify: { configured: apifyConfigured() },
+    googleTrends: {
+      directEnabled: googleTrendsDirectEnabled(),
+      semantics: 'opt-in: ENABLE_GOOGLE_TRENDS="1" for desk + evidence direct; prefer Apify when token set',
+    },
+    sourceModes: Object.fromEntries(
+      capabilities().map((p) => [p.platform, p.mode]),
+    ),
+    providers: capabilities(),
   });
 });
 

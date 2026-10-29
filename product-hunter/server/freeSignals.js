@@ -48,6 +48,14 @@ function cacheSet(key, value) {
   return value;
 }
 
+/**
+ * Direct unofficial Google Trends is opt-in everywhere (desk freeSignals + evidence).
+ * Unset / any value other than "1" = off. Prefer Apify Trends Actor on Render when APIFY_TOKEN is set.
+ */
+export function googleTrendsDirectEnabled() {
+  return process.env.ENABLE_GOOGLE_TRENDS === "1";
+}
+
 async function wikiDailyViews(title, start, end) {
   const url =
     `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/` +
@@ -245,11 +253,10 @@ export async function fetchFreeDemandSignal(niche, geo = "US") {
   if (cached) return { ...cached, cached: true };
 
   const wiki = await fetchWikipediaInterest(niche);
-  // Google Trends often hangs / 429 on cloud + Windows — opt-in only
-  const trends =
-    process.env.ENABLE_GOOGLE_TRENDS === "1"
-      ? await fetchGoogleTrendsSoft(String(niche || "").split("&")[0].trim(), trendsGeo)
-      : null;
+  // Google Trends often hangs / 429 on cloud + Windows — opt-in only (see googleTrendsDirectEnabled)
+  const trends = googleTrendsDirectEnabled()
+    ? await fetchGoogleTrendsSoft(String(niche || "").split("&")[0].trim(), trendsGeo)
+    : null;
 
   const parts = [wiki, trends].filter(Boolean);
   if (!parts.length) {
